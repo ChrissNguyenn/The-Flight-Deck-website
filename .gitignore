@@ -1,0 +1,14 @@
+# Cấu hình riêng của máy (đường dẫn cá nhân, danh sách quyền) — không đẩy lên
+.claude/settings.local.json
+
+# Cấu hình THẬT (chứa SCRIPT_URL + ADMIN_PIN) — không đẩy lên GitHub.
+# Chép config.example.js thành config.js rồi điền giá trị của bạn.
+config.js
+
+# Rác hệ điều hành
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Node (chỉ dùng khi chạy test cục bộ)
+node_modules/

@@ -1,0 +1,18 @@
+{
+  "name": "The Flight Deck — Lượt bay của bạn",
+  "short_name": "Flight Deck",
+  "description": "Theo dõi hàng chờ trải nghiệm bay The Flight Deck × Flight to Carrot Day 2026",
+  "start_url": "./experience.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0a1628",
+  "theme_color": "#0a1628",
+  "icons": [
+    {
+      "src": "images/the-flight-deck-logo.png",
+      "sizes": "1063x1063",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

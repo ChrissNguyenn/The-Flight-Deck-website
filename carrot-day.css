@@ -1,0 +1,1369 @@
+/* ============================================================
+   CARROT DAY / JUN PHAM AIRWAYS — theme layer
+   The Flight Deck × Jun Pham
+   ------------------------------------------------------------
+   Load AFTER style.css:
+     <link rel="stylesheet" href="style.css">
+     <link rel="stylesheet" href="carrot-day.css">
+
+   This file re-skins the existing site (dark navy -> sky blue
+   poster theme) and adds the boarding-pass / stamp / starburst
+   motifs. style.css is left untouched so the old theme can be
+   restored by removing one <link>.
+   ============================================================ */
+
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap");
+
+/* ============================================================
+   1. DESIGN TOKENS
+   ============================================================ */
+
+:root {
+  /* ---- Palette -------------------------------------------- */
+  --cd-sky: #c8e6fa;          /* page background            */
+  --cd-sky-deep: #a5d5f2;     /* background gradient bottom */
+  --cd-sky-pale: #e6f4fe;     /* background gradient top    */
+
+  --cd-orange: #f77600;       /* primary accent             */
+  --cd-orange-bright: #ff8f24;
+  --cd-orange-deep: #d35c00;
+  --cd-orange-tint: #ffe9d2;
+
+  --cd-navy: #00205b;         /* secondary accent / ink     */
+  --cd-navy-soft: #40567f;    /* muted body copy on white   */
+  --cd-blue: #1550e8;         /* logo cobalt ("FLIGHT TO")  */
+
+  --cd-green: #00a859;        /* highlight / location tags  */
+  --cd-green-deep: #008144;
+
+  --cd-white: #ffffff;
+  --cd-cream: #fdf6ec;        /* logo sticker halo          */
+  --cd-stamp: #d62b34;        /* passport-stamp red         */
+
+  /* ---- Typography ----------------------------------------- */
+  --cd-font-display: "Poppins", "Nunito", "Segoe UI", system-ui, sans-serif;
+  --cd-font-body: "Plus Jakarta Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --cd-font-ticket: "Space Mono", "SFMono-Regular", "Consolas", ui-monospace, monospace;
+
+  --cd-tracking-wide: 0.18em;
+  --cd-tracking-tight: -0.02em;
+
+  /* ---- Shape & depth -------------------------------------- */
+  --cd-radius-sm: 10px;
+  --cd-radius: 18px;
+  --cd-radius-lg: 28px;
+  --cd-radius-pill: 999px;
+
+  --cd-shadow-sm: 0 4px 14px rgba(0, 32, 91, 0.1);
+  --cd-shadow: 0 14px 34px rgba(0, 32, 91, 0.16);
+  --cd-shadow-lg: 0 26px 60px rgba(0, 32, 91, 0.22);
+  --cd-shadow-orange: 0 10px 26px rgba(247, 118, 0, 0.36);
+
+  /* ---- Starburst polygons (used by .orange-burst-bg) ------- */
+  --cd-burst-16: polygon(
+    50% 1.2%, 56.3% 18.3%, 69.5% 2.8%, 67.8% 23.4%, 85.5% 14.5%, 77.7% 31.5%,
+    93.3% 32%, 83.4% 43.4%, 96.8% 50%, 83% 56.6%, 93.4% 68%, 76.7% 67.8%,
+    85% 85%, 69.8% 79.6%, 68.1% 93.8%, 56.4% 82.1%, 50% 100.9%, 43% 85.4%,
+    30.7% 96.7%, 31.4% 77.9%, 12.3% 87.7%, 23.5% 67.7%, 1.5% 70.1%, 17.6% 56.4%,
+    2.5% 50%, 18.4% 43.7%, 5% 31.4%, 20.5% 30.3%, 16.2% 16.2%, 30.9% 21.4%,
+    30.5% 2.9%, 43.5% 17.2%
+  );
+  --cd-burst-12: polygon(
+    50% 2.4%, 57.8% 20.8%, 74.4% 7.7%, 71.6% 28.4%, 94.3% 24.4%, 76.7% 42.8%,
+    95.6% 50%, 80.7% 58.2%, 91.4% 73.9%, 70.2% 70.2%, 77.2% 97.2%, 57.7% 78.8%,
+    50% 103%, 42.3% 78.9%, 24.4% 94.4%, 30.1% 69.9%, 5.6% 75.6%, 19.1% 58.3%,
+    0% 50%, 19.8% 41.9%, 5.4% 24.2%, 30.5% 30.5%, 23.8% 4.7%, 42.1% 20.5%
+  );
+
+  /* ---- Compatibility remap --------------------------------
+     style.css components reference these legacy dark-theme
+     variables. Re-pointing them here re-skins every existing
+     page (experience / courses / partners / admin) for free.  */
+  --navy-900: var(--cd-sky);
+  --navy-800: #b7deF8;
+  --navy-700: var(--cd-orange-tint);
+  --sky-500: var(--cd-orange);
+  --sky-400: var(--cd-orange-deep);
+  --amber-500: var(--cd-green);
+  --amber-400: var(--cd-green-deep);
+  --text-main: var(--cd-navy);
+  --text-dim: var(--cd-navy-soft);
+  --card-bg: var(--cd-white);
+  --card-border: #bcd9ef;
+  --radius: var(--cd-radius);
+  --shadow: var(--cd-shadow);
+}
+
+/* ============================================================
+   2. GLOBAL — sky background with soft CSS clouds
+   ============================================================ */
+
+body {
+  font-family: var(--cd-font-body);
+  color: var(--cd-navy);
+  background: linear-gradient(180deg, var(--cd-sky-pale) 0%, var(--cd-sky) 42%, var(--cd-sky-deep) 100%);
+  background-attachment: fixed;
+  position: relative;
+}
+
+/* Cloud layer: overlapping soft radial blobs, drifting slowly. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-repeat: no-repeat;
+  background-image:
+    radial-gradient(38% 22% at 12% 14%, rgba(255, 255, 255, 0.95), transparent 70%),
+    radial-gradient(26% 16% at 26% 20%, rgba(255, 255, 255, 0.8), transparent 70%),
+    radial-gradient(44% 24% at 86% 26%, rgba(255, 255, 255, 0.9), transparent 70%),
+    radial-gradient(30% 18% at 70% 34%, rgba(255, 255, 255, 0.7), transparent 70%),
+    radial-gradient(50% 26% at 46% 68%, rgba(255, 255, 255, 0.75), transparent 72%),
+    radial-gradient(34% 20% at 8% 84%, rgba(255, 255, 255, 0.85), transparent 70%),
+    radial-gradient(40% 22% at 92% 88%, rgba(255, 255, 255, 0.8), transparent 70%);
+  animation: cd-drift 90s ease-in-out infinite alternate;
+}
+
+@keyframes cd-drift {
+  from { transform: translate3d(-1.5%, 0, 0) scale(1.02); }
+  to   { transform: translate3d(1.5%, -1%, 0) scale(1.06); }
+}
+
+h1, h2, h3, h4,
+.section-title,
+.collab-title,
+.hh-title {
+  font-family: var(--cd-font-display);
+  font-weight: 800;
+  letter-spacing: var(--cd-tracking-tight);
+  color: var(--cd-navy);
+}
+
+a { color: var(--cd-orange-deep); }
+
+::selection {
+  background: var(--cd-orange);
+  color: var(--cd-white);
+}
+
+/* ============================================================
+   3. HEADER / NAVBAR
+   ============================================================ */
+
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: rgba(255, 255, 255, 0.86);
+  backdrop-filter: blur(10px);
+  border-bottom: 3px solid var(--cd-orange);
+  box-shadow: 0 4px 18px rgba(0, 32, 91, 0.08);
+}
+
+.nav {
+  max-width: 1140px;
+  margin: 0 auto;
+  padding: 0.65rem 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  text-decoration: none;
+  color: var(--cd-navy);
+}
+
+/* Jun Pham Airways wordmark in the navbar */
+.brand .brand-logo {
+  height: clamp(38px, 6vw, 52px);
+  width: auto;
+  display: block;
+  flex-shrink: 0;
+}
+
+.brand .brand-divider {
+  width: 2px;
+  align-self: stretch;
+  margin: 0.15rem 0;
+  background: var(--cd-sky-deep);
+  border-radius: 2px;
+}
+
+.brand .brand-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+
+.brand .brand-text strong {
+  font-family: var(--cd-font-display);
+  font-weight: 800;
+  font-size: 0.95rem;
+  color: var(--cd-navy);
+}
+
+.brand .brand-text small {
+  font-family: var(--cd-font-ticket);
+  font-size: 0.62rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--cd-navy-soft);
+}
+
+.nav-links {
+  display: flex;
+  gap: 0.3rem;
+  flex-wrap: wrap;
+}
+
+.nav-links a {
+  font-family: var(--cd-font-body);
+  font-weight: 600;
+  font-size: 0.92rem;
+  color: var(--cd-navy);
+  text-decoration: none;
+  padding: 0.45rem 0.95rem;
+  border-radius: var(--cd-radius-pill);
+  transition: background 0.2s, color 0.2s;
+}
+
+.nav-links a:hover,
+.nav-links a:focus-visible {
+  background: var(--cd-orange-tint);
+  color: var(--cd-orange-deep);
+}
+
+.nav-links a.active {
+  background: var(--cd-orange);
+  color: var(--cd-navy);
+  font-weight: 700;
+}
+
+/* ============================================================
+   4. HERO
+   ============================================================ */
+
+.hero,
+.hero.hero-compact,
+.hero.hero--solid {
+  position: relative;
+  overflow: hidden;
+  padding: clamp(2.2rem, 6vw, 4rem) 1.2rem clamp(2.6rem, 6vw, 4rem);
+  text-align: center;
+  background: none;
+}
+
+/* Collaboration lockup: The Flight Deck × Jun Pham Airways */
+.hero-lockup {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(0.8rem, 3vw, 1.6rem);
+  flex-wrap: wrap;
+  margin-bottom: clamp(1.2rem, 3vw, 2rem);
+}
+
+.hero-lockup__tfd {
+  width: clamp(56px, 9vw, 78px);
+  height: clamp(56px, 9vw, 78px);
+  object-fit: contain;
+  background: var(--cd-white);
+  border-radius: 16px;
+  padding: 6px;
+  box-shadow: var(--cd-shadow-sm);
+}
+
+.hero-lockup__x {
+  font-family: var(--cd-font-display);
+  font-weight: 800;
+  font-size: clamp(1.1rem, 3vw, 1.7rem);
+  color: var(--cd-navy);
+  opacity: 0.55;
+}
+
+.hero-lockup__jpa {
+  width: clamp(190px, 34vw, 340px);
+  height: auto;
+  display: block;
+}
+
+/* Kicker chip */
+.hero .kicker,
+.cd-kicker {
+  display: inline-block;
+  font-family: var(--cd-font-ticket);
+  font-weight: 700;
+  font-size: clamp(0.62rem, 1.6vw, 0.75rem);
+  letter-spacing: var(--cd-tracking-wide);
+  text-transform: uppercase;
+  color: var(--cd-navy);
+  background: var(--cd-white);
+  border: 2px solid var(--cd-navy);
+  padding: 0.4rem 1.1rem;
+  border-radius: var(--cd-radius-pill);
+  margin-bottom: clamp(0.9rem, 2.5vw, 1.4rem);
+  box-shadow: var(--cd-shadow-sm);
+}
+
+/* --- The big poster title ---------------------------------- */
+.carrot-title {
+  position: relative;
+  z-index: 1;
+  margin: 0 auto clamp(1.4rem, 4vw, 2.2rem);
+  max-width: 15ch;
+  line-height: 0.92;
+  text-wrap: balance;
+}
+
+.carrot-title__pre {
+  display: block;
+  font-family: var(--cd-font-display);
+  font-weight: 800;
+  font-size: clamp(1.5rem, 6.5vw, 3.4rem);
+  letter-spacing: var(--cd-tracking-tight);
+  color: var(--cd-blue);
+  margin-bottom: 0.12em;
+}
+
+.carrot-title__main {
+  display: block;
+  font-family: var(--cd-font-display);
+  font-weight: 900;
+  font-size: clamp(3rem, 15vw, 9rem);
+  letter-spacing: -0.035em;
+  color: var(--cd-orange);
+  /* Layered cream "sticker" outline, like the logo lettering. */
+  text-shadow:
+    3px 3px 0 var(--cd-cream),
+    -3px 3px 0 var(--cd-cream),
+    3px -3px 0 var(--cd-cream),
+    -3px -3px 0 var(--cd-cream),
+    0 5px 0 rgba(0, 32, 91, 0.08);
+}
+
+.carrot-title__sub {
+  display: block;
+  max-width: 34ch;
+  margin-inline: auto;
+  font-family: var(--cd-font-ticket);
+  font-weight: 700;
+  font-size: clamp(0.7rem, 2.2vw, 1rem);
+  letter-spacing: var(--cd-tracking-wide);
+  text-transform: uppercase;
+  color: var(--cd-navy);
+  margin-top: 0.9em;
+  line-height: 1.5;
+}
+
+.hero p.lead,
+.cd-lead {
+  position: relative;
+  z-index: 1;
+  font-family: var(--cd-font-body);
+  font-size: clamp(1rem, 2.2vw, 1.15rem);
+  font-weight: 500;
+  color: var(--cd-navy);
+  max-width: 58ch;
+  margin: 0 auto clamp(1.6rem, 4vw, 2.4rem);
+}
+
+/* Legacy hero headings on other pages */
+.hero h1 .accent,
+.hero.hero--solid h1 .accent,
+.mad-accent,
+.hh-accent {
+  background: none;
+  -webkit-text-fill-color: currentColor;
+  color: var(--cd-orange);
+}
+
+/* ============================================================
+   5. DECORATIVE UTILITY — .orange-burst-bg
+   ------------------------------------------------------------
+   Put this on a WRAPPER around the element you want energised
+   (it paints behind its own content, so the wrapper itself must
+   not have an opaque background).
+       <div class="orange-burst-bg"> <div class="card">…</div> </div>
+   Modifiers: --sm (tighter), --green, --behind-image
+   ============================================================ */
+
+.orange-burst-bg {
+  position: relative;
+  isolation: isolate;
+}
+
+.orange-burst-bg::before {
+  content: "";
+  position: absolute;
+  inset: -7% -5%;
+  z-index: -1;
+  background: var(--cd-orange);
+  clip-path: var(--cd-burst-16);
+  animation: cd-burst-spin 60s linear infinite;
+  transform-origin: 50% 50%;
+}
+
+/* Softer second ring for depth */
+.orange-burst-bg::after {
+  content: "";
+  position: absolute;
+  inset: -11% -8%;
+  z-index: -2;
+  background: var(--cd-orange-bright);
+  opacity: 0.28;
+  clip-path: var(--cd-burst-12);
+  animation: cd-burst-spin 90s linear infinite reverse;
+  transform-origin: 50% 50%;
+}
+
+.orange-burst-bg--sm::before { inset: -4% -3%; }
+.orange-burst-bg--sm::after  { inset: -7% -5%; }
+
+.orange-burst-bg--lg::before { inset: -14% -10%; }
+.orange-burst-bg--lg::after  { inset: -20% -16%; }
+
+.orange-burst-bg--green::before { background: var(--cd-green); }
+.orange-burst-bg--green::after  { background: var(--cd-green); }
+
+@keyframes cd-burst-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ============================================================
+   6. DECORATIVE UTILITY — .boarding-pass-card
+   ============================================================ */
+
+.boarding-pass-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 260px;
+  gap: 0;
+  max-width: 940px;
+  margin: 0 auto;
+  text-align: left;
+  background: var(--cd-white);
+  border-radius: var(--cd-radius-lg);
+  box-shadow: var(--cd-shadow-lg);
+  overflow: hidden;
+}
+
+.boarding-pass-card--hero {
+  max-width: 1000px;
+}
+
+/* Hero wrapper: keeps the starburst tucked behind the pass instead of
+   letting the spikes run into the surrounding copy. */
+.hero-pass {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: clamp(1.4rem, 3vw, 2.2rem) 0;
+}
+
+.hero .btn-row {
+  position: relative;
+  z-index: 2;
+  margin-top: clamp(1.4rem, 3vw, 2rem);
+}
+
+/* --- perforation between body and stub --------------------- */
+.bp-main {
+  padding: clamp(1.4rem, 3.5vw, 2.4rem);
+  position: relative;
+}
+
+.bp-stub {
+  position: relative;
+  padding: clamp(1.4rem, 3.5vw, 2.2rem) clamp(1.2rem, 3vw, 1.8rem);
+  background: var(--cd-cream);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.9rem;
+  text-align: center;
+  border-left: 3px dashed var(--cd-sky-deep);
+}
+
+/* tear-off notches sitting on the perforation line */
+.bp-stub::before,
+.bp-stub::after {
+  content: "";
+  position: absolute;
+  left: -15px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--cd-sky);
+  box-shadow: inset 0 -2px 4px rgba(0, 32, 91, 0.12);
+}
+
+.bp-stub::before { top: -13px; }
+.bp-stub::after  { bottom: -13px; }
+
+/* --- airline header row ------------------------------------ */
+.bp-airline {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  padding-bottom: 0.9rem;
+  border-bottom: 2px solid var(--cd-sky);
+  margin-bottom: clamp(1rem, 2.5vw, 1.5rem);
+}
+
+.bp-airline__logo {
+  height: 34px;
+  width: auto;
+}
+
+.bp-airline__name {
+  font-family: var(--cd-font-display);
+  font-weight: 800;
+  font-size: clamp(0.85rem, 2vw, 1rem);
+  letter-spacing: 0.04em;
+  color: var(--cd-navy);
+}
+
+.bp-airline__tag {
+  margin-left: auto;
+  font-family: var(--cd-font-ticket);
+  font-weight: 700;
+  font-size: 0.66rem;
+  letter-spacing: var(--cd-tracking-wide);
+  text-transform: uppercase;
+  color: var(--cd-white);
+  background: var(--cd-navy);
+  padding: 0.32rem 0.8rem;
+  border-radius: var(--cd-radius-pill);
+}
+
+/* --- route: SGN ✈ CRD -------------------------------------- */
+.bp-route {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: clamp(0.6rem, 2vw, 1.2rem);
+  margin-bottom: clamp(1rem, 2.5vw, 1.6rem);
+}
+
+.bp-port { min-width: 0; }
+
+.bp-port--to { text-align: right; }
+
+.bp-port__code {
+  display: block;
+  font-family: var(--cd-font-display);
+  font-weight: 900;
+  font-size: clamp(2rem, 7vw, 3.4rem);
+  line-height: 1;
+  letter-spacing: -0.03em;
+  color: var(--cd-navy);
+}
+
+.bp-port--to .bp-port__code { color: var(--cd-orange); }
+
+.bp-port__city {
+  display: block;
+  font-family: var(--cd-font-ticket);
+  font-size: 0.66rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--cd-navy-soft);
+  margin-top: 0.35rem;
+}
+
+.bp-route__line {
+  position: relative;
+  height: 2px;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--cd-sky-deep) 0 8px,
+    transparent 8px 16px
+  );
+}
+
+.bp-route__line span {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--cd-white);
+  padding: 0 0.5rem;
+  font-size: clamp(1.1rem, 3vw, 1.6rem);
+  color: var(--cd-orange);
+  line-height: 1;
+}
+
+/* --- detail fields (date / time / gate) -------------------- */
+.bp-details {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: clamp(0.8rem, 2vw, 1.4rem);
+  margin: 0 0 clamp(1rem, 2.5vw, 1.5rem);
+}
+
+.bp-field dt,
+.bp-field__label {
+  font-family: var(--cd-font-ticket);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--cd-navy-soft);
+  margin-bottom: 0.25rem;
+}
+
+.bp-field dd,
+.bp-field__value {
+  margin: 0;
+  font-family: var(--cd-font-ticket);
+  font-weight: 700;
+  font-size: clamp(0.95rem, 2.4vw, 1.2rem);
+  color: var(--cd-navy);
+  white-space: nowrap;
+}
+
+/* Location ribbon needs breathing room above the barcode. */
+.bp-main .green-tag {
+  margin-bottom: clamp(0.9rem, 2.2vw, 1.3rem);
+}
+
+.bp-field--accent dd,
+.bp-field--accent .bp-field__value { color: var(--cd-orange-deep); }
+
+/* --- faux barcode ------------------------------------------ */
+.bp-barcode {
+  height: 46px;
+  border-radius: 4px;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--cd-navy) 0 2px,
+    transparent 2px 4px,
+    var(--cd-navy) 4px 7px,
+    transparent 7px 9px,
+    var(--cd-navy) 9px 10px,
+    transparent 10px 14px
+  );
+}
+
+.bp-barcode--stub {
+  height: 60px;
+  width: 100%;
+}
+
+.bp-seat {
+  font-family: var(--cd-font-display);
+  font-weight: 900;
+  font-size: clamp(1.6rem, 5vw, 2.2rem);
+  line-height: 1;
+  color: var(--cd-navy);
+}
+
+/* ============================================================
+   7. DECORATIVE UTILITY — .travel-stamp-badge
+   ============================================================ */
+
+.travel-stamp-badge {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.1rem;
+  width: 124px;
+  height: 124px;
+  /* generous padding so text stays clear of the narrow top/bottom of the ring */
+  padding: 0.75rem 1rem;
+  border-radius: 50%;
+  border: 3px solid var(--cd-stamp);
+  outline: 2px dashed var(--cd-stamp);
+  outline-offset: 5px;
+  color: var(--cd-stamp);
+  text-align: center;
+  transform: rotate(-11deg);
+  opacity: 0.85;
+  flex-shrink: 0;
+}
+
+.travel-stamp-badge__top,
+.travel-stamp-badge__bottom {
+  font-family: var(--cd-font-ticket);
+  font-weight: 700;
+  font-size: 0.46rem;
+  line-height: 1.25;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.travel-stamp-badge__main {
+  font-family: var(--cd-font-display);
+  font-weight: 900;
+  font-size: 0.86rem;
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+}
+
+.travel-stamp-badge__rule {
+  width: 62%;
+  height: 2px;
+  background: currentColor;
+  margin: 0.18rem 0;
+}
+
+.travel-stamp-badge--navy { border-color: var(--cd-navy); outline-color: var(--cd-navy); color: var(--cd-navy); }
+.travel-stamp-badge--green { border-color: var(--cd-green-deep); outline-color: var(--cd-green-deep); color: var(--cd-green-deep); }
+.travel-stamp-badge--sm { width: 84px; height: 84px; }
+.travel-stamp-badge--sm .travel-stamp-badge__main { font-size: 0.68rem; }
+.travel-stamp-badge--sm .travel-stamp-badge__top,
+.travel-stamp-badge--sm .travel-stamp-badge__bottom { font-size: 0.44rem; }
+
+/* Watermark variant: pin a faded stamp into a card corner. */
+.travel-stamp-badge--watermark {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  opacity: 0.16;
+  transform: rotate(13deg);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* ============================================================
+   8. DECORATIVE UTILITY — .green-tag (location call-out)
+   ============================================================ */
+
+.green-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-family: var(--cd-font-display);
+  font-weight: 800;
+  font-size: clamp(0.75rem, 1.9vw, 0.9rem);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--cd-white);
+  background: var(--cd-green);
+  padding: 0.5rem 1.1rem;
+  border-radius: var(--cd-radius-sm);
+  box-shadow: 0 6px 16px rgba(0, 168, 89, 0.3);
+}
+
+/* Ribbon variant with notched ends */
+.green-tag--ribbon {
+  border-radius: 0;
+  clip-path: polygon(0 0, 100% 0, calc(100% - 12px) 50%, 100% 100%, 0 100%, 12px 50%);
+  padding: 0.5rem 1.6rem;
+}
+
+/* ============================================================
+   9. BUTTONS
+   ============================================================ */
+
+.btn {
+  font-family: var(--cd-font-display);
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  border-radius: var(--cd-radius-pill);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.2s;
+}
+
+/* Orange fill + navy label — high contrast and poster-accurate. */
+.btn-carrot,
+.btn-primary {
+  background: linear-gradient(135deg, var(--cd-orange-bright), var(--cd-orange));
+  color: var(--cd-navy);
+  border: none;
+  box-shadow: var(--cd-shadow-orange);
+}
+
+.btn-carrot:hover,
+.btn-primary:hover {
+  background: linear-gradient(135deg, var(--cd-orange), var(--cd-orange-deep));
+  color: var(--cd-white);
+  box-shadow: 0 14px 30px rgba(247, 118, 0, 0.45);
+}
+
+.btn-navy,
+.btn-amber {
+  background: var(--cd-navy);
+  color: var(--cd-white);
+  box-shadow: 0 10px 24px rgba(0, 32, 91, 0.3);
+}
+
+.btn-navy:hover,
+.btn-amber:hover { background: #001745; }
+
+.btn-green {
+  background: var(--cd-green-deep);
+  color: var(--cd-white);
+  box-shadow: 0 10px 24px rgba(0, 168, 89, 0.3);
+}
+
+.btn-ghost,
+.btn-outline {
+  background: transparent;
+  color: var(--cd-navy);
+  border: 2.5px solid var(--cd-navy);
+}
+
+.btn-ghost:hover,
+.btn-outline:hover {
+  background: var(--cd-navy);
+  color: var(--cd-white);
+  border-color: var(--cd-navy);
+}
+
+.btn:focus-visible,
+.nav-links a:focus-visible {
+  outline: 3px solid var(--cd-navy);
+  outline-offset: 3px;
+}
+
+/* ============================================================
+   10. CARDS / SECTIONS (re-skin of style.css components)
+   ============================================================ */
+
+.section-title { color: var(--cd-navy); }
+.section-sub { color: var(--cd-navy-soft); }
+
+.card {
+  position: relative;
+  background: var(--cd-white);
+  border: none;
+  border-radius: var(--cd-radius-lg);
+  box-shadow: var(--cd-shadow);
+  overflow: hidden;
+}
+
+/* Orange cap so cards read as tickets */
+.card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 6px;
+  background: linear-gradient(90deg, var(--cd-orange), var(--cd-orange-bright));
+}
+
+.card:hover {
+  transform: translateY(-6px);
+  box-shadow: var(--cd-shadow-lg);
+}
+
+.card h3 { color: var(--cd-navy); }
+.card p { color: var(--cd-navy-soft); }
+.card .icon { filter: none; }
+
+.card .tag {
+  color: var(--cd-green-deep);
+  font-family: var(--cd-font-ticket);
+}
+
+/* Dashed stub edge for cards you want to read as tear-offs */
+.card--stub {
+  border-bottom: 3px dashed var(--cd-sky-deep);
+  border-radius: var(--cd-radius-lg) var(--cd-radius-lg) 0 0;
+}
+
+/* QR blocks */
+.card-qr {
+  background: var(--cd-white);
+  border: 3px dashed var(--cd-sky-deep);
+  border-radius: var(--cd-radius);
+  padding: 0.7rem;
+}
+
+.qr-scan-hint {
+  font-family: var(--cd-font-ticket);
+  font-weight: 700;
+  color: var(--cd-orange-deep);
+  letter-spacing: 0.04em;
+}
+
+/* ============================================================
+   11. FORMS
+   ============================================================ */
+
+.form-card {
+  background: var(--cd-white);
+  border: none;
+  border-radius: var(--cd-radius-lg);
+  box-shadow: var(--cd-shadow);
+}
+
+.form-group label { color: var(--cd-navy); font-weight: 700; }
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  background: #f6fbff;
+  border: 2px solid var(--cd-sky-deep);
+  border-radius: var(--cd-radius-sm);
+  color: var(--cd-navy);
+  font-family: var(--cd-font-body);
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  border-color: var(--cd-orange);
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(247, 118, 0, 0.18);
+}
+
+.checkbox-group label,
+.size-option {
+  background: #f6fbff;
+  border: 2px solid var(--cd-sky-deep);
+  color: var(--cd-navy);
+}
+
+.size-option:has(input:checked) {
+  border-color: var(--cd-orange);
+  background: var(--cd-orange-tint);
+}
+
+/* ============================================================
+   11a. BOOKING HOURS NOTICE (experience.html)
+   ============================================================ */
+
+.booking-hours-note {
+  max-width: 720px;
+  margin: 0 auto 1.4rem;
+  padding: 0.9rem 1.2rem;
+  border-radius: var(--cd-radius);
+  text-align: center;
+  font-family: var(--cd-font-body);
+  font-size: 0.95rem;
+  line-height: 1.6;
+  background: var(--cd-white);
+  box-shadow: var(--cd-shadow-sm);
+  border-left: 6px solid var(--cd-navy);
+}
+
+.booking-hours-note strong {
+  font-family: var(--cd-font-ticket);
+  font-weight: 700;
+}
+
+.booking-hours-note.is-open {
+  border-left-color: var(--cd-green);
+  color: var(--cd-navy);
+}
+
+.booking-hours-note.is-closed {
+  border-left-color: var(--cd-orange);
+  background: var(--cd-orange-tint);
+  color: var(--cd-navy);
+}
+
+.booking-hours-note .countdown {
+  color: var(--cd-orange-deep);
+}
+
+/* Nút đăng ký khi ngoài giờ */
+#reg-submit:disabled {
+  background: #c9d6e6;
+  color: #6b7c94;
+  box-shadow: none;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Ngoài giờ: khoá luôn cả thẻ form. Chỉ làm mờ nút thôi thì khách vẫn gõ
+   được tên/SĐT, tưởng đăng ký được rồi mới hụt ở bước cuối. */
+#reg-card.is-locked {
+  opacity: 0.62;
+  filter: saturate(0.55);
+}
+
+#reg-card.is-locked input,
+#reg-card.is-locked .size-choice {
+  pointer-events: none;
+}
+
+#reg-card.is-locked .size-option {
+  cursor: not-allowed;
+}
+
+/* ============================================================
+   11d. CHỌN SLOT 15 PHÚT — 3 TRẠNG THÁI
+   Màu phải phân biệt được KHÔNG CHỈ bằng màu sắc (khoảng 8% nam giới
+   khó phân biệt đỏ/xanh), nên mỗi trạng thái có thêm dấu hiệu riêng:
+   viền, độ đậm chữ, và chữ "Đang chờ 1 người" cho ô cam.
+   ============================================================ */
+
+.slot-dates {
+  display: flex;
+  gap: 0.4rem;
+  overflow-x: auto;
+  padding-bottom: 0.4rem;
+  margin-bottom: 0.7rem;
+  -webkit-overflow-scrolling: touch;
+}
+
+.slot-date {
+  flex: 0 0 auto;
+  padding: 0.55rem 0.9rem;
+  border-radius: var(--cd-radius-pill);
+  border: 2px solid var(--cd-sky-deep);
+  background: var(--cd-white);
+  color: var(--cd-navy);
+  font-family: var(--cd-font-ticket);
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  min-height: 44px;
+}
+
+.slot-date.is-active {
+  background: var(--cd-navy);
+  border-color: var(--cd-navy);
+  color: var(--cd-white);
+}
+
+.slot-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  font-size: 0.8rem;
+  color: var(--cd-navy-soft);
+  margin-bottom: 0.7rem;
+}
+
+.slot-legend__item { display: inline-flex; align-items: center; gap: 0.35rem; }
+
+/* Ô mẫu trong chú thích: nhỏ, không bấm được */
+.slot-legend .slot-chip {
+  width: 22px; height: 22px; min-height: 0;
+  padding: 0; pointer-events: none;
+}
+
+.slot-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+  gap: 0.5rem;
+}
+
+.slot-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.1rem;
+  min-height: 52px;
+  padding: 0.45rem 0.3rem;
+  border-radius: var(--cd-radius-sm);
+  border: 2px solid var(--cd-sky-deep);
+  background: #f4f9ff;
+  color: var(--cd-navy);
+  font-family: var(--cd-font-ticket);
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.slot-chip__time { line-height: 1.1; }
+
+.slot-chip__note {
+  font-family: var(--cd-font-body);
+  font-size: 0.62rem;
+  font-weight: 700;
+  line-height: 1.15;
+  text-align: center;
+}
+
+/* State 1 — còn trống */
+.slot-chip--empty:hover { border-color: var(--cd-navy); }
+
+/* State 2 — đã có 1 khách lẻ, đang chờ ghép đôi */
+.slot-chip--pending {
+  background: var(--cd-orange-tint);
+  border-color: var(--cd-orange);
+  color: var(--cd-orange-deep);
+}
+
+/* State 3 — kín chỗ: xám, mờ, không bấm được */
+.slot-chip--full,
+.slot-chip.is-disabled {
+  background: #e9eef5;
+  border-color: #cfd8e3;
+  color: #93a1b3;
+  cursor: not-allowed;
+  opacity: 0.75;
+}
+
+/* Ô khách 2 người không bấm được (đang chờ ghép) vẫn giữ màu cam nhưng mờ,
+   để khách hiểu "ô này có người rồi" chứ không phải "hết chỗ hẳn". */
+.slot-chip--pending.is-disabled {
+  background: var(--cd-orange-tint);
+  border-color: #f0c9a0;
+  color: #b98a5e;
+}
+
+.slot-chip.is-picked {
+  background: var(--cd-navy);
+  border-color: var(--cd-navy);
+  color: var(--cd-white);
+  box-shadow: 0 0 0 4px rgba(0, 32, 91, 0.18);
+}
+
+.slot-chip:focus-visible {
+  outline: 3px solid var(--cd-orange);
+  outline-offset: 2px;
+}
+
+.slot-hint {
+  margin-top: 0.7rem;
+  font-size: 0.9rem;
+  color: var(--cd-navy-soft);
+}
+
+.slot-empty {
+  padding: 1rem;
+  text-align: center;
+  color: var(--cd-navy-soft);
+  background: #f4f9ff;
+  border-radius: var(--cd-radius-sm);
+}
+
+@media (max-width: 380px) {
+  .slot-grid { grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); }
+  .slot-chip { font-size: 0.88rem; min-height: 48px; }
+}
+
+/* ============================================================
+   11c. PAYMENT / ZALO PANEL (sau khi đăng ký thành công)
+   Đây là màn hình quyết định: khách không chuyển khoản + không gửi ảnh
+   Zalo thì lượt đăng ký sẽ tự hủy. Cho nổi bật hơn thẻ thường.
+   ============================================================ */
+
+.pay-panel {
+  max-width: 560px;
+  margin: 0 auto 1.4rem;
+  padding: 1.6rem 1.5rem;
+  background: var(--cd-white);
+  border-radius: var(--cd-radius);
+  box-shadow: var(--cd-shadow);
+  border-top: 6px solid var(--cd-green);
+  text-align: center;
+}
+
+.pay-panel__title {
+  font-family: var(--cd-font-display);
+  color: var(--cd-navy);
+  font-size: 1.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.pay-panel__lead {
+  color: var(--cd-navy-soft);
+  margin-bottom: 1.1rem;
+}
+
+/* Mã VietQR — to, nền trắng, viền rõ để quét nhanh dưới ánh đèn gian hàng */
+.pay-qr {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  padding: 0.75rem;
+  border-radius: var(--cd-radius-sm);
+  border: 2px solid var(--cd-sky-deep);
+  margin-bottom: 0.5rem;
+  min-width: 236px;
+  min-height: 236px;
+}
+
+.pay-qr img,
+.pay-qr canvas { display: block; }
+
+.pay-qr__hint {
+  font-size: 0.86rem;
+  color: var(--cd-navy-soft);
+  margin-bottom: 1rem;
+}
+
+.pay-bank {
+  text-align: left;
+  background: #f4f9ff;
+  border: 2px solid var(--cd-sky-deep);
+  border-radius: var(--cd-radius-sm);
+  padding: 0.9rem 1.1rem;
+  margin-bottom: 1.1rem;
+}
+
+.pay-bank__row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.35rem 0;
+  font-size: 0.95rem;
+}
+
+.pay-bank__row + .pay-bank__row {
+  border-top: 1px dashed #cfe2f5;
+}
+
+.pay-bank__row span { color: var(--cd-navy-soft); }
+.pay-bank__row strong {
+  color: var(--cd-navy);
+  font-family: var(--cd-font-ticket);
+  text-align: right;
+  word-break: break-word;
+}
+
+/* Số tài khoản bấm để chép */
+.pay-copy { cursor: pointer; text-decoration: underline dotted; }
+.pay-copy.is-copied::after {
+  content: " ✓ đã chép";
+  color: var(--cd-green-deep);
+  font-family: var(--cd-font-body);
+  font-size: 0.8rem;
+}
+
+/* Câu hướng dẫn bắt buộc — phải đọc được ngay, không lướt qua */
+.pay-instruct {
+  background: var(--cd-orange-tint);
+  border-left: 5px solid var(--cd-orange);
+  border-radius: var(--cd-radius-sm);
+  padding: 0.9rem 1.1rem;
+  margin-bottom: 1.1rem;
+  text-align: left;
+  font-weight: 700;
+  color: var(--cd-navy);
+  line-height: 1.55;
+}
+
+.pay-zalo { width: 100%; max-width: 340px; }
+
+.pay-panel__foot {
+  margin-top: 1rem;
+  font-size: 0.86rem;
+  color: var(--cd-navy-soft);
+}
+
+@media (max-width: 480px) {
+  .pay-panel { padding: 1.2rem 1rem; }
+  .pay-bank__row { flex-direction: column; gap: 0.1rem; }
+  .pay-bank__row strong { text-align: left; }
+}
+
+/* ============================================================
+   11b. LANGUAGE TOGGLE (VI / EN)
+   style.css hard-codes a dark pill; re-skin it for the light theme.
+   ============================================================ */
+
+.lang-toggle {
+  font-family: var(--cd-font-display);
+  color: var(--cd-white);
+  background: var(--cd-navy);
+  border: 2px solid var(--cd-white);
+  box-shadow: var(--cd-shadow-sm);
+}
+
+.lang-toggle:hover {
+  background: var(--cd-orange);
+  border-color: var(--cd-white);
+  color: var(--cd-navy);
+}
+
+.lang-toggle:focus-visible {
+  outline: 3px solid var(--cd-navy);
+  outline-offset: 3px;
+}
+
+/* ============================================================
+   12. FOOTER
+   ============================================================ */
+
+.site-footer {
+  background: var(--cd-navy);
+  color: #d6e2f5;
+  border-top: 6px solid var(--cd-orange);
+  padding: 2.6rem 1.2rem;
+  text-align: center;
+}
+
+.site-footer .brand-line {
+  font-family: var(--cd-font-display);
+  font-weight: 800;
+  color: var(--cd-white);
+}
+
+.site-footer .admin-link {
+  color: var(--cd-sky);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.site-footer .admin-link:hover { color: var(--cd-orange-bright); }
+
+/* ============================================================
+   13. RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 820px) {
+  .boarding-pass-card {
+    grid-template-columns: 1fr;
+  }
+
+  .bp-stub {
+    border-left: none;
+    border-top: 3px dashed var(--cd-sky-deep);
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  /* move the notches to the horizontal tear line */
+  .bp-stub::before,
+  .bp-stub::after {
+    left: auto;
+    top: -13px;
+    bottom: auto;
+  }
+
+  .bp-stub::before { left: -13px; }
+  .bp-stub::after  { right: -13px; }
+}
+
+@media (max-width: 560px) {
+  .bp-route {
+    grid-template-columns: 1fr auto 1fr;
+    gap: 0.5rem;
+  }
+
+  .nav { padding: 0.5rem 0.9rem; }
+  .nav-links a { padding: 0.4rem 0.7rem; font-size: 0.85rem; }
+
+  .travel-stamp-badge { width: 96px; height: 96px; }
+}
+
+/* ============================================================
+   14. MOTION & PRINT
+   ============================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  body::before,
+  .orange-burst-bg::before,
+  .orange-burst-bg::after {
+    animation: none;
+  }
+
+  .card:hover,
+  .btn:hover { transform: none; }
+}
+
+@media print {
+  body { background: #fff; }
+  body::before,
+  .orange-burst-bg::before,
+  .orange-burst-bg::after { display: none; }
+  .boarding-pass-card { box-shadow: none; border: 2px solid #000; }
+}

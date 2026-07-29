@@ -1,0 +1,1147 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title data-i18n-title="experience.pageTitle">Trải nghiệm mô phỏng bay | Hobby Horizon — The Flight Deck</title>
+  <meta name="description" data-i18n-content="experience.desc" content="Đăng ký trải nghiệm buồng lái mô phỏng tại gian hàng The Flight Deck của Hobby Horizon.">
+  <link rel="icon" type="image/png" href="images/the-flight-deck-logo.png">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="carrot-day.css">
+  <!-- Bắt tay TLS với Google Apps Script sẵn từ lúc tải trang, để lần gọi
+       API đầu tiên (tải hàng chờ / bấm đăng ký) không phải chờ handshake. -->
+  <link rel="preconnect" href="https://script.google.com" crossorigin>
+  <link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
+  <!-- PWA: cho phép "Thêm vào MH chính" để iPhone/iPad nhận thông báo hệ thống -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0a1628">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Flight Deck">
+  <link rel="apple-touch-icon" href="images/the-flight-deck-logo.png">
+</head>
+<body>
+
+  <section class="hero">
+    <h1 data-i18n="experience.h1">Lần đầu <span class="accent">cầm lái</span> của bạn<br>bắt đầu tại đây</h1>
+    <p class="lead" data-i18n="experience.lead">
+      Ngồi vào ghế cơ trưởng, đặt tay lên cần điều khiển và thực hiện chuyến bay
+      đầu tiên của mình trên hệ thống mô phỏng chân thực — ngay tại gian hàng
+      The Flight Deck.
+    </p>
+    <div class="btn-row">
+      <a class="btn btn-primary" href="#dang-ky" data-i18n="experience.btnRegister">🛫 Đăng ký lượt bay</a>
+    </div>
+    <div class="pill-row">
+      <span class="pill" data-i18n="experience.pillDuration">⏱️ 15 phút / chuyến bay</span>
+      <span class="pill" data-i18n="experience.pillPrice">💰 150K / 1 người bay</span>
+      <span class="pill" data-i18n="experience.pillAge">👨‍👩‍👧 Từ 8 tuổi trở lên</span>
+      <span class="pill" data-i18n="experience.pillNoExp">🎮 Không cần kinh nghiệm</span>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2 class="section-title" data-i18n="experience.bannerTitle">Trải nghiệm mô phỏng bay</h2>
+    <div class="cockpit-photo">
+      <img width="1600" height="1200" loading="lazy" decoding="async" src="images/TheFlightDeck%20cockpit.jpg" alt="Buồng lái mô phỏng Airbus A320 tại The Flight Deck">
+    </div>
+  </section>
+
+  <section class="section">
+    <h2 class="section-title" data-i18n="experience.whatTitle">Trải nghiệm của bạn gồm những gì?</h2>
+    <div class="pill-row">
+      <span class="pill" data-i18n="experience.step1">🧑‍✈️ Hướng dẫn về khoang lái</span>
+      <span class="pill" data-i18n="experience.step2">🛫 Cất cánh</span>
+      <span class="pill" data-i18n="experience.step3">🔄 Bay vòng kín</span>
+      <span class="pill" data-i18n="experience.step4">🛬 Hạ cánh</span>
+    </div>
+  </section>
+
+  <section class="section" id="dang-ky">
+    <h2 class="section-title" data-i18n="experience.regTitle">Đăng ký lượt bay của bạn</h2>
+    <p class="section-sub" data-i18n="experience.regSub">
+      Mỗi chuyến bay <strong>150K / 1 người bay</strong> · thời lượng <strong>15 phút</strong>.
+      Đăng ký <strong>đi 1 mình</strong> → hệ thống sẽ <strong>ghép bạn với 1 người khác</strong>
+      cũng đăng ký đi 1 mình để cùng bay. Đăng ký <strong>đi 2 người</strong> (đi cùng bạn bè/người thân) →
+      <strong>2 bạn sẽ cùng được bay với nhau</strong>, không chờ ghép.
+      Giờ bay của bạn do hệ thống tính và được giữ cố định để đếm ngược.
+      Vui lòng có mặt tại gian hàng <strong>trước giờ bay ít nhất 5 phút</strong> để chuẩn bị —
+      quá 5 phút sau khi được gọi, lượt của bạn sẽ tự động hủy và nhường cho người kế tiếp.
+    </p>
+
+    <div class="queue-banner" id="queue-banner" data-i18n="experience.bannerLoading">⏳ Đang tải tình trạng hàng chờ…</div>
+    <div class="booking-hours-note" id="booking-hours" role="status" hidden></div>
+    <p class="form-note demo-note hidden" id="demo-note" data-i18n="experience.demoNote">
+      ⚠️ Chế độ thử nghiệm: chưa kết nối Google Sheet — đăng ký chỉ lưu trên thiết bị này (xem README).
+    </p>
+
+    <div class="form-card" id="reg-card">
+      <form id="experience-form">
+        <div class="form-group">
+          <label for="name" data-i18n="experience.formName">Họ và tên người tham gia *</label>
+          <input type="text" id="name" name="name" required placeholder="Nguyễn Văn A" data-i18n-placeholder="experience.formNamePh">
+        </div>
+        <div class="form-group">
+          <label for="phone" data-i18n="experience.formPhone">Số điện thoại *</label>
+          <input type="tel" id="phone" name="phone" required placeholder="09xx xxx xxx" pattern="[0-9+][0-9 ]{7,14}">
+          <small style="color:var(--text-dim);" data-i18n="experience.formPhoneNote">Nhân viên sẽ gọi số này khi tới lượt bay của bạn.</small>
+        </div>
+        <!-- ===== Chọn ngày + slot 15 phút (3 trạng thái) ===== -->
+        <div class="form-group">
+          <label data-i18n="experience.formSlot">Chọn giờ bay *</label>
+          <div class="slot-dates" id="slot-dates" role="tablist"></div>
+          <p class="slot-legend" aria-hidden="true">
+            <span class="slot-legend__item"><i class="slot-chip slot-chip--empty"></i><span data-i18n="experience.slotLegendFree">Còn trống</span></span>
+            <span class="slot-legend__item"><i class="slot-chip slot-chip--pending"></i><span data-i18n="experience.slotLegendPending">Đang chờ 1 người</span></span>
+            <span class="slot-legend__item"><i class="slot-chip slot-chip--full"></i><span data-i18n="experience.slotLegendFull">Kín chỗ</span></span>
+          </p>
+          <div class="slot-grid" id="slot-grid" role="group"></div>
+          <p class="slot-hint" id="slot-hint"></p>
+          <input type="hidden" id="slot-key" name="slot-key" value="">
+        </div>
+
+        <div class="form-group">
+          <label for="email" data-i18n="experience.formEmail">Email *</label>
+          <input type="email" id="email" name="email" required placeholder="ban@example.com"
+                 autocomplete="email" inputmode="email">
+          <small style="color:var(--text-dim);" data-i18n="experience.formEmailNote">Chúng tôi gửi xác nhận giờ bay và lời mời lịch (Google Calendar) qua email này.</small>
+        </div>
+        <div class="form-group">
+          <label data-i18n="experience.formPay">Hình thức thanh toán *</label>
+          <div class="size-choice" id="pay-choice" role="radiogroup">
+            <label class="size-option">
+              <input type="radio" name="pay-method" value="BANK" checked>
+              <span class="size-option-icon">🏦</span>
+              <span class="size-option-title" data-i18n="experience.payBankTitle">Chuyển khoản</span>
+              <span class="size-option-desc" data-i18n="experience.payBankDesc">Chuyển khoản qua app ngân hàng.</span>
+            </label>
+            <label class="size-option">
+              <input type="radio" name="pay-method" value="QR">
+              <span class="size-option-icon">📱</span>
+              <span class="size-option-title" data-i18n="experience.payQrTitle">Quét mã QR</span>
+              <span class="size-option-desc" data-i18n="experience.payQrDesc">Quét mã QR ngân hàng để trả.</span>
+            </label>
+          </div>
+        </div>
+        <!-- Chọn số người TRƯỚC khi chọn slot: luật bấm được/không của
+             slot phụ thuộc vào đi 1 hay 2 người (ô "đang chờ ghép" chỉ
+             khách lẻ mới bấm được). -->
+        <div class="form-group">
+          <label data-i18n="experience.formSize">Bạn đi mấy người? *</label>
+          <div class="size-choice" id="size-choice" role="radiogroup">
+            <label class="size-option">
+              <input type="radio" name="group-size" value="1" checked>
+              <span class="size-option-icon">👤</span>
+              <span class="size-option-title" data-i18n="experience.size1Title">Đi 1 mình — 150K</span>
+              <span class="size-option-desc" data-i18n="experience.size1Desc">Bạn sẽ được <strong>ghép bay cùng 1 người khác</strong> cũng đăng ký đi 1 mình.</span>
+            </label>
+            <label class="size-option">
+              <input type="radio" name="group-size" value="2">
+              <span class="size-option-icon">👥</span>
+              <span class="size-option-title" data-i18n="experience.size2Title">Đi 2 người — 300K</span>
+              <span class="size-option-desc" data-i18n="experience.size2Desc"><strong>2 bạn sẽ cùng được bay với nhau</strong>, không cần chờ ghép.</span>
+            </label>
+          </div>
+        </div>
+        <div class="center">
+          <button type="submit" class="btn btn-primary" id="reg-submit" data-i18n="experience.btnSubmit">Đăng ký lượt bay 🛫</button>
+        </div>
+        <p class="form-note" id="reg-error"></p>
+        <p class="form-note" data-i18n="experience.keepOpenNote">Sau khi đăng ký, giữ trang này mở để theo dõi lượt bay của bạn.</p>
+      </form>
+    </div>
+
+    <!-- Hiện ngay sau khi đăng ký thành công: hướng dẫn chuyển khoản và
+         gửi ảnh giao dịch qua Zalo để nhân viên xác nhận lịch bay. -->
+    <div class="pay-panel hidden" id="pay-panel"></div>
+
+    <div class="form-card my-status hidden" id="my-status"></div>
+
+    <div class="contact-strip">
+      <a href="mailto:theflightdeckcoffee@gmail.com">📧 theflightdeckcoffee@gmail.com</a>
+      <a href="https://www.facebook.com/theflightdeckofficial/" target="_blank" rel="noopener">📘 Facebook</a>
+      <a href="https://zalo.me/0919686320" target="_blank" rel="noopener">💬 Zalo</a>
+    </div>
+  </section>
+
+  <footer class="site-footer">
+    <p class="brand-line">The Flight Deck × Flight to Carrot Day 2026</p>
+    <p data-i18n="footer.tagline">Đưa giấc mơ bay đến gần bạn hơn. © 2026 The Flight Deck.</p>
+  </footer>
+
+  <script src="i18n.js"></script>
+  <script src="effects.js"></script>
+  <script src="config.js"></script>
+  <!-- Thư viện QR để tại chỗ (không lấy từ CDN): trang này là bước THANH
+       TOÁN, mạng gian hàng chập chờn cũng phải hiện được mã cho khách. -->
+  <script src="qrcode.min.js"></script>
+  <script src="vietqr.js"></script>
+  <script src="slots.js"></script>
+  <script src="queue.js"></script>
+  <script>
+    (function () {
+      /* ============================================================
+         LƯU TRẠNG THÁI QUA LẠI GIỮA CÁC TAB / LẦN MỞ TRANG
+         ------------------------------------------------------------
+         LỖI CŨ: mã đăng ký vẫn nằm trong localStorage, nhưng thẻ "lượt bay
+         của bạn" chỉ hiện được SAU KHI tải xong danh sách từ server. Mạng
+         gian hàng chậm 2–3 giây (hoặc rớt hẳn) thì suốt thời gian đó khách
+         nhìn thấy FORM ĐĂNG KÝ TRỐNG — tưởng mất chỗ nên quét QR đặt lại
+         từ đầu, thành ra đặt trùng.
+
+         CÁCH SỬA: lưu luôn BẢN SAO booking của chính khách. Mở trang là vẽ
+         ngay từ bản sao đó (không chờ mạng), rồi khi server trả về mới đối
+         chiếu và cập nhật. Ngoài ra ghi nhớ cả ngày/slot khách đang chọn dở
+         để chuyển tab quay lại không phải chọn lại.
+         ============================================================ */
+      var store = (function () {
+        function ok() {
+          try { localStorage.setItem("__t", "1"); localStorage.removeItem("__t"); return true; }
+          catch (e) { return false; }          // Safari riêng tư / hết dung lượng
+        }
+        var usable = ok();
+        var mem = {};                          // dự phòng trong RAM cho phiên hiện tại
+        return {
+          get: function (k) {
+            try { if (usable) return localStorage.getItem(k); } catch (e) {}
+            return mem[k] == null ? null : mem[k];
+          },
+          set: function (k, v) {
+            mem[k] = v;
+            try { if (usable) localStorage.setItem(k, v); } catch (e) {}
+          },
+          del: function (k) {
+            delete mem[k];
+            try { if (usable) localStorage.removeItem(k); } catch (e) {}
+          },
+          getJson: function (k) {
+            var raw = this.get(k);
+            if (!raw) return null;
+            try { return JSON.parse(raw); } catch (e) { return null; }
+          },
+          setJson: function (k, v) { this.set(k, JSON.stringify(v)); }
+        };
+      })();
+
+      var MY_KEY = "tfd_my_reg_id";
+      var MY_SNAPSHOT_KEY = "tfd_my_reg_snapshot";   // bản sao booking của chính khách
+      var banner = document.getElementById("queue-banner");
+      var regCard = document.getElementById("reg-card");
+      var myCard = document.getElementById("my-status");
+      var regError = document.getElementById("reg-error");
+      var lastItems = [];
+
+      /* Dịch chuỗi có placeholder dạng {ten} — vars đã được escape/định
+         dạng an toàn từ nơi gọi (số, giờ, hoặc esc(tên) sẵn). */
+      function fmt(key, fallback, vars) {
+        var s = TFD_T(key, fallback);
+        for (var k in (vars || {})) { s = s.split("{" + k + "}").join(vars[k]); }
+        return s;
+      }
+
+      if (!TFDQ.isRemote()) {
+        document.getElementById("demo-note").classList.remove("hidden");
+      }
+
+      function myId() { return store.get(MY_KEY) || ""; }
+
+      /* Bản sao booking của chính khách, dùng để vẽ NGAY khi mở trang mà
+         chưa có mạng. Server trả về thì bản của server thắng. */
+      function mySnapshot() {
+        var snap = store.getJson(MY_SNAPSHOT_KEY);
+        return (snap && snap.id && snap.id === myId()) ? snap : null;
+      }
+      function saveSnapshot(item) {
+        if (item && item.id) store.setJson(MY_SNAPSHOT_KEY, item);
+      }
+      function clearMine() {
+        store.del(MY_KEY);
+        store.del(MY_SNAPSHOT_KEY);
+      }
+
+      /* Danh sách dùng để vẽ = dữ liệu server, CỘNG THÊM booking của khách
+         nếu server chưa trả về (đang tải / mất mạng). Nhờ vậy thẻ "lượt bay
+         của bạn" không bao giờ biến mất thành form trống. */
+      function itemsForRender() {
+        var id = myId();
+        if (!id) return lastItems;
+        for (var i = 0; i < lastItems.length; i++) if (lastItems[i].id === id) return lastItems;
+        var snap = mySnapshot();
+        return snap ? lastItems.concat([snap]) : lastItems;
+      }
+
+      /* ---------- thông báo tới giờ bay (banner hệ thống / rung / âm thanh) ----------
+         - Android/máy tính: thông báo hiện như tin nhắn khi trang còn mở (kể cả tab nền).
+         - iPhone/iPad: cần "Thêm vào MH chính" (iOS 16.4+) để nhận thông báo hệ thống;
+           nếu không, chỉ rung/âm thanh khi đang mở trang. */
+      var ALERT_KEY = "tfd_alerts_v1";
+      var audioCtx = null;
+      var IS_IOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+        (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+      var IS_STANDALONE = (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) ||
+        window.navigator.standalone === true;
+
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.register("sw.js").catch(function () {});
+      }
+
+      function canNotify() { return "Notification" in window; }
+      function notifyGranted() { return canNotify() && Notification.permission === "granted"; }
+
+      function unlockAudio() {
+        try {
+          audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+          if (audioCtx.state === "suspended") audioCtx.resume();
+        } catch (e) {}
+      }
+
+      /* Gọi trong thao tác bấm của khách (đăng ký / nút 🔔) — trình duyệt
+         chỉ cho xin quyền thông báo và mở khóa âm thanh lúc có thao tác thật */
+      function enableAlerts() {
+        unlockAudio();
+        if (!canNotify() || Notification.permission !== "default") return;
+        try {
+          var p = Notification.requestPermission(function () { rerender(); });
+          if (p && p.then) p.then(function () { rerender(); });
+        } catch (e) {}
+      }
+
+      function playAlertSound() {
+        if (!audioCtx) return;
+        try {
+          for (var i = 0; i < 3; i++) {
+            var o = audioCtx.createOscillator();
+            var g = audioCtx.createGain();
+            o.connect(g); g.connect(audioCtx.destination);
+            o.frequency.value = 880;
+            var t = audioCtx.currentTime + i * 0.6;
+            g.gain.setValueAtTime(0.3, t);
+            g.gain.exponentialRampToValueAtTime(0.001, t + 0.45);
+            o.start(t); o.stop(t + 0.5);
+          }
+        } catch (e) {}
+      }
+
+      function systemNotify(title, body) {
+        if (!notifyGranted()) return;
+        var opts = {
+          body: body,
+          icon: "images/the-flight-deck-logo.png",
+          tag: "tfd-flight",
+          renotify: true,
+          vibrate: [300, 120, 300, 120, 600]
+        };
+        function direct() { try { new Notification(title, opts); } catch (e) {} }
+        if (navigator.serviceWorker) {
+          navigator.serviceWorker.getRegistration().then(function (reg) {
+            if (reg && reg.showNotification) reg.showNotification(title, opts);
+            else direct();
+          }).catch(direct);
+        } else direct();
+      }
+
+      function alertUser(title, body) {
+        systemNotify(title, body);
+        if (navigator.vibrate) navigator.vibrate([300, 120, 300, 120, 600]);
+        playAlertSound();
+      }
+
+      /* Giữ cờ trong RAM: checkAlerts chạy mỗi giây, đọc + JSON.parse
+         localStorage mỗi nhịp là thao tác đồng bộ chặn luồng chính. */
+      var firedCache = null;
+      function firedFlags() {
+        if (firedCache) return firedCache;
+        try { firedCache = JSON.parse(localStorage.getItem(ALERT_KEY) || "{}"); }
+        catch (e) { firedCache = {}; }
+        return firedCache;
+      }
+      function markFired(id, kind) {
+        var f = firedFlags();
+        (f[id] = f[id] || {})[kind] = 1;
+        try { localStorage.setItem(ALERT_KEY, JSON.stringify(f)); } catch (e) {}
+      }
+
+      /* Mỗi mốc chỉ báo MỘT lần cho mỗi lượt đăng ký */
+      function checkAlerts(c) {
+        var id = myId();
+        if (!id) return;
+        var entry = null;
+        c.entries.forEach(function (en) { if (en.item.id === id) entry = en; });
+        if (!entry) return;
+        var f = firedFlags()[id] || {};
+        if (entry.item.status === "WAITING" && !f.confirmed) {
+          markFired(id, "confirmed");
+          alertUser(TFD_T("experience.alertPaidTitle", "💳 The Flight Deck — đã xác nhận thanh toán!"),
+            entry.waitingForPair
+              ? TFD_T("experience.alertPaidBodyWait", "Đã giữ chỗ! Đang chờ ghép bay — giờ bay sẽ báo ngay khi ghép xong.")
+              : fmt("experience.alertPaidBody", "Vị trí #{pos} trong hàng chờ — bay lúc {time}.",
+                  { pos: entry.position, time: TFDQ.fmtTime(entry.eta) }));
+        }
+        if (entry.item.status === "CALLED" && !f.called) {
+          markFired(id, "called");
+          alertUser(TFD_T("experience.alertCalledTitle", "📣 The Flight Deck — bạn được gọi!"),
+            TFD_T("experience.alertCalledBody", "Có mặt tại gian hàng trong 5 phút, quá hạn lượt bay sẽ tự hủy."));
+        } else if (entry.item.status === "WAITING" && c.now >= entry.mustArriveBy && !f.arrive) {
+          markFired(id, "arrive");
+          // Chưa ghép xong thì KHÔNG báo giờ cụ thể — giờ chỉ là chỗ giữ
+          // tạm, có thể bị dời khi nhóm đủ người thanh toán trước.
+          alertUser(TFD_T("experience.alertArriveTitle", "🛫 The Flight Deck — tới giờ có mặt!"),
+            entry.waitingForPair
+              ? TFD_T("experience.alertArriveBodyPair", "Sắp tới lượt của bạn — vui lòng đến gian hàng ngay.")
+              : fmt("experience.alertArriveBody", "Bạn bay lúc {time} — vui lòng đến gian hàng ngay.",
+                  { time: TFDQ.fmtTime(entry.eta) }));
+        }
+      }
+
+      function notifyBlock() {
+        var html = "";
+        if (canNotify() && Notification.permission === "default") {
+          html += "<p class='center' style='margin-top:0.8rem'><button class='btn btn-ghost' id='btn-notify'>" +
+            TFD_T("experience.notifyEnable", "🔔 Bật thông báo khi tới giờ (rung / âm thanh)") + "</button></p>";
+        } else if (notifyGranted()) {
+          html += "<p class='form-note'>" + TFD_T("experience.notifyOn", "🔔 Thông báo đã bật — tới giờ có mặt, thiết bị sẽ báo như tin nhắn.") + "</p>";
+        } else if (canNotify()) {
+          html += "<p class='form-note'>" + TFD_T("experience.notifyBlocked", "🔕 Thông báo đang bị chặn — bật lại trong cài đặt trình duyệt để được báo khi tới giờ.") + "</p>";
+        }
+        if (IS_IOS && !IS_STANDALONE) {
+          html += "<p class='form-note'>" + TFD_T("experience.notifyIos", "📲 iPhone/iPad: bấm <strong>Chia sẻ → Thêm vào MH chính</strong> rồi mở từ biểu tượng đó để nhận thông báo như tin nhắn.") + "</p>";
+        }
+        return html;
+      }
+
+      /* Cả trang vẽ lại mỗi giây để chạy đồng hồ đếm ngược. Ghi đè innerHTML
+         mỗi nhịp bắt trình duyệt dựng lại toàn bộ cây DOM của khối — tốn pin
+         và giật trên điện thoại. Nên: dựng chuỗi, so với lần trước, chỉ ghi
+         khi thật sự khác. Banner hầu như chỉ đổi khi có dữ liệu mới. */
+      var lastBannerHtml = "";
+
+      function setHtml(el, html, cacheKey) {
+        if (html === cacheKey) return false;
+        el.innerHTML = html;
+        return true;
+      }
+
+      function renderBanner(c) {
+        var html;
+        /* Chưa lấy được dữ liệu lần nào thì GIỮ NGUYÊN dòng "đang tải" có
+           sẵn trong HTML. Nói "hàng chờ đang trống" lúc chưa biết gì là
+           thông tin sai — mà câu đó lại mời khách đăng ký ngay. */
+        if (!loadedOnce && !loadFailed) return;
+        // Mất mạng thì KHÔNG được nói "hàng chờ đang trống" — lúc đó ta không
+        // biết gì cả, mà câu đó lại mời khách "đăng ký xong là bay ngay".
+        if (loadFailed) {
+          html = TFD_T("experience.bannerLoadError", "⚠️ Không tải được hàng chờ — kiểm tra kết nối mạng rồi thử lại.");
+        } else if (c.waitingCount === 0 && c.inSession.length === 0) {
+          // Ngoài giờ thì đừng mời "đăng ký xong là bay ngay" — nút đang khóa,
+          // hai dòng chữ nói ngược nhau khiến khách tưởng trang bị lỗi.
+          html = TFDQ.isBookingOpen()
+            ? TFD_T("experience.bannerEmpty", "🟢 <strong>Hàng chờ đang trống</strong> — đăng ký xong là có thể bay ngay!")
+            : TFD_T("experience.bannerEmptyClosed", "🟢 <strong>Hàng chờ đang trống</strong> — mời bạn quay lại trong khung giờ nhận đăng ký bên dưới.");
+        } else {
+          var soloVars = { time: "<strong>" + TFDQ.fmtTime(c.soloEta) + "</strong>", min: "<strong>" + c.soloWaitMin + "</strong>" };
+          var soloLine = c.soloHasOpenSlot
+            ? fmt("experience.bannerSoloOpen", "👤 Đi 1 mình — đang có người chờ ghép, bay ngay lúc {time} (còn ~{min} phút)", soloVars)
+            : fmt("experience.bannerSoloWait", "👤 Đi 1 mình — bay lúc {time} (còn ~{min} phút), trừ khi có người khác đăng ký 1 mình để ghép sớm hơn", soloVars);
+          html =
+            fmt("experience.bannerWaiting", "🧑‍✈️ Đang chờ: <strong>{count} lượt ({people} người)</strong>", { count: c.waitingCount, people: c.waitingPeople }) +
+            "<br>" + soloLine +
+            "<br>" + fmt("experience.bannerDuo", "👥 Đi 2 người — bay lúc {time} (còn ~{min} phút)", { time: "<strong>" + TFDQ.fmtTime(c.duoEta) + "</strong>", min: "<strong>" + c.duoWaitMin + "</strong>" }) +
+            "<br><small>" + TFD_T("experience.bannerLockedNote", "Giờ bay được giữ cố định để đếm ngược ngay khi bạn thanh toán xong.") + "</small>";
+        }
+        if (setHtml(banner, html, lastBannerHtml)) lastBannerHtml = html;
+      }
+
+      /* Thẻ "lượt bay của bạn" có đồng hồ đếm ngược nên chuỗi HTML đổi mỗi
+         giây — không thể chỉ so chuỗi như banner. Tách làm 2 phần:
+           • khung (chữ, trạng thái, nút)  → hiếm khi đổi, ghi innerHTML
+           • số giây đếm ngược             → đổi mỗi giây, chỉ ghi textContent
+         Nhờ vậy nút bấm không bị dựng lại mỗi giây (mất focus, mất listener). */
+      var cdVals = {};            // khoá → chuỗi đếm ngược của nhịp hiện tại
+      var cdNodes = [];           // các <span data-cd> đang có trên DOM
+      var lastMineSkel = "";      // khung HTML (đã bỏ giá trị đếm ngược)
+      var CD_RE = /(<span data-cd='[^']*')>[^<]*</g;
+
+      function cd(key, ms) {
+        var v = TFDQ.fmtCountdown(Math.max(0, ms));
+        cdVals[key] = v;
+        return "<span data-cd='" + key + "'>" + v + "</span>";
+      }
+
+      function renderMine(c) {
+        var id = myId();
+        if (!id) { hideMine(); return; }
+
+        var mine = null, entry = null, session = null, pending = null;
+        var pool = itemsForRender();
+        pool.forEach(function (it) { if (it.id === id) mine = it; });
+        c.entries.forEach(function (en) { if (en.item.id === id) entry = en; });
+        c.inSession.forEach(function (s) { if (s.item.id === id) session = s; });
+        c.pendingPayments.forEach(function (en) { if (en.item.id === id) pending = en; });
+
+        if (!mine) { hideMine(); return; }
+
+        cdVals = {};
+
+        regCard.classList.add("hidden");
+        myCard.classList.remove("hidden");
+        renderPayPanel(mine);
+
+        var mySize = TFDQ.sizeOf(mine);
+        var title = mine.status === "PENDING_PAYMENT" ? TFD_T("experience.statusPay", "💳 Vui lòng thanh toán") : TFD_T("experience.statusMine", "🎫 Lượt bay của bạn");
+        var html = "<h3>" + title + "</h3>" +
+          "<p class='my-name'>" + esc(mine.name) +
+          " · " + (mySize === 2 ? TFD_T("experience.sizeDuo", "👥 2 người — bay cùng nhau 15 phút") : TFD_T("experience.sizeSolo", "👤 1 người — bay 15 phút")) + "</p>";
+
+        if (mySize === 1 && entry && !entry.waitingForPair) {
+          html += "<p class='my-line'>" + TFD_T("experience.pairMatched", "🧑‍🤝‍🧑 Đã ghép — bạn sẽ bay cùng 1 khách khác cũng đăng ký đi 1 mình.") + "</p>";
+        }
+
+        if (mine.status === "PENDING_PAYMENT" && pending) {
+          var payLeft = pending.deadline - c.now;
+          html += "<div class='my-alert'>" + TFD_T("experience.payAlert", "💳 CHƯA GIỮ CHỖ — CẦN THANH TOÁN") + "</div>" +
+            "<p class='my-line'>" + TFD_T("experience.payLine1", "Vui lòng chuyển khoản theo thông tin bên dưới rồi <strong>gửi ảnh chụp giao dịch qua Zalo</strong> để nhân viên xác nhận.") + "</p>" +
+            "<p class='my-line'>" + fmt("experience.payLine2", "Còn {countdown} trước khi lượt đăng ký tự hủy.", { countdown: "<strong class='countdown'>" + cd("pay", payLeft) + "</strong>" }) + "</p>" +
+            "<p class='my-line'>" + TFD_T("experience.payLine3", "Sau khi nhân viên xác nhận thanh toán, vị trí và giờ bay của bạn sẽ hiện ra ngay tại đây.") + "</p>";
+        } else if (mine.status === "WAITING" && entry && entry.waitingForPair) {
+          // Chưa có ai để ghép — KHÔNG hiện giờ bay, chỉ báo đang chờ ghép.
+          // Khi có người ghép (hoặc nhân viên gọi), thẻ này tự đổi sang giờ thật.
+          html += "<div class='my-alert'>" + TFD_T("experience.pairWaitAlert", "⏳ ĐANG CHỜ GHÉP BAY") + "</div>" +
+            "<p class='my-line'>" + TFD_T("experience.pairWaitLine1", "Bạn đăng ký bay 1 mình — hệ thống sẽ tự ghép bạn với khách đăng ký 1 mình tiếp theo (theo thứ tự đăng ký).") + "</p>" +
+            "<p class='my-line'>" + TFD_T("experience.pairWaitLine2", "Giờ bay sẽ hiện tại đây ngay khi ghép xong — vui lòng giữ trang này mở và đừng rời xa gian hàng.") + "</p>";
+        } else if (mine.status === "WAITING" && entry) {
+          var flyLeft = entry.eta - c.now;
+          var arriveLeft = entry.mustArriveBy - c.now;
+          html += "<div class='my-big'>#" + entry.position + "</div>" +
+            "<p>" + TFD_T("experience.waitingPos", "Vị trí trong hàng chờ") + "</p>" +
+            "<p class='my-line'>" + fmt("experience.waitingSlot", "🎟 Phiên bay thứ <strong>{n}</strong> tính từ bây giờ", { n: entry.slotIndex + 1 }) +
+            (entry.slotIndex === 0 ? " — <strong>" + TFD_T("experience.waitingSlotNext", "bạn ở phiên kế tiếp!") + "</strong>" : "") + "</p>";
+          if (flyLeft > 0) {
+            var arriveCountdownText = arriveLeft > 0
+              ? fmt("experience.arriveLeftValue", "còn <strong class='countdown'>{countdown}</strong>", { countdown: cd("arrive", arriveLeft) })
+              : "<strong>" + TFD_T("experience.arriveNow", "NGAY BÂY GIỜ!") + "</strong>";
+            html += "<p class='my-line'>" + fmt("experience.flyTime", "🛫 Giờ bay (đã chốt): <strong>{time}</strong> — còn {countdown}",
+              { time: TFDQ.fmtTime(entry.eta), countdown: "<strong class='countdown'>" + cd("fly", flyLeft) + "</strong>" }) + "</p>" +
+              "<p class='my-line'>" + fmt("experience.arriveBy", "📍 Có mặt tại gian hàng trước: <strong>{time}</strong> — {countdown}",
+                { time: TFDQ.fmtTime(entry.mustArriveBy), countdown: arriveCountdownText }) + "</p>";
+          } else {
+            html += "<p class='my-line'>" + TFD_T("experience.flyNow", "📣 <strong>Đã đến giờ bay của bạn — vui lòng có mặt tại gian hàng ngay!</strong>") + "</p>";
+          }
+          html += "<p class='my-line'>" + TFDQ.instructorNote(entry.slotPeople) + "</p>";
+        } else if (mine.status === "CALLED" && entry) {
+          var left = entry.callDeadline - c.now;
+          html += "<div class='my-alert'>" + TFD_T("experience.calledAlert", "📣 BẠN ĐÃ ĐƯỢC GỌI!") + "</div>" +
+            "<p class='my-line'>" + fmt("experience.calledLine", "Vui lòng đến gian hàng ngay — lượt bay sẽ tự hủy sau <strong>{countdown}</strong>.", { countdown: cd("called", left) }) + "</p>";
+        } else if (mine.status === "PRESENT") {
+          html += "<div class='my-alert ok'>" + TFD_T("experience.presentAlert", "✅ Đã check-in") + "</div>" +
+            "<p class='my-line'>" + TFD_T("experience.presentLine", "Bạn đã có mặt — chờ instructor mời vào buồng lái.") + "</p>";
+        } else if (mine.status === "IN_SESSION" && session) {
+          html += "<div class='my-alert ok'>" + TFD_T("experience.sessionAlert", "🛫 Đang bay!") + "</div>" +
+            "<p class='my-line'>" + fmt("experience.sessionLine", "Phiên của bạn kết thúc lúc <strong>{time}</strong>. Chúc chuyến bay vui vẻ!", { time: TFDQ.fmtTime(session.end) }) + "</p>";
+        } else if (mine.status === "DONE") {
+          html += "<div class='my-alert ok'>" + TFD_T("experience.doneAlert", "🏁 Hoàn thành") + "</div>" +
+            "<p class='my-line'>" + TFD_T("experience.doneLine", "Cảm ơn bạn đã bay cùng The Flight Deck! Nhận chứng nhận \"Phi công tập sự\" tại quầy.") + "</p>" +
+            resetBtn(TFD_T("experience.btnNewReg", "Đăng ký lượt mới"));
+        } else if (mine.status === "PAYMENT_EXPIRED") {
+          html += "<div class='my-alert bad'>" + TFD_T("experience.expiredAlert", "⌛ Hết hạn thanh toán") + "</div>" +
+            "<p class='my-line'>" + TFD_T("experience.expiredLine", "Chúng tôi chưa nhận được xác nhận thanh toán trong thời gian quy định nên lượt đăng ký đã tự hủy. Bạn có thể đăng ký lại.") + "</p>" +
+            resetBtn(TFD_T("experience.btnRetryReg", "Đăng ký lại"));
+        } else if (mine.status === "NO_SHOW") {
+          html += "<div class='my-alert bad'>" + TFD_T("experience.noshowAlert", "⌛ Lượt bay đã bị hủy") + "</div>" +
+            "<p class='my-line'>" + TFD_T("experience.noshowLine", "Bạn không có mặt trong 5 phút sau khi được gọi nên hệ thống đã nhường lượt cho người kế tiếp.") + "</p>" +
+            resetBtn(TFD_T("experience.btnRetryReg", "Đăng ký lại"));
+        } else if (mine.status === "CANCELLED") {
+          html += "<div class='my-alert bad'>" + TFD_T("experience.cancelledAlert", "❌ Lượt bay đã hủy") + "</div>" + resetBtn(TFD_T("experience.btnRetryReg", "Đăng ký lại"));
+        }
+        if (["PENDING_PAYMENT", "WAITING", "CALLED", "PRESENT"].indexOf(mine.status) !== -1) {
+          html += notifyBlock();
+        }
+
+        // Khung có đổi không? So chuỗi sau khi đã bỏ giá trị đếm ngược ra.
+        var skel = html.replace(CD_RE, "$1><");
+        if (skel !== lastMineSkel) {
+          lastMineSkel = skel;
+          myCard.innerHTML = html;
+          cdNodes = myCard.querySelectorAll("[data-cd]");
+
+          var btn = document.getElementById("my-reset");
+          if (btn) btn.addEventListener("click", function () {
+            clearMine();
+            renderMine(TFDQ.compute(itemsForRender()));
+          });
+          var nbtn = document.getElementById("btn-notify");
+          if (nbtn) nbtn.addEventListener("click", enableAlerts);
+        } else {
+          // Khung y hệt — chỉ thay con số đang đếm ngược
+          for (var i = 0; i < cdNodes.length; i++) {
+            var v = cdVals[cdNodes[i].getAttribute("data-cd")];
+            if (v !== undefined && cdNodes[i].textContent !== v) cdNodes[i].textContent = v;
+          }
+        }
+      }
+
+      function hideMine() {
+        lastMineSkel = "";
+        cdNodes = [];
+        myCard.classList.add("hidden");
+        regCard.classList.remove("hidden");
+        renderPayPanel(null);
+      }
+
+      /* ---------- Bảng hướng dẫn thanh toán + Zalo ----------
+         Hiện ngay sau khi đăng ký xong, trong lúc còn PENDING_PAYMENT.
+         Đây là nơi khách biết phải chuyển bao nhiêu, vào đâu, và BẮT BUỘC
+         gửi ảnh chụp giao dịch qua Zalo thì nhân viên mới xác nhận được. */
+      var payPanel = document.getElementById("pay-panel");
+      var lastPayHtml = "";
+
+      function renderPayPanel(mine) {
+        if (!mine || mine.status !== "PENDING_PAYMENT") {
+          if (lastPayHtml !== "") { lastPayHtml = ""; payPanel.innerHTML = ""; }
+          payPanel.classList.add("hidden");
+          return;
+        }
+
+        var cfg = (typeof TFD_CONFIG !== "undefined") ? TFD_CONFIG : {};
+        var bank = cfg.BANK || {};
+        var zalo = cfg.ZALO_LINK || "https://zalo.me/0919686320";
+        var size = TFDQ.sizeOf(mine);
+        var amount = (cfg.PRICE_PER_PERSON || 150000) * size;
+
+        // Nội dung chuyển khoản có MÃ ĐĂNG KÝ — nhân viên đối chiếu ảnh Zalo
+        // với đúng khách trong vài giây thay vì dò theo tên.
+        var transferNote = "TFD " + mine.id + " " + mine.name;
+
+        var html =
+          "<h3 class='pay-panel__title'>" +
+            TFD_T("experience.payTitle", "✅ Đã ghi nhận đăng ký — còn 1 bước nữa") + "</h3>" +
+          "<p class='pay-panel__lead'>" +
+            fmt("experience.payLead",
+              "Vui lòng chuyển khoản <strong>{amount}</strong> ({size}) rồi gửi ảnh chụp giao dịch qua Zalo để chúng tôi xác nhận lịch bay.",
+              { amount: fmtVnd(amount), size: size === 2
+                  ? TFD_T("experience.paySize2", "2 người")
+                  : TFD_T("experience.paySize1", "1 người") }) + "</p>" +
+
+          // Mã VietQR sinh tại chỗ, đã điền sẵn số tiền + nội dung CK
+          "<div class='pay-qr' id='pay-qr'></div>" +
+          "<p class='pay-qr__hint'>" +
+            TFD_T("experience.payQrHint", "📱 Mở app ngân hàng → quét mã này (đã điền sẵn số tiền và nội dung)") + "</p>" +
+
+          "<div class='pay-bank'>" +
+            "<div class='pay-bank__row'><span>" + TFD_T("experience.payBank", "Ngân hàng") + "</span><strong>" + esc(bank.bankName || "—") + "</strong></div>" +
+            "<div class='pay-bank__row'><span>" + TFD_T("experience.payAccName", "Chủ tài khoản") + "</span><strong>" + esc(bank.accountName || "—") + "</strong></div>" +
+            "<div class='pay-bank__row'><span>" + TFD_T("experience.payAccNo", "Số tài khoản") + "</span><strong class='pay-copy' id='pay-acc'>" + esc(bank.accountNumber || "—") + "</strong></div>" +
+            "<div class='pay-bank__row'><span>" + TFD_T("experience.payAmount", "Số tiền") + "</span><strong>" + fmtVnd(amount) + "</strong></div>" +
+            "<div class='pay-bank__row'><span>" + TFD_T("experience.payNote", "Nội dung CK") + "</span><strong>" + esc(TFD_VIETQR.cleanInfo(transferNote)) + "</strong></div>" +
+          "</div>" +
+
+          // Câu hướng dẫn BẮT BUỘC theo yêu cầu
+          "<p class='pay-instruct'>" +
+            TFD_T("experience.payZaloInstruct",
+              "Vui lòng chụp ảnh màn hình thông tin giao dịch chuyển khoản và gửi qua link Zalo bên dưới để chúng tôi xác nhận lịch bay.") +
+          "</p>" +
+
+          "<p class='center'><a class='btn btn-primary pay-zalo' href='" + esc(zalo) + "' target='_blank' rel='noopener'>" +
+            TFD_T("experience.payZaloBtn", "💬 Gửi ảnh giao dịch qua Zalo") + "</a></p>" +
+
+          "<p class='pay-panel__foot'>" +
+            fmt("experience.payFoot",
+              "Mã đăng ký của bạn: <strong>{id}</strong> — nhắn kèm mã này để nhân viên tìm nhanh hơn.",
+              { id: esc(mine.id) }) + "</p>";
+
+        if (html !== lastPayHtml) {
+          lastPayHtml = html;
+          payPanel.innerHTML = html;
+          renderPayQr(bank, amount, transferNote);
+          var acc = document.getElementById("pay-acc");
+          if (acc) acc.addEventListener("click", function () {
+            try {
+              navigator.clipboard.writeText(String(bank.accountNumber || ""));
+              acc.classList.add("is-copied");
+              setTimeout(function () { acc.classList.remove("is-copied"); }, 1500);
+            } catch (e) {}
+          });
+        }
+        payPanel.classList.remove("hidden");
+      }
+
+      /* Vẽ mã VietQR vào bảng thanh toán.
+         Nếu thiếu cấu hình ngân hàng hoặc thư viện QR không nạp được thì ẩn
+         hẳn khối QR đi — thông tin số tài khoản dạng chữ ngay bên dưới vẫn
+         đủ để khách chuyển khoản, không được để một ô trống khó hiểu. */
+      function renderPayQr(bank, amount, note) {
+        var box = document.getElementById("pay-qr");
+        if (!box) return;
+        var hint = box.nextElementSibling;
+        function giveUp() {
+          box.style.display = "none";
+          if (hint && hint.classList.contains("pay-qr__hint")) hint.style.display = "none";
+        }
+        if (typeof TFD_VIETQR === "undefined" || typeof QRCode === "undefined" ||
+            !bank || !bank.bin || !bank.accountNumber) return giveUp();
+        try {
+          var text = TFD_VIETQR.payload({
+            bin: bank.bin,
+            accountNumber: bank.accountNumber,
+            amount: amount,
+            addInfo: note
+          });
+          box.innerHTML = "";
+          new QRCode(box, {
+            text: text,
+            width: 220,
+            height: 220,
+            // Mức M: chịu được chút bóng/lóa khi khách quét màn hình điện
+            // thoại này bằng điện thoại khác, mà mã không quá dày.
+            correctLevel: QRCode.CorrectLevel.M
+          });
+        } catch (e) {
+          giveUp();
+        }
+      }
+
+      /* 300000 → "300.000đ" */
+      function fmtVnd(n) {
+        return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ".") + "đ";
+      }
+
+      function resetBtn(label) {
+        return "<p class='center' style='margin-top:1rem'><button class='btn btn-ghost' id='my-reset'>" + label + "</button></p>";
+      }
+
+      function esc(s) {
+        return String(s).replace(/[&<>"']/g, function (ch) {
+          return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch];
+        });
+      }
+
+      var refreshing = false; // mạng chậm — không xếp chồng request poll
+      var loadFailed = false; // lần lấy dữ liệu gần nhất có lỗi mạng không?
+      var loadedOnce = false; // đã lấy được dữ liệu từ server lần nào chưa?
+
+      function refresh() {
+        if (refreshing) return Promise.resolve();
+        refreshing = true;
+        return TFDQ.list().then(function (items) {
+          /* KHÔNG lọc theo "hôm nay" nữa: khách đặt slot cho các ngày TỚI,
+             lọc theo hôm nay sẽ làm lưới slot của ngày mai luôn trống trơn
+             và cho phép đặt trùng chỗ đã có người. */
+          lastItems = items || [];
+          loadFailed = false;
+          loadedOnce = true;
+          // Server là nguồn sự thật — làm mới bản sao của chính khách
+          var id = myId();
+          if (id) {
+            for (var i = 0; i < lastItems.length; i++) {
+              if (lastItems[i].id === id) { saveSnapshot(lastItems[i]); break; }
+            }
+          }
+        }).catch(function () {
+          loadFailed = true;
+        }).then(function () {
+          refreshing = false;
+          rerender();
+        });
+      }
+
+      /* ---------- khung giờ nhận đăng ký (config.js → BOOKING_HOURS) ----------
+         Chạy lại mỗi giây cùng đồng hồ đếm ngược, nên nút đăng ký tự khóa/mở
+         đúng thời điểm dù khách mở sẵn trang từ trước. */
+      var bookingNote = document.getElementById("booking-hours");
+      var submitting = false;   // đang gửi đăng ký — đừng để gate bật lại nút
+
+      /* ============================================================
+         CHỌN SLOT 15 PHÚT — GIAO DIỆN 3 TRẠNG THÁI
+         ------------------------------------------------------------
+           Còn trống      → 1 người và 2 người đều bấm được
+           Đang chờ 1 người → CHỈ khách lẻ bấm được (để ghép đôi)
+           Kín chỗ        → disabled, không ai bấm được
+         Trạng thái luôn TÍNH LẠI từ danh sách booking (TFD_SLOTS), không
+         lưu riêng — lưu riêng sẽ có ngày lệch với dữ liệu thật.
+         ============================================================ */
+      var SLOT_DATE_KEY = "tfd_slot_date";     // ngày đang xem (giữ khi đổi tab)
+      var SLOT_PICK_KEY = "tfd_slot_pick";     // slot đang chọn (giữ khi đổi tab)
+      var slotDatesEl = document.getElementById("slot-dates");
+      var slotGridEl = document.getElementById("slot-grid");
+      var slotHintEl = document.getElementById("slot-hint");
+      var slotKeyInput = document.getElementById("slot-key");
+
+      var SCHEDULE = (typeof TFD_CONFIG !== "undefined" && TFD_CONFIG.FLIGHT_SCHEDULE) || { groups: [] };
+      var SLOT_OPTS = {
+        minLeadMinutes: (typeof TFD_CONFIG !== "undefined" && TFD_CONFIG.MIN_LEAD_MINUTES) || 0
+      };
+
+      var slotDates = (typeof TFD_SLOTS !== "undefined") ? TFD_SLOTS.allDates(SCHEDULE) : [];
+      var selectedDate = store.get(SLOT_DATE_KEY) || "";
+      var selectedSlot = "";   // gán qua setSelectedSlot() bên dưới để ô ẩn
+                               // luôn khớp biến — đặt thẳng thì ô ẩn rỗng
+
+      function currentGroupSize() {
+        var el = document.querySelector('input[name="group-size"]:checked');
+        return el && el.value === "2" ? 2 : 1;
+      }
+
+      /* "2026-08-03" → "T2 03/08" */
+      function dayLabel(dateKey) {
+        var p = dateKey.split("-");
+        var d = new Date(Date.UTC(+p[0], +p[1] - 1, +p[2], 5));  // 12:00 giờ VN
+        var names = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
+        return names[d.getUTCDay()] + " " + p[2] + "/" + p[1];
+      }
+
+      /* Ngày mặc định: ngày sự kiện đầu tiên còn slot đặt được */
+      function firstOpenDate() {
+        var now = Date.now();
+        for (var i = 0; i < slotDates.length; i++) {
+          var day = TFD_SLOTS.buildDay(SCHEDULE, slotDates[i], lastItems, currentGroupSize(), now, SLOT_OPTS);
+          for (var j = 0; j < day.length; j++) if (day[j].selectable) return slotDates[i];
+        }
+        return slotDates[0] || "";
+      }
+
+      var lastDatesHtml = "", lastGridHtml = "";
+
+      function renderSlotDates() {
+        if (!slotDatesEl) return;
+        var html = slotDates.map(function (d) {
+          return '<button type="button" class="slot-date' + (d === selectedDate ? " is-active" : "") +
+            '" data-date="' + d + '" role="tab" aria-selected="' + (d === selectedDate) + '">' +
+            dayLabel(d) + "</button>";
+        }).join("");
+        if (html !== lastDatesHtml) { lastDatesHtml = html; slotDatesEl.innerHTML = html; }
+      }
+
+      function renderSlotGrid() {
+        if (!slotGridEl) return;
+        if (!slotDates.length) {
+          slotGridEl.innerHTML = "<p class='slot-empty'>" +
+            TFD_T("experience.slotNoSchedule", "Chưa có lịch bay được cấu hình.") + "</p>";
+          return;
+        }
+        var size = currentGroupSize();
+        var day = TFD_SLOTS.buildDay(SCHEDULE, selectedDate, lastItems, size, Date.now(), SLOT_OPTS);
+
+        if (!day.length) {
+          slotGridEl.innerHTML = "<p class='slot-empty'>" +
+            TFD_T("experience.slotNoneToday", "Ngày này không mở lượt bay.") + "</p>";
+          return;
+        }
+
+        var html = day.map(function (s) {
+          var cls = "slot-chip slot-chip--" +
+            (s.state === TFD_SLOTS.FULL ? "full" : s.state === TFD_SLOTS.PENDING_PAIR ? "pending" : "empty");
+          if (s.key === selectedSlot && s.selectable) cls += " is-picked";
+          if (!s.selectable) cls += " is-disabled";
+
+          // Chỉ ô "đang chờ ghép" mới có dòng chú thích — đó là thông tin
+          // khách cần để hiểu vì sao ô này màu khác.
+          var note = s.state === TFD_SLOTS.PENDING_PAIR
+            ? "<span class='slot-chip__note'>" +
+              TFD_T("experience.slotWaitingOne", "Đang chờ 1 người") + "</span>"
+            : "";
+
+          return '<button type="button" class="' + cls + '" data-slot="' + s.key + '"' +
+            (s.selectable ? "" : " disabled") +
+            ' aria-label="' + s.time + '">' +
+            "<span class='slot-chip__time'>" + s.time + "</span>" + note + "</button>";
+        }).join("");
+
+        if (html !== lastGridHtml) { lastGridHtml = html; slotGridEl.innerHTML = html; }
+      }
+
+      function renderSlotHint() {
+        if (!slotHintEl) return;
+        var msg;
+        if (!selectedSlot) {
+          msg = currentGroupSize() === 2
+            ? TFD_T("experience.slotHintDuo", "Đi 2 người: chọn một ô còn trống — hai bạn bay cùng nhau.")
+            : TFD_T("experience.slotHintSolo", "Đi 1 mình: chọn ô còn trống, hoặc ô cam để bay ghép cùng khách đã đặt.");
+        } else {
+          var t = selectedSlot.slice(11);
+          var d = selectedSlot.slice(0, 10);
+          msg = fmt("experience.slotPicked", "✅ Đã chọn: <strong>{time}</strong> ngày {date}",
+            { time: t, date: d.split("-").reverse().join("/") });
+        }
+        if (slotHintEl.innerHTML !== msg) slotHintEl.innerHTML = msg;
+      }
+
+      /* Slot đang chọn có còn hợp lệ không? Người khác có thể vừa đặt mất,
+         hoặc khách vừa đổi từ 1 người sang 2 người khiến ô "chờ ghép" không
+         còn bấm được. Bỏ chọn im lặng còn hơn để khách bấm gửi rồi bị từ chối. */
+      function validateSelectedSlot() {
+        if (!selectedSlot) return;
+        var day = TFD_SLOTS.buildDay(SCHEDULE, selectedSlot.slice(0, 10), lastItems,
+          currentGroupSize(), Date.now(), SLOT_OPTS);
+        var found = null;
+        day.forEach(function (s) { if (s.key === selectedSlot) found = s; });
+        if (!found || !found.selectable) setSelectedSlot("");
+      }
+
+      function setSelectedSlot(key) {
+        selectedSlot = key || "";
+        slotKeyInput.value = selectedSlot;
+        store.set(SLOT_PICK_KEY, selectedSlot);
+      }
+
+      function setSelectedDate(d) {
+        selectedDate = d;
+        store.set(SLOT_DATE_KEY, d);
+      }
+
+      // Khôi phục slot khách đang chọn dở từ lần mở trang trước
+      setSelectedSlot(store.get(SLOT_PICK_KEY) || "");
+
+      function renderSlots() {
+        if (typeof TFD_SLOTS === "undefined") return;
+        if (!selectedDate || slotDates.indexOf(selectedDate) === -1) {
+          setSelectedDate(firstOpenDate());
+        }
+        validateSelectedSlot();
+        renderSlotDates();
+        renderSlotGrid();
+        renderSlotHint();
+      }
+
+      // Bấm chọn ngày / chọn slot (uỷ quyền sự kiện — lưới vẽ lại liên tục)
+      if (slotDatesEl) slotDatesEl.addEventListener("click", function (e) {
+        var b = e.target.closest("[data-date]");
+        if (!b) return;
+        setSelectedDate(b.getAttribute("data-date"));
+        lastGridHtml = "";           // đổi ngày = lưới khác hẳn, buộc vẽ lại
+        renderSlots();
+      });
+
+      if (slotGridEl) slotGridEl.addEventListener("click", function (e) {
+        var b = e.target.closest("[data-slot]");
+        if (!b || b.disabled) return;
+        var key = b.getAttribute("data-slot");
+        setSelectedSlot(key === selectedSlot ? "" : key);   // bấm lại để bỏ chọn
+        lastGridHtml = "";
+        renderSlots();
+      });
+
+      // Đổi số người → luật bấm được đổi theo, phải vẽ lại lưới ngay
+      Array.prototype.forEach.call(document.querySelectorAll('input[name="group-size"]'), function (r) {
+        r.addEventListener("change", function () {
+          lastGridHtml = "";
+          renderSlots();
+        });
+      });
+
+      var lastGateHtml = "";   // chỉ ghi lại DOM khi nội dung đổi (xem rerender)
+
+      function bookingGate() {
+        var st = TFDQ.bookingStatus();
+        var btn = document.getElementById("reg-submit");
+
+        if (st.always) {           // không cấu hình khung giờ = mở cả ngày
+          bookingNote.hidden = true;
+          setFormLocked(false);
+          if (btn && !submitting) { btn.disabled = false; btn.title = ""; }
+          return st;
+        }
+
+        var hours = TFDQ.bookingHoursText();
+        var cls, html;
+        bookingNote.hidden = false;
+
+        if (st.open) {
+          cls = "booking-hours-note is-open";
+          html = fmt("experience.bookingOpen",
+            "🟢 Đang nhận đăng ký — đóng lúc <strong>{close}</strong> · Khung giờ mỗi ngày: <strong>{hours}</strong>",
+            { close: TFDQ.fmtTime(st.closesAt), hours: hours });
+        } else {
+          cls = "booking-hours-note is-closed";
+          html = fmt("experience.bookingClosed",
+            "⏰ Ngoài giờ đăng ký. Mở lại lúc <strong>{open}</strong>{day} — còn <strong class='countdown'>{countdown}</strong>" +
+            "<br>Khung giờ nhận đăng ký mỗi ngày: <strong>{hours}</strong>",
+            {
+              open: TFDQ.fmtTime(st.opensAt),
+              day: st.tomorrow ? " " + TFD_T("experience.bookingTomorrow", "ngày mai") : "",
+              countdown: TFDQ.fmtCountdown(st.opensAt - Date.now()),
+              hours: hours
+            });
+        }
+
+        // Gate chạy mỗi giây; chỉ chạm DOM khi chuỗi thật sự đổi để trình
+        // duyệt không phải layout lại khối này 60 lần/phút.
+        if (html !== lastGateHtml) {
+          lastGateHtml = html;
+          bookingNote.className = cls;
+          bookingNote.innerHTML = html;
+        }
+
+        // Khoá cả thẻ form (mờ + không bấm được), không chỉ mỗi nút — ngoài
+        // giờ mà các ô vẫn gõ được thì khách tưởng đăng ký được rồi mới hụt.
+        // Dùng disabled thật (không chỉ pointer-events) để người dùng bàn
+        // phím / trình đọc màn hình cũng bị khoá giống nhau.
+        setFormLocked(!st.open);
+        if (btn && !submitting) {
+          btn.disabled = !st.open;
+          btn.title = st.open ? "" : TFD_T("experience.bookingClosedShort", "Ngoài giờ nhận đăng ký");
+        }
+        return st;
+      }
+
+      var regFields = regCard.querySelectorAll("input");
+      var lockedNow = null;
+      function setFormLocked(locked) {
+        if (locked === lockedNow) return;   // gate chạy mỗi giây — đừng ghi lại DOM vô ích
+        lockedNow = locked;
+        regCard.classList.toggle("is-locked", locked);
+        for (var i = 0; i < regFields.length; i++) regFields[i].disabled = locked;
+      }
+
+      function rerender() {
+        renderSlots();
+        var c = TFDQ.compute(itemsForRender());
+        renderBanner(c);
+        renderMine(c);
+        checkAlerts(c);
+        bookingGate();
+      }
+
+      document.getElementById("experience-form").addEventListener("submit", function (e) {
+        e.preventDefault();
+        regError.textContent = "";
+
+        // Chặn lần 2 ngay lúc bấm: trang có thể đã mở sẵn từ trước khi hết giờ
+        var gate = bookingGate();
+        if (!gate.open) {
+          regError.textContent = fmt("experience.bookingClosedError",
+            "Ngoài giờ nhận đăng ký ({hours}). Đăng ký mở lại lúc {open}.",
+            { hours: TFDQ.bookingHoursText(), open: TFDQ.fmtTime(gate.opensAt) });
+          return;
+        }
+
+        // Chưa chọn slot thì không gửi được — nhắc ngay tại chỗ chọn giờ
+        if (!selectedSlot) {
+          regError.textContent = TFD_T("experience.slotRequired",
+            "Vui lòng chọn giờ bay trước khi đăng ký.");
+          if (slotGridEl) slotGridEl.scrollIntoView({ block: "center" });
+          return;
+        }
+
+        // Xin quyền thông báo + mở khóa âm thanh ngay trong thao tác bấm
+        enableAlerts();
+        var btn = document.getElementById("reg-submit");
+        submitting = true;
+        btn.disabled = true;
+        btn.textContent = TFD_T("experience.registering", "Đang đăng ký…");
+
+        var sizeInput = document.querySelector('input[name="group-size"]:checked');
+        var payInput = document.querySelector('input[name="pay-method"]:checked');
+
+        TFDQ.register({
+          name: document.getElementById("name").value,
+          phone: document.getElementById("phone").value,
+          email: document.getElementById("email").value,
+          payMethod: payInput ? payInput.value : "BANK",
+          groupSize: sizeInput ? sizeInput.value : "1",
+          slotKey: selectedSlot
+        }).then(function (res) {
+          if (res.ok) {
+            store.set(MY_KEY, res.item.id);
+            saveSnapshot(res.item);
+            return refresh();
+          }
+          // Server từ chối vì ngoài khung giờ (đồng hồ máy khách có thể sai)
+          if (res.error === "CLOSED") {
+            bookingGate();
+            var st = TFDQ.bookingStatus();
+            var hrs = res.hours || TFDQ.bookingHoursText();
+            // opensAt chỉ có khi máy khách cũng thấy là đang đóng
+            regError.textContent = st.opensAt
+              ? fmt("experience.bookingClosedError",
+                  "Ngoài giờ nhận đăng ký ({hours}). Đăng ký mở lại lúc {open}.",
+                  { hours: hrs, open: TFDQ.fmtTime(st.opensAt) })
+              : fmt("experience.bookingClosedNow",
+                  "Ngoài giờ nhận đăng ký. Khung giờ mỗi ngày: {hours}.", { hours: hrs });
+            return;
+          }
+          /* Server từ chối slot: trong lúc khách điền form, người khác có
+             thể đã đặt mất ô đó. Bỏ chọn, tải lại lưới để khách thấy tình
+             trạng mới nhất và chọn ô khác — đây là chốt chặn chống tranh chỗ. */
+          var slotErrors = {
+            SLOT_TAKEN: TFD_T("experience.slotTaken", "Rất tiếc, giờ này vừa có người đặt mất. Bạn chọn giúp một giờ khác nhé."),
+            SLOT_NEEDS_SOLO: TFD_T("experience.slotNeedsSolo", "Giờ này đang chờ ghép 1 khách đi lẻ nên nhóm 2 người không đặt được. Bạn chọn ô còn trống nhé."),
+            NO_SLOT: TFD_T("experience.slotRequired", "Vui lòng chọn giờ bay trước khi đăng ký."),
+            BAD_SLOT: TFD_T("experience.slotBad", "Giờ bay không hợp lệ — vui lòng chọn lại."),
+            PAST: TFD_T("experience.slotPast", "Giờ này đã qua — vui lòng chọn giờ khác."),
+            TOO_SOON: TFD_T("experience.slotTooSoon", "Giờ này quá gần. Vui lòng chọn giờ cách hiện tại ít nhất 30 phút.")
+          };
+          if (slotErrors[res.error]) {
+            regError.textContent = slotErrors[res.error];
+            setSelectedSlot("");
+            lastGridHtml = "";
+            return refresh().then(function () {
+              if (slotGridEl) slotGridEl.scrollIntoView({ block: "center" });
+            });
+          }
+          // Server chặn vì email sai định dạng — không có email thì không
+          // gửi được giờ bay và lời mời lịch cho khách.
+          if (res.error === "BAD_EMAIL") {
+            regError.textContent = TFD_T("experience.badEmailError",
+              "Email chưa đúng định dạng — vui lòng kiểm tra lại để nhận được xác nhận giờ bay.");
+            document.getElementById("email").focus();
+            return;
+          }
+          var reason = res.error === "BUSY"
+            ? TFD_T("experience.busyError", "hệ thống đang bận vì quá đông — đợi vài giây rồi bấm lại")
+            : (res.error || "lỗi");
+          regError.textContent = fmt("experience.regFailed", "Không đăng ký được ({error}). Vui lòng thử lại hoặc gặp nhân viên gian hàng.", { error: reason });
+        }).catch(function () {
+          regError.textContent = TFD_T("experience.netError", "Lỗi kết nối — vui lòng thử lại hoặc gặp nhân viên gian hàng.");
+        }).then(function () {
+          submitting = false;
+          btn.textContent = TFD_T("experience.btnSubmit", "Đăng ký lượt bay 🛫");
+          bookingGate();   // khóa lại ngay nếu vừa hết khung giờ khi đang gửi
+        });
+      });
+
+      /* Khách hay chuyển sang app khác trong lúc chờ. Tab bị ẩn thì màn hình
+         không vẽ gì cả — cứ poll mạng 15s/lần và tính lại mỗi giây là phí pin
+         và data 4G ở gian hàng. Ẩn thì dừng, hiện lại thì cập nhật ngay.
+         Thông báo "tới giờ bay" vẫn chạy qua Notification/service worker. */
+      var tickTimer = null, pollTimer = null;
+
+      function startTimers() {
+        if (!tickTimer) tickTimer = setInterval(rerender, 1000);
+        if (!pollTimer) pollTimer = setInterval(refresh, 15000);
+      }
+      function stopTimers() {
+        clearInterval(tickTimer); tickTimer = null;
+        clearInterval(pollTimer); pollTimer = null;
+      }
+
+      document.addEventListener("visibilitychange", function () {
+        if (document.hidden) {
+          stopTimers();
+        } else {
+          startTimers();
+          rerender();   // vẽ lại ngay để không hiện đồng hồ cũ
+          refresh();
+        }
+      });
+
+      /* Khoá/mở nút NGAY khi trang dựng xong, trước cả lần gọi mạng đầu tiên.
+         Khung giờ chỉ phụ thuộc đồng hồ nên không có lý do gì phải chờ:
+         trước đây gate chỉ chạy trong rerender(), mà rerender() lại nằm trong
+         nhánh thành công của refresh() — mạng ở gian hàng chậm hoặc rớt là
+         nút "Đăng ký" hiện ra như đang mở suốt thời gian đó. */
+      /* VẼ NGAY từ dữ liệu đã lưu, TRƯỚC khi gọi mạng.
+         Đây là mấu chốt của lỗi "chuyển tab là mất chỗ": trước đây lần vẽ
+         đầu tiên chỉ xảy ra khi refresh() trả về hoặc khi nhịp 1 giây chạy.
+         Mạng gian hàng chậm/rớt thì trong khoảng đó khách nhìn thấy form
+         trống và tưởng phải đăng ký lại. */
+      bookingGate();
+      rerender();
+
+      refresh();
+      startTimers();
+      TFDQ.onExternalChange(refresh);
+    })();
+  </script>
+
+</body>
+</html>

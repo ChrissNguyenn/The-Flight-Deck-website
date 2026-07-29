@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title data-i18n-title="courses.pageTitle">Workshop đã qua &amp; Khảo sát lịch tiếp theo | The Flight Deck</title>
+  <meta name="description" data-i18n-content="courses.desc" content="Xem lại các workshop hàng không The Flight Deck đã tổ chức và điền khảo sát ngắn để chúng tôi lên lịch workshop tiếp theo đúng với mong muốn của bạn.">
+  <link rel="icon" type="image/png" href="images/the-flight-deck-logo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@700;800;900&display=swap">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="carrot-day.css">
+</head>
+<body>
+
+  <section class="hero hero--solid">
+    <h1 data-i18n="courses.h1">Nhìn lại workshop đã qua<br><span class="accent">và cho chúng tôi biết bạn muốn gì tiếp theo</span></h1>
+    <p class="lead" data-i18n="courses.lead">
+      The Flight Deck đã cùng nhiều bạn trẻ khám phá ngành hàng không qua các buổi workshop thực tế.
+      Xem lại hình ảnh bên dưới, và điền khảo sát ngắn để tụi mình lên lịch workshop tiếp theo đúng
+      với điều bạn mong muốn.
+    </p>
+    <div class="btn-row">
+      <a class="btn btn-primary" href="#workshop" data-i18n="courses.btnGallery">📸 Xem workshop đã qua</a>
+      <a class="btn btn-ghost" href="#khao-sat" data-i18n="courses.btnSurvey">📝 Điền khảo sát</a>
+    </div>
+  </section>
+
+  <section class="richtext">
+    <div class="richtext-grid" id="richtext-grid">
+      <div class="richtext-img" style="--aspect:75%">
+        <img width="1600" height="1200" loading="lazy" decoding="async" src="images/The%20Flight%20Deck.jpg" alt="Không gian workshop tại The Flight Deck">
+        <div class="richtext-decor"></div>
+      </div>
+      <div class="richtext-body">
+        <span class="richtext-label">Established in 2025</span>
+        <p class="richtext-statement">The Flight Deck Coffee is a place to connect pilots, simmers, and everyone who shares a love for aviation.</p>
+        <ul class="feature-list">
+          <li><span class="check">📍</span> <span data-i18n="courses.addr">Địa chỉ: Số 86, Đặng Văn Ngữ, phường Phú Nhuận, TP.HCM</span></li>
+          <li><span class="check">🕐</span> <span data-i18n="courses.hours">Giờ mở cửa: 9h sáng – 9h tối hằng ngày</span></li>
+          <li><span class="check">📞</span> <span data-i18n="courses.contactLabel">Liên hệ đặt chỗ:</span> <a href="tel:0919686320" style="color:var(--accent);text-decoration:none;">0919 686 320</a></li>
+        </ul>
+        <div class="btn-row">
+          <a class="btn btn-ghost" href="https://maps.app.goo.gl/c5KG75YzppNyRZDz5" target="_blank" rel="noopener" data-i18n="courses.btnMaps">📍 Xem trên Google Maps</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="swipe-section" id="swipe-section">
+    <div class="swipe-sticky">
+      <p class="swipe-text" id="swipe-text">We are not a normal cafe like others</p>
+      <div class="swipe-plane" id="swipe-plane">
+        <img width="1200" height="400" loading="lazy" decoding="async" src="images/A32FNEO.png" alt="Airbus A320neo">
+      </div>
+    </div>
+  </section>
+
+  <section class="cockpit-shot" id="cockpit-shot">
+    <div class="cockpit-collage">
+      <div class="cockpit-collage__stack">
+        <div class="cockpit-collage__card cockpit-collage__card--sm-top">
+          <img width="720" height="1280" loading="lazy" decoding="async" src="images/Cockpit%232.jpg" alt="Buồng lái A320 — góc nhìn pedestal và throttle">
+        </div>
+        <div class="cockpit-collage__card cockpit-collage__card--sm-bot">
+          <img width="1280" height="720" loading="lazy" decoding="async" src="images/Cockpit%233.jpg" alt="Buồng lái A320 — bay đêm trên thành phố">
+        </div>
+      </div>
+      <div class="cockpit-collage__card cockpit-collage__card--main">
+        <img width="1600" height="1200" loading="lazy" decoding="async" src="images/TheFlightDeck%20cockpit.jpg" alt="Buồng lái mô phỏng Airbus A320 tại The Flight Deck">
+      </div>
+    </div>
+    <p class="cockpit-shot__caption" data-i18n="courses.cockpitCaption">Buồng lái mô phỏng A320 thật tại The Flight Deck</p>
+  </section>
+
+  <section class="fly-workshop-section" id="workshop">
+    <div class="fly-workshop-sticky">
+      <div class="fw-col fw-col--list">
+        <span class="fw-heading" data-i18n="courses.fwHeading">Workshop chúng tôi đã tổ chức</span>
+        <div class="fw-steps" id="fw-steps">
+          <div class="fw-step-dot"></div>
+          <div class="fw-step-dot"></div>
+          <div class="fw-step-dot"></div>
+        </div>
+        <div class="fw-scroll-window">
+          <div class="fw-scroll-track" id="fw-text-track"></div>
+        </div>
+      </div>
+      <div class="fw-col fw-col--plane">
+        <div class="fly-trail"></div>
+        <div class="fly-plane" id="fly-plane">
+          <!-- A320 nhìn từ trên xuống, dựng theo số đo thật (đơn vị = 0.1 m):
+               dài 37.57 m, sải cánh 35.80 m, thân Ø3.95 m, cánh xuôi 27°,
+               đuôi ngang sải 12.45 m. Từ trên xuống máy bay gần như vuông —
+               hình cũ dài gấp 2.8 lần sải cánh nên trông không giống thật.
+               Thứ tự vẽ: động cơ (nằm dưới cánh) → cánh đè lên → thân đè lên
+               gốc cánh, đúng như thứ tự che khuất khi nhìn từ trên. -->
+          <svg viewBox="0 0 370 388" fill="none" aria-hidden="true">
+            <rect x="112.25" y="141" width="23.7" height="44" rx="11.5" fill="currentColor"/>
+            <rect x="234.05" y="141" width="23.7" height="44" rx="11.5" fill="currentColor"/>
+            <ellipse cx="124.1" cy="149" rx="9.4" ry="5.2" fill="#0a1628" opacity="0.5"/>
+            <ellipse cx="245.9" cy="149" rx="9.4" ry="5.2" fill="#0a1628" opacity="0.5"/>
+            <path d="M185 138 L6 229 L6 244 L185 199 Z" fill="currentColor"/>
+            <path d="M185 138 L364 229 L364 244 L185 199 Z" fill="currentColor"/>
+            <path d="M6 229 L1.5 233 L1.5 246.5 L6 244 Z" fill="#0a1628" opacity="0.42"/>
+            <path d="M364 229 L368.5 233 L368.5 246.5 L364 244 Z" fill="#0a1628" opacity="0.42"/>
+            <path d="M185 326 L122.8 360.5 L122.8 375.5 L185 368 Z" fill="currentColor"/>
+            <path d="M185 326 L247.2 360.5 L247.2 375.5 L185 368 Z" fill="currentColor"/>
+            <path d="M185 7 C176.5 9.5 166.6 27 165.25 55 L165.25 266 C165.25 312 172 352 181 382 L189 382 C198 352 204.75 312 204.75 266 L204.75 55 C203.4 27 193.5 9.5 185 7 Z" fill="currentColor"/>
+            <path d="M183 316 L187 316 L188.5 379 L181.5 379 Z" fill="#0a1628" opacity="0.32"/>
+            <path d="M177.5 46 L192.5 46 L190.2 29 L179.8 29 Z" fill="#0a1628" opacity="0.58"/>
+          </svg>
+        </div>
+      </div>
+      <div class="fw-col fw-col--image">
+        <div class="fw-scroll-window">
+          <div class="fw-scroll-track" id="fw-image-track"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="btn-row" style="max-width:1100px;margin:2rem auto 0;padding:0 1.4rem;">
+    <a class="btn btn-ghost" href="https://www.tiktok.com/@the.flight.deck4" target="_blank" rel="noopener" data-i18n="courses.btnTiktok">🎵 Theo dõi TikTok của chúng tôi</a>
+  </div>
+
+  <section class="section" id="khao-sat">
+    <h2 class="section-title" data-i18n="courses.surveyTitle">📝 Bạn muốn workshop tiếp theo về gì?</h2>
+    <p class="section-sub" data-i18n="courses.surveySub">Điền thông tin ngắn gọn — chúng tôi dùng để lên lịch và chọn chủ đề workshop tiếp theo phù hợp nhất với bạn.</p>
+
+    <div class="form-card" id="course-form-card">
+      <form id="course-form">
+        <div class="form-group">
+          <label for="name" data-i18n="form.name">Họ và tên *</label>
+          <input type="text" id="name" name="name" required placeholder="Nguyễn Văn A" data-i18n-placeholder="form.namePh">
+        </div>
+        <div class="form-group">
+          <label for="phone" data-i18n="form.phone">Số điện thoại *</label>
+          <input type="tel" id="phone" name="phone" required placeholder="09xx xxx xxx" pattern="[0-9+][0-9 ]{7,14}">
+        </div>
+        <div class="form-group">
+          <label for="email" data-i18n="form.email">Email (không bắt buộc)</label>
+          <input type="email" id="email" name="email" placeholder="ban@email.com" data-i18n-placeholder="form.emailPh">
+        </div>
+        <div class="form-group">
+          <label for="audience" data-i18n="form.audience">Bạn là *</label>
+          <select id="audience" name="audience" required>
+            <option value="" disabled selected data-i18n="form.choose">Chọn một mục</option>
+            <option value="Học sinh" data-i18n="form.audStudent">Học sinh</option>
+            <option value="Sinh viên" data-i18n="form.audUni">Sinh viên</option>
+            <option value="Đi làm" data-i18n="form.audWorking">Đi làm</option>
+            <option value="Khác" data-i18n="form.audOther">Khác</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="schedule-type" data-i18n="form.scheduleType">Bạn rảnh trong tuần hay cuối tuần? *</label>
+          <select id="schedule-type" name="scheduleType" required>
+            <option value="" disabled selected data-i18n="form.choose">Chọn một mục</option>
+            <option value="Trong tuần" data-i18n="form.schedWeekday">Trong tuần</option>
+            <option value="Cuối tuần (Thứ 7 - Chủ Nhật)" data-i18n="form.schedWeekend">Cuối tuần (Thứ 7 - Chủ Nhật)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="period" data-i18n="form.period">Khoảng thời gian nào trong năm? *</label>
+          <select id="period" name="period" required>
+            <option value="" disabled selected data-i18n="form.choose">Chọn một mục</option>
+            <option value="Cuối năm" data-i18n="form.periodEnd">Cuối năm</option>
+            <option value="Tháng 7 - 8 - 9" data-i18n="form.periodMid">Tháng 7 - 8 - 9</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="time-of-day" data-i18n="form.timeOfDay">Khung giờ nào? *</label>
+          <select id="time-of-day" name="timeOfDay" required>
+            <option value="" disabled selected data-i18n="form.choose">Chọn một mục</option>
+            <option value="Sáng (9h - 12h)" data-i18n="form.todMorning">Sáng (9h - 12h)</option>
+            <option value="Chiều (16h - 19h)" data-i18n="form.todAfternoon">Chiều (16h - 19h)</option>
+            <option value="Tối (sau 20h)" data-i18n="form.todEvening">Tối (sau 20h)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label data-i18n="form.topics">Bạn muốn workshop về chủ đề gì? *</label>
+          <div class="checkbox-group" id="topics-group">
+            <label><input type="checkbox" name="topics" value="Aviation Phraseology — huấn lệnh trong hàng không" data-label="Chủ đề workshop quan tâm"> <span data-i18n="form.topicPhraseology">✈️ Aviation Phraseology — huấn lệnh trong hàng không</span></label>
+            <label><input type="checkbox" name="topics" value="Principles of Flight — nguyên lý bay cơ bản" data-label="Chủ đề workshop quan tâm"> <span data-i18n="form.topicPof">📐 Principles of Flight — nguyên lý bay cơ bản</span></label>
+            <label><input type="checkbox" name="topics" value="Meteorology — khí tượng" data-label="Chủ đề workshop quan tâm"> <span data-i18n="form.topicMeteo">🌦️ Meteorology — khí tượng</span></label>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="topic-other" data-i18n="form.topicOther">Chủ đề khác (nếu có)</label>
+          <input type="text" id="topic-other" name="topicOther" placeholder="Ghi rõ chủ đề bạn muốn..." data-i18n-placeholder="form.topicOtherPh">
+        </div>
+        <div class="center">
+          <button type="submit" class="btn btn-primary" id="course-submit" data-i18n="form.submit">Gửi khảo sát 📝</button>
+        </div>
+        <p class="form-note" id="course-error"></p>
+        <p class="form-note demo-note hidden" id="course-demo-note" data-i18n="form.demoNote">⚠️ Chế độ thử nghiệm: chưa kết nối Google Sheet — nhấn gửi sẽ mở email thay thế.</p>
+      </form>
+    </div>
+
+    <div class="form-card hidden" id="course-success">
+      <h3 data-i18n="form.successTitle">🎉 Cảm ơn bạn đã điền khảo sát!</h3>
+      <p data-i18n="form.successBody">Thông tin này giúp chúng tôi lên lịch và chọn chủ đề cho workshop tiếp theo phù hợp hơn.</p>
+    </div>
+
+    <div class="contact-strip">
+      <a href="mailto:theflightdeckcoffee@gmail.com">📧 theflightdeckcoffee@gmail.com</a>
+      <a href="https://www.facebook.com/theflightdeckofficial/" target="_blank" rel="noopener">📘 Facebook</a>
+      <a href="https://zalo.me/0919686320" target="_blank" rel="noopener">💬 Zalo</a>
+    </div>
+  </section>
+
+  <footer class="site-footer">
+    <p class="brand-line">The Flight Deck × Flight to Carrot Day 2026</p>
+    <p data-i18n="footer.tagline">Đưa giấc mơ bay đến gần bạn hơn. © 2026 The Flight Deck.</p>
+  </footer>
+
+  <!-- i18n.js phải nạp TRƯỚC: effects.js tách <h1> thành từng từ và
+       workshop-intro.js dựng danh sách workshop ngay lúc tải, nên chữ phải
+       đúng ngôn ngữ trước khi hai file đó chạy. -->
+  <script src="i18n.js"></script>
+  <script src="effects.js"></script>
+  <script src="config.js"></script>
+  <script src="form-handler.js"></script>
+  <script src="workshop-intro.js"></script>
+  <script>
+    (function () {
+      var CFG = window.TFD_CONFIG || {};
+      var isRemote = !!(CFG.SCRIPT_URL && CFG.SCRIPT_URL.indexOf("http") === 0);
+
+      var form = document.getElementById("course-form");
+      var errorBox = document.getElementById("course-error");
+
+      if (!isRemote) {
+        document.getElementById("course-demo-note").classList.remove("hidden");
+        setupMailtoForm("course-form", "Khảo sát workshop tiếp theo — The Flight Deck");
+        return;
+      }
+
+      form.addEventListener("submit", function (e) {
+        e.preventDefault();
+        errorBox.textContent = "";
+
+        var checkedTopics = form.querySelectorAll('input[name="topics"]:checked');
+        var topicOther = document.getElementById("topic-other").value.trim();
+        if (!checkedTopics.length && !topicOther) {
+          errorBox.textContent = TFD_T("form.errNoTopic",
+            "Vui lòng chọn hoặc ghi rõ ít nhất một chủ đề workshop bạn quan tâm.");
+          return;
+        }
+        var topicLabels = Array.prototype.map.call(checkedTopics, function (cb) { return cb.value; });
+        if (topicOther) topicLabels.push("Khác: " + topicOther);
+
+        var btn = document.getElementById("course-submit");
+        var btnLabel = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = TFD_T("form.sending", "Đang gửi…");
+
+        fetch(CFG.SCRIPT_URL, {
+          method: "POST",
+          body: new URLSearchParams({
+            action: "registerCourse",
+            name: document.getElementById("name").value,
+            phone: document.getElementById("phone").value,
+            email: document.getElementById("email").value,
+            audience: document.getElementById("audience").value,
+            scheduleType: document.getElementById("schedule-type").value,
+            period: document.getElementById("period").value,
+            timeOfDay: document.getElementById("time-of-day").value,
+            topics: topicLabels.join("; ")
+          })
+        })
+          .then(function (r) { return r.json(); })
+          .then(function (res) {
+            if (res.ok) {
+              document.getElementById("course-form-card").classList.add("hidden");
+              document.getElementById("course-success").classList.remove("hidden");
+            } else {
+              errorBox.textContent = TFD_T("form.errSend", "Không gửi được") +
+                " (" + (res.error || "lỗi") + "). " +
+                TFD_T("form.errNet", "Vui lòng thử lại hoặc nhắn Zalo/Facebook.");
+            }
+          })
+          .catch(function () {
+            errorBox.textContent = TFD_T("form.errNet",
+              "Lỗi kết nối — vui lòng thử lại hoặc nhắn Zalo/Facebook.");
+          })
+          .then(function () {
+            btn.disabled = false;
+            btn.textContent = btnLabel;
+          });
+      });
+    })();
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,1173 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Quản lý hàng chờ | The Flight Deck</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="icon" type="image/png" href="images/the-flight-deck-logo.png">
+  <link rel="stylesheet" href="style.css">
+  <!-- Bắt tay sẵn với Apps Script — trang này gọi API liên tục cả ngày -->
+  <link rel="preconnect" href="https://script.google.com" crossorigin>
+  <link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
+  <style>
+    .admin-main {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 1.5rem 1.2rem 3rem;
+    }
+    .admin-stats {
+      display: flex;
+      gap: 0.6rem;
+      flex-wrap: wrap;
+      margin-bottom: 1.4rem;
+    }
+    .admin-panel {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius);
+      padding: 1.3rem 1.4rem;
+      margin-bottom: 1.4rem;
+    }
+    .admin-panel h2 {
+      font-size: 1.05rem;
+      margin-bottom: 0.9rem;
+      letter-spacing: 0.03em;
+    }
+    .admin-panel .empty {
+      color: var(--text-dim);
+      font-size: 0.92rem;
+    }
+    .person-row {
+      display: flex;
+      align-items: center;
+      gap: 0.9rem;
+      flex-wrap: wrap;
+      background: var(--navy-800);
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      padding: 0.75rem 0.95rem;
+      margin-bottom: 0.6rem;
+    }
+    .person-row .who { flex: 1 1 200px; min-width: 0; }
+    .person-row .who strong { font-size: 1.02rem; }
+    .person-row .who a {
+      color: var(--sky-400);
+      text-decoration: none;
+      font-weight: 700;
+    }
+    .person-row .meta {
+      color: var(--text-dim);
+      font-size: 0.82rem;
+    }
+    .person-row.alert {
+      border-color: var(--amber-400);
+      background: rgba(245, 165, 36, 0.12);
+      animation: pulse 1.2s ease-in-out infinite;
+    }
+    .person-row.overdue { border-color: #e0524d; background: rgba(224, 82, 77, 0.12); }
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(245, 165, 36, 0.45); }
+      50% { box-shadow: 0 0 0 6px rgba(245, 165, 36, 0); }
+    }
+    .btn-sm {
+      display: inline-block;
+      padding: 0.45rem 0.95rem;
+      font-size: 0.85rem;
+      border-radius: 999px;
+      border: none;
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: none;
+      text-align: center;
+    }
+    .btn-call { background: var(--amber-400); color: #1a1200; }
+    .btn-present { background: #2fbf71; color: #fff; }
+    .btn-cancel { background: transparent; color: var(--text-dim); border: 1px solid var(--card-border); }
+    .btn-cancel:hover { color: #ff8f8a; border-color: #e0524d; }
+    .status-chip {
+      display: inline-block;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      padding: 0.2rem 0.7rem;
+      border-radius: 999px;
+      background: var(--navy-700);
+      color: var(--text-dim);
+    }
+    .status-chip.PENDING_PAYMENT { background: rgba(245, 165, 36, 0.18); color: var(--amber-400); }
+    .status-chip.WAITING { color: var(--sky-400); }
+    .status-chip.CALLED { background: rgba(245, 165, 36, 0.18); color: var(--amber-400); }
+    .status-chip.PRESENT { background: rgba(47, 191, 113, 0.18); color: #5fe0a1; }
+    .status-chip.IN_SESSION { background: rgba(56, 168, 232, 0.18); color: var(--sky-400); }
+    .status-chip.DONE { color: #5fe0a1; }
+    .status-chip.NO_SHOW, .status-chip.CANCELLED, .status-chip.PAYMENT_EXPIRED { color: #ff8f8a; }
+    .btn-pay { background: #5fe0a1; color: #04331e; }
+    .queue-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+    .queue-table th, .queue-table td {
+      text-align: left;
+      padding: 0.55rem 0.6rem;
+      border-bottom: 1px solid var(--card-border);
+      white-space: nowrap;
+    }
+    .queue-table th {
+      color: var(--text-dim);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .queue-table td.name-cell { white-space: normal; }
+    .name-toggle { cursor: pointer; color: var(--sky-400); }
+    .name-toggle:hover { text-decoration: underline; }
+    .contact-row td {
+      background: rgba(56, 168, 232, 0.08);
+      white-space: normal;
+    }
+    .contact-row .btn-call { margin-left: 0.6rem; }
+    .table-wrap { overflow-x: auto; }
+    .session-count {
+      font-size: 1.6rem;
+      font-weight: 800;
+      color: var(--sky-400);
+    }
+    .walkin-form {
+      display: flex;
+      gap: 0.6rem;
+      flex-wrap: wrap;
+    }
+    .walkin-hours {
+      margin: 0 0 0.7rem;
+      padding: 0.5rem 0.8rem;
+      border-radius: 8px;
+      border-left: 4px solid var(--card-border);
+      background: var(--navy-800);
+      font-size: 0.86rem;
+      line-height: 1.5;
+    }
+    .walkin-hours.is-open { border-left-color: #2fbf71; }
+    .walkin-hours.is-closed { border-left-color: var(--amber-500); color: var(--amber-400); }
+    /* Chọn hình thức thanh toán ngay trên dòng chờ duyệt */
+    .pay-method-select {
+      padding: 0.45rem 0.6rem;
+      border-radius: 8px;
+      border: 1.5px solid var(--card-border);
+      background: var(--navy-800);
+      color: var(--text-main);
+      font-family: inherit;
+      font-size: 16px;
+      flex: 0 0 auto;
+    }
+    /* Bảng trình tự ghép đôi */
+    #pairing-table td { vertical-align: top; }
+    tr.pair-wait td { background: rgba(245, 165, 36, 0.09); }
+    tr.pair-ok td { background: rgba(47, 191, 113, 0.07); }
+    .walkin-form input {
+      flex: 1 1 150px;
+      padding: 0.6rem 0.8rem;
+      border-radius: 10px;
+      border: 1.5px solid var(--card-border);
+      background: var(--navy-800);
+      color: var(--text-main);
+      /* 16px: dưới mức này Safari/iPad tự phóng to trang khi chạm vào ô */
+      font-size: 16px;
+      font-family: inherit;
+    }
+    details.history summary {
+      cursor: pointer;
+      color: var(--text-dim);
+      font-weight: 700;
+      margin-bottom: 0.6rem;
+    }
+    #pin-gate {
+      position: fixed;
+      inset: 0;
+      background: var(--navy-900);
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 1rem;
+      padding: 1rem;
+    }
+    #pin-gate input {
+      font-size: 1.4rem;
+      text-align: center;
+      letter-spacing: 0.4em;
+      width: 180px;
+      padding: 0.7rem;
+      border-radius: 10px;
+      border: 1.5px solid var(--card-border);
+      background: var(--navy-800);
+      color: var(--text-main);
+    }
+    .hidden { display: none !important; }
+    /* Day selector tabs */
+    .day-tabs { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 1.2rem; }
+    .day-tab {
+      padding: 0.45rem 1rem; border-radius: 999px; border: 1.5px solid var(--card-border);
+      background: transparent; color: var(--text-dim); font-size: 0.85rem; font-weight: 700;
+      cursor: pointer; font-family: inherit; transition: all 0.15s;
+    }
+    .day-tab:hover { border-color: var(--sky-400); color: var(--text-main); }
+    .day-tab.active { background: var(--sky-400); color: #0a1628; border-color: var(--sky-400); }
+    .day-tab.today { box-shadow: 0 0 0 2px rgba(56,168,232,0.3); }
+    .past-day-notice {
+      background: rgba(255,179,0,0.12); border: 1px solid rgba(255,179,0,0.35);
+      border-radius: 10px; padding: 0.7rem 1rem; margin-bottom: 1.2rem;
+      color: var(--amber-400); font-size: 0.9rem; font-weight: 600;
+    }
+
+    /* ---------- Tablet / cảm ứng ----------
+       Nhân viên trực trang này trên tablet cả ngày, thao tác bằng ngón tay
+       trong lúc vừa nói chuyện với khách — nút phải đủ to để không bấm trượt
+       sang "Hủy" khi định bấm "Có mặt". */
+    .admin-main {
+      padding-top: calc(1.5rem + env(safe-area-inset-top, 0px));
+      padding-bottom: calc(3rem + env(safe-area-inset-bottom, 0px));
+    }
+    #pin-gate { padding: calc(1rem + env(safe-area-inset-top, 0px)) 1rem calc(1rem + env(safe-area-inset-bottom, 0px)); }
+    #pin-gate input { font-size: 1.4rem; }
+
+    @media (pointer: coarse) {
+      .btn-sm, .day-tab {
+        min-height: 44px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding-left: 1.1rem;
+        padding-right: 1.1rem;
+        -webkit-tap-highlight-color: rgba(56, 168, 232, 0.18);
+        touch-action: manipulation;
+      }
+      /* Bấm vào tên khách để xem SĐT — trước đây chỉ là chữ trần, rất khó trúng */
+      .name-toggle {
+        display: inline-block;
+        padding: 0.35rem 0;
+        min-height: 34px;
+      }
+      /* Các nút trong một dòng khách: xuống dòng gọn thay vì chen chúc */
+      .person-row { gap: 0.6rem; }
+      .person-row .btn-sm { flex: 0 1 auto; }
+    }
+
+    /* Bảng hàng chờ cuộn ngang mượt trên iPad */
+    .table-wrap { -webkit-overflow-scrolling: touch; }
+
+    /* Viền nhấp nháy của dòng cần xử lý animate box-shadow liên tục — tắt
+       khi người dùng bật "giảm chuyển động" (và đỡ tốn pin tablet). */
+    @media (prefers-reduced-motion: reduce) {
+      .person-row.alert { animation: none; }
+    }
+
+    /* Điện thoại: bảng nhiều cột không đọc nổi, ưu tiên 2 khối thao tác trên */
+    @media (max-width: 560px) {
+      .admin-main { padding-left: 0.85rem; padding-right: 0.85rem; }
+      .admin-panel { padding: 1rem 0.9rem; }
+      .walkin-form { flex-direction: column; }
+      .walkin-form input, .walkin-form select, .walkin-form button { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+  <div id="pin-gate">
+    <img width="1063" height="1063" decoding="async" src="images/the-flight-deck-logo.png" alt="The Flight Deck" style="width:90px;border-radius:16px;background:#fff;padding:4px;">
+    <h1 style="font-size:1.2rem;">Trang quản lý gian hàng</h1>
+    <input type="password" id="pin-input" inputmode="numeric" placeholder="PIN" autocomplete="off">
+    <button class="btn btn-primary" id="pin-btn">Mở khóa 🔓</button>
+    <p id="pin-error" style="color:#ff8f8a;font-size:0.9rem;"></p>
+  </div>
+
+  <main class="admin-main">
+    <h1 style="font-size:1.25rem;margin-bottom:0.9rem;">🛩️ The Flight Deck — Quản lý hàng chờ</h1>
+    <div class="admin-stats">
+      <span class="pill">🕐 <strong id="clock">--:--</strong></span>
+      <span class="pill">🧑‍✈️ Đang chờ: <strong id="stat-waiting">0</strong></span>
+      <span class="pill">💰 Chờ thanh toán: <strong id="stat-payment">0</strong></span>
+      <span class="pill">⏳ Đăng ký mới chờ: <strong id="stat-wait">0 phút</strong></span>
+      <span class="pill">🔄 Đang gửi: <strong id="stat-sync">0</strong></span>
+      <span class="pill" id="stat-mode">☁️ Google Sheet</span>
+      <span class="pill" id="stat-notify"></span>
+    </div>
+    <div class="day-tabs" id="day-tabs"></div>
+    <div class="past-day-notice hidden" id="past-day-notice">⚠️ Đang xem ngày cũ — chuyển về <strong>Hôm nay</strong> để thao tác.</div>
+    <div class="past-day-notice hidden" id="sync-error"></div>
+
+    <section class="admin-panel" id="payment-panel">
+      <!-- Thời hạn lấy từ config.js (PAYMENT_MINUTES), không ghi cứng nữa -->
+      <h2>💰 Chờ xác nhận thanh toán (<span id="payment-window">…</span>)</h2>
+      <p class="empty" style="margin-bottom:0.8rem;">
+        Đối chiếu ảnh chụp giao dịch khách gửi qua Zalo → chọn đúng hình thức → bấm
+        <strong>Xác nhận &amp; gửi email</strong>. Hệ thống sẽ tự tính giờ bay, ghép đôi và gửi email cho khách.
+      </p>
+      <div id="payment-list"><p class="empty">Chưa có ai chờ thanh toán.</p></div>
+    </section>
+
+    <!-- ============================================================
+         PHẦN 3 — TRÌNH TỰ GHÉP ĐÔI
+         Nhân viên cần thấy ai đang chờ ghép và ai đã ghép với ai, kèm
+         ĐÚNG hai mốc thời gian mà yêu cầu đòi: giờ khách lẻ đặt và giờ
+         nhóm 2 người đặt.
+         ============================================================ -->
+    <section class="admin-panel" id="pairing-panel">
+      <h2>🧑‍🤝‍🧑 Trình tự ghép đôi</h2>
+      <p class="empty" style="margin-bottom:0.8rem;">
+        Khách lẻ được ghép theo thứ tự đăng ký (ai đặt trước ghép trước). Khách đi 2 người
+        tự đủ cặp nên luôn có giờ bay ngay.
+      </p>
+      <div class="table-wrap">
+        <table class="queue-table" id="pairing-table">
+          <thead>
+            <tr>
+              <th>TT ghép</th>
+              <th>Slot / Giờ bay</th>
+              <th>Khách</th>
+              <th>Loại</th>
+              <th>Giờ khách lẻ book</th>
+              <th>Giờ khách 2 người book</th>
+              <th>Trạng thái ghép</th>
+              <th>Email</th>
+            </tr>
+          </thead>
+          <tbody id="pairing-body">
+            <tr><td colspan="8" class="empty">Đang tải…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="admin-panel" id="call-panel">
+      <h2>📣 Cần gọi ngay (5 phút trước phiên)</h2>
+      <div id="call-list"><p class="empty">Chưa có ai cần gọi.</p></div>
+      <p class="empty" id="nextup-note" style="margin-top:0.5rem;"></p>
+    </section>
+
+    <section class="admin-panel" id="session-panel">
+      <h2>🛫 Phiên bay hiện tại</h2>
+      <div id="session-list"><p class="empty">Chưa có phiên nào đang chạy.</p></div>
+      <p class="empty" id="session-note" style="margin-top:0.5rem;"></p>
+      <div class="btn-row" style="justify-content:flex-start;margin-top:0.8rem;">
+        <button class="btn btn-primary btn-sm" id="start-session">▶ Bắt đầu phiên với khách đã có mặt</button>
+        <button class="btn btn-ghost btn-sm hidden" id="end-session">⏹ Kết thúc phiên sớm</button>
+      </div>
+    </section>
+
+    <section class="admin-panel">
+      <h2>📋 Hàng chờ</h2>
+      <div class="table-wrap">
+        <table class="queue-table">
+          <thead>
+            <tr>
+              <th>#</th><th>Tên</th><th>Số người</th><th>SĐT</th>
+              <th>Giờ bay (chốt)</th><th>Chờ</th><th>Trạng thái</th><th>Thao tác</th>
+            </tr>
+          </thead>
+          <tbody id="queue-body">
+            <tr><td colspan="8" class="empty">Đang tải…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="admin-panel">
+      <h2>➕ Thêm khách đăng ký tại chỗ</h2>
+      <p class="walkin-hours" id="walkin-hours" role="status"></p>
+      <form class="walkin-form" id="walkin-form">
+        <input type="text" id="w-name" placeholder="Họ và tên *" required>
+        <input type="tel" id="w-phone" placeholder="SĐT (để bấm gọi)">
+        <select id="w-size" title="Số người bay" style="flex:1 1 160px;padding:0.6rem 0.8rem;border-radius:10px;border:1.5px solid var(--card-border);background:var(--navy-800);color:var(--text-main);font-size:16px;font-family:inherit;">
+          <option value="1">👤 1 người — 150K, chờ ghép</option>
+          <option value="2">👥 2 người — 300K, đi cùng nhau</option>
+        </select>
+        <button type="submit" class="btn btn-primary btn-sm">Thêm vào hàng chờ</button>
+      </form>
+      <p class="form-note" id="walkin-error" style="text-align:left;"></p>
+    </section>
+
+    <section class="admin-panel">
+      <details class="history">
+        <summary>🗂 Lịch sử (hoàn thành / hủy / vắng mặt)</summary>
+        <div class="table-wrap">
+          <table class="queue-table">
+            <thead><tr><th>Tên</th><th>Số người</th><th>Trạng thái</th><th>Cập nhật</th></tr></thead>
+            <tbody id="history-body"></tbody>
+          </table>
+        </div>
+      </details>
+    </section>
+  </main>
+
+  <script src="config.js"></script>
+  <script src="queue.js"></script>
+  <script>
+    (function () {
+      var CFG = window.TFD_CONFIG || {};
+      var lastItems = [];    // items ĐÃ LỌC theo ngày đang xem
+      var allItems = [];     // toàn bộ items từ server (chưa lọc)
+      var selectedDay = TFDQ.todayVN(); // ngày đang xem
+      var inFlight = {};      // chặn gửi trùng lệnh tự động
+      var contactOpen = {};   // id các hàng đang mở SĐT (bấm tên để mở/đóng)
+      var syncing = {};       // id các lượt có lệnh ĐANG gửi lên server (optimistic UI)
+      var refreshing = false; // chặn poll chồng chéo khi mạng chậm
+      var lastSyncAt = Date.now(); // lần cuối lấy được dữ liệu từ server OK
+      var lastAlertCount = 0; // để phát tiếng bíp khi có người mới cần gọi
+      var audioCtx = null;
+      var knownIds = null; // id đã từng thấy — null = chưa nạp baseline lần đầu
+
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.register("sw.js").catch(function () {});
+      }
+
+      /* ---------- PIN ---------- */
+      var gate = document.getElementById("pin-gate");
+      function unlock() {
+        var val = document.getElementById("pin-input").value;
+        if (val === String(CFG.ADMIN_PIN || "2026")) {
+          sessionStorage.setItem("tfd_admin_ok", "1");
+          gate.classList.add("hidden");
+          try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {}
+          // Cú click này là thao tác thật của người dùng — đúng lúc trình
+          // duyệt chấp nhận cho xin quyền Notification (không tự ý xin lúc
+          // trang vừa load, sẽ bị chặn hoặc gây khó chịu).
+          if ("Notification" in window && Notification.permission === "default") {
+            try { Notification.requestPermission(function () { render(); }); } catch (e) {}
+          }
+          refresh();
+        } else {
+          document.getElementById("pin-error").textContent = "Sai mã PIN.";
+        }
+      }
+      document.getElementById("pin-btn").addEventListener("click", unlock);
+      document.getElementById("pin-input").addEventListener("keydown", function (e) {
+        if (e.key === "Enter") unlock();
+      });
+      if (sessionStorage.getItem("tfd_admin_ok") === "1") gate.classList.add("hidden");
+
+      function beep() {
+        if (!audioCtx) return;
+        try {
+          var o = audioCtx.createOscillator();
+          var g = audioCtx.createGain();
+          o.connect(g); g.connect(audioCtx.destination);
+          o.frequency.value = 880;
+          g.gain.setValueAtTime(0.25, audioCtx.currentTime);
+          g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.5);
+          o.start(); o.stop(audioCtx.currentTime + 0.5);
+        } catch (e) {}
+      }
+
+      /* Chuông riêng cho "khách mới đăng ký" — 2 nốt lên, phân biệt được
+         bằng tai với beep() (dùng cho "cần gọi ngay", việc khẩn hơn) */
+      function chimeNewReg() {
+        if (!audioCtx) return;
+        try {
+          [660, 880].forEach(function (freq, i) {
+            var o = audioCtx.createOscillator();
+            var g = audioCtx.createGain();
+            o.connect(g); g.connect(audioCtx.destination);
+            o.frequency.value = freq;
+            var t = audioCtx.currentTime + i * 0.16;
+            g.gain.setValueAtTime(0.28, t);
+            g.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
+            o.start(t); o.stop(t + 0.25);
+          });
+        } catch (e) {}
+      }
+
+      /* Thông báo hệ thống (hiện cả khi tab không active / máy khoá màn
+         hình trên Android — iOS cần "Thêm vào MH chính" mới nhận được,
+         giống hệt giới hạn đã ghi ở experience.html/sw.js). Không đặt
+         "tag" cố định — mỗi khách mới phải hiện thông báo RIÊNG, không
+         được ghi đè lên nhau nếu 2 người đăng ký gần nhau. */
+      function systemNotify(title, body) {
+        if (!("Notification" in window) || Notification.permission !== "granted") return;
+        var opts = { body: body, icon: "images/the-flight-deck-logo.png", vibrate: [200, 80, 200] };
+        function direct() { try { new Notification(title, opts); } catch (e) {} }
+        if (navigator.serviceWorker) {
+          navigator.serviceWorker.getRegistration().then(function (reg) {
+            if (reg && reg.showNotification) reg.showNotification(title, opts);
+            else direct();
+          }).catch(direct);
+        } else direct();
+      }
+
+      /* Phát hiện khách MỚI đăng ký: id nào chưa từng thấy trong danh
+         sách là khách mới — chuẩn xác vì register_ trong Apps Script là
+         con đường DUY NHẤT tạo hàng mới, mọi hành động khác chỉ sửa hàng
+         đã có (không đổi id). Lần gọi ĐẦU TIÊN chỉ ghi nhận baseline,
+         không báo — tránh báo giả cho đăng ký cũ mỗi khi F5 tải lại trang. */
+      function detectNewRegistrations(items) {
+        if (!knownIds) {
+          knownIds = {};
+          items.forEach(function (it) { knownIds[it.id] = true; });
+          return;
+        }
+        var fresh = items.filter(function (it) { return !knownIds[it.id]; });
+        fresh.forEach(function (it) { knownIds[it.id] = true; });
+        if (!fresh.length) return;
+        chimeNewReg();
+        if (navigator.vibrate) navigator.vibrate([200, 80, 200]);
+        fresh.forEach(function (it) {
+          systemNotify("🎫 Khách mới đăng ký!",
+            it.name + (it.phone ? " · " + it.phone : "") + " · " + (TFDQ.sizeOf(it) === 2 ? "2 người" : "1 người"));
+        });
+      }
+
+      function esc(s) {
+        return String(s).replace(/[&<>"']/g, function (ch) {
+          return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch];
+        });
+      }
+
+      /* Nhãn số người — trạng thái ghép đôi hiển thị bằng chip riêng (pairTag) */
+      function sizeTag(it) {
+        return TFDQ.sizeOf(it) === 2 ? "👥 2 người" : "👤 1 người";
+      }
+
+      function pairTag(en) {
+        if (TFDQ.sizeOf(en.item) !== 1) return "";
+        if (en.waitingForPair) return " <span class='status-chip' style='color:var(--amber-400)'>⏳ chờ ghép</span>";
+        return " <span class='status-chip' style='color:#5fe0a1'>🧑‍🤝‍🧑 ghép: " + esc(en.partners.join(", ")) + "</span>";
+      }
+
+      function telHref(phone) {
+        var digits = String(phone || "").replace(/[^\d+]/g, "");
+        return digits ? "tel:" + digits : "";
+      }
+
+      function telLink(phone) {
+        var href = telHref(phone);
+        if (!href) return "—";
+        return '<a href="' + href + '">' + esc(phone) + "</a>";
+      }
+
+      /* Nút "📞 Gọi": mở trình quay số với SĐT của khách (dùng điện thoại
+         bấm là gọi luôn) VÀ đồng thời đánh dấu CALLED qua data-action */
+      function callBtn(it) {
+        var href = telHref(it.phone);
+        if (!href) return '<button class="btn-sm btn-call" data-action="call" data-id="' + it.id + '">📞 Đã gọi</button>';
+        return '<a class="btn-sm btn-call" href="' + href + '" data-action="call" data-id="' + it.id + '">📞 Gọi</a>';
+      }
+
+      /* ---------- hiển thị ---------- */
+      function isViewingToday() {
+        return selectedDay === TFDQ.todayVN();
+      }
+
+      /* Khung giờ nhận đăng ký — nhân viên nhìn là biết ngay còn nhận
+         khách tại chỗ được không, khỏi phải bấm thử rồi mới thấy lỗi. */
+      /* Thời hạn thanh toán hiện trên tiêu đề — lấy từ config.js để tiêu đề
+         không bao giờ lệch với luật thật (trước đây ghi cứng "5 phút"). */
+      (function () {
+        var el = document.getElementById("payment-window");
+        if (el) el.textContent = (CFG.PAYMENT_MINUTES || 5) + " phút";
+      })();
+
+      function renderWalkinHours() {
+        var el = document.getElementById("walkin-hours");
+        if (!el) return;
+        var st = TFDQ.bookingStatus();
+        if (st.always) { el.hidden = true; return; }
+        el.hidden = false;
+        if (st.open) {
+          el.className = "walkin-hours is-open";
+          el.textContent = "🟢 Đang nhận đăng ký — đóng lúc " + TFDQ.fmtTime(st.closesAt) +
+            " · Khung giờ: " + TFDQ.bookingHoursText();
+        } else {
+          el.className = "walkin-hours is-closed";
+          el.textContent = "⏰ Ngoài giờ nhận đăng ký — mở lại lúc " + TFDQ.fmtTime(st.opensAt) +
+            (st.tomorrow ? " ngày mai" : "") + " (còn " + TFDQ.fmtCountdown(st.opensAt - Date.now()) + ")" +
+            " · Khung giờ: " + TFDQ.bookingHoursText();
+        }
+      }
+
+      function render() {
+        var c = TFDQ.compute(lastItems);
+
+        renderWalkinHours();
+
+        document.getElementById("stat-waiting").textContent =
+          c.waitingCount + " lượt (" + c.waitingPeople + " người)";
+        document.getElementById("stat-payment").textContent = c.pendingPayments.length;
+        document.getElementById("stat-wait").textContent =
+          "1 người ~" + c.soloWaitMin + "p (" + TFDQ.fmtTime(c.soloEta) + (c.soloHasOpenSlot ? ", đang chờ ghép" : "") + ")" +
+          " · 2 người ~" + c.duoWaitMin + "p (" + TFDQ.fmtTime(c.duoEta) + ")";
+        // Quá 25 giây (≥ 2 nhịp poll) chưa lấy được dữ liệu mới → báo đỏ,
+        // nhân viên biết ngay đang nhìn dữ liệu CŨ thay vì tưởng là mới nhất
+        var staleSec = Math.round((Date.now() - lastSyncAt) / 1000);
+        document.getElementById("stat-mode").textContent =
+          !TFDQ.isRemote() ? "⚠️ Thử nghiệm (máy này)"
+            : (staleSec > 25 ? "🔴 Mất kết nối — dữ liệu cũ " + staleSec + "s" : "☁️ Google Sheet");
+        document.getElementById("stat-sync").textContent = Object.keys(syncing).length;
+
+        var notifyEl = document.getElementById("stat-notify");
+        if (!("Notification" in window)) {
+          notifyEl.textContent = "";
+        } else if (Notification.permission === "granted") {
+          notifyEl.textContent = "🔔 Thông báo: Bật";
+        } else if (Notification.permission === "denied") {
+          notifyEl.textContent = "🔕 Bị chặn — bật lại trong cài đặt trình duyệt";
+        } else {
+          notifyEl.innerHTML = '<button type="button" data-action="enable-notify" style="all:unset;cursor:pointer;">🔔 Bấm để bật thông báo</button>';
+        }
+
+        renderDayTabs();
+        renderPayments(c);
+        renderCalls(c);
+        renderSession(c);
+        renderQueue(c);
+        renderPairing(c);
+        renderHistory(c);
+        // Chỉ chạy luật tự động khi xem ngày hôm nay
+        if (isViewingToday()) runAutoRules(c);
+
+        // Ẩn/hiện nút thao tác khi xem ngày cũ
+        var pastNotice = document.getElementById("past-day-notice");
+        var walkinPanel = document.getElementById("walkin-form").closest(".admin-panel");
+        if (isViewingToday()) {
+          pastNotice.classList.add("hidden");
+          walkinPanel.style.display = "";
+        } else {
+          pastNotice.classList.remove("hidden");
+          walkinPanel.style.display = "none";
+        }
+      }
+
+      /* Các bảng dưới đây vẽ lại mỗi giây (để chạy đếm ngược). Ghi đè
+         innerHTML mỗi nhịp bắt tablet ở gian hàng dựng lại cả bảng 60
+         lần/phút — nóng máy, hao pin, và cắt ngang thao tác chạm của nhân
+         viên. Chỉ ghi khi HTML thật sự đổi: bảng hàng chờ / lịch sử hầu như
+         chỉ đổi khi có dữ liệu mới. */
+      function setHtml(el, html) {
+        if (el._tfdHtml === html) return;
+        el._tfdHtml = html;
+        el.innerHTML = html;
+      }
+
+      /* Bảng "chờ thanh toán": khách vừa đăng ký, đang trên đường tới bàn
+         admin — thu tiền QR/tiền mặt ngoài website. Quá 5 phút tự hủy. */
+      function renderPayments(c) {
+        var box = document.getElementById("payment-list");
+        var rows = c.pendingPayments;
+
+        if (!rows.length) {
+          setHtml(box, '<p class="empty">Chưa có ai chờ thanh toán.</p>');
+          return;
+        }
+        setHtml(box, rows.map(function (en) {
+          var it = en.item;
+          var left = en.deadline - c.now;
+          var amount = (CFG.PRICE_PER_PERSON || 150000) * TFDQ.sizeOf(it);
+          // Hình thức khách tự chọn lúc đăng ký — nhân viên đối chiếu ảnh
+          // Zalo rồi chỉnh lại nếu thực tế khác (VD khách trả tiền mặt).
+          var pm = String(it.payMethod || "BANK").toUpperCase();
+          function opt(v, label) {
+            return '<option value="' + v + '"' + (pm === v ? " selected" : "") + ">" + label + "</option>";
+          }
+          return '<div class="person-row ' + (left < 60000 ? "overdue" : "alert") + '">' +
+            '<div class="who"><strong>' + esc(it.name) + "</strong> · " + telLink(it.phone) + " · " + sizeTag(it) +
+            '<div class="meta">' + esc(it.email || "⚠️ chưa có email") + " · <strong>" + fmtVnd(amount) + "</strong>" +
+            " · tự hủy sau <strong>" + TFDQ.fmtCountdown(Math.max(0, left)) + "</strong></div></div>" +
+            '<select class="pay-method-select" data-pm="' + it.id + '" title="Hình thức thanh toán">' +
+              opt("BANK", "🏦 Chuyển khoản") + opt("QR", "📱 Quét QR") + opt("CASH", "💵 Tiền mặt") +
+            "</select>" +
+            '<button class="btn-sm btn-pay" data-action="pay" data-id="' + it.id + '">✅ Xác nhận &amp; gửi email</button>' +
+            '<button class="btn-sm btn-cancel" data-action="cancel" data-id="' + it.id + '">Hủy</button>' +
+            "</div>";
+        }).join(""));
+      }
+
+      /* 300000 → "300.000đ" */
+      function fmtVnd(n) {
+        return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ".") + "đ";
+      }
+
+      /* Bảng "cần gọi": người thuộc phiên kế tiếp còn ≤5 phút (chưa gọi)
+         hoặc đã gọi và đang trong 5 phút ân hạn */
+      function renderCalls(c) {
+        var box = document.getElementById("call-list");
+        var rows = c.nextUp.filter(function (en) {
+          return en.needsCall || en.item.status === "CALLED";
+        });
+
+        var alertCount = rows.length;
+        if (alertCount > lastAlertCount) beep();
+        lastAlertCount = alertCount;
+
+        var noteBox = document.getElementById("nextup-note");
+        noteBox.textContent = c.nextUp.length
+          ? "Phiên kế tiếp: " + c.nextUpPeople + " khách — " + TFDQ.instructorNote(c.nextUpPeople)
+          : "";
+
+        if (!rows.length) {
+          setHtml(box, '<p class="empty">Chưa có ai cần gọi.</p>');
+          return;
+        }
+        setHtml(box, rows.map(function (en) {
+          var it = en.item;
+          if (it.status === "CALLED") {
+            var left = en.callDeadline - c.now;
+            var recall = telHref(it.phone)
+              ? '<a class="btn-sm btn-call" href="' + telHref(it.phone) + '">📞 Gọi lại</a>'
+              : "";
+            return '<div class="person-row ' + (left < 60000 ? "overdue" : "alert") + '">' +
+              '<div class="who"><strong>' + esc(it.name) + "</strong> · " + telLink(it.phone) + " · " + sizeTag(it) + pairTag(en) +
+              '<div class="meta">Đã gọi — tự hủy sau <strong>' + TFDQ.fmtCountdown(left) + "</strong></div></div>" +
+              recall +
+              '<button class="btn-sm btn-present" data-action="present" data-id="' + it.id + '">✅ Có mặt</button>' +
+              '<button class="btn-sm btn-cancel" data-action="cancel" data-id="' + it.id + '">Hủy</button>' +
+              "</div>";
+          }
+          // Khách TỰ CHỌN slot nên giờ bay luôn cố định — kể cả khi chưa
+          // ghép được đôi. Chỉ khác ở chỗ slot còn trống 1 ghế hay không,
+          // và điều đó ảnh hưởng tới việc đã gửi email báo giờ hay chưa.
+          var when = "Giờ bay: " + TFDQ.fmtTime(en.eta) +
+            (en.waitingForPair ? " (còn trống 1 ghế — có thể có khách lẻ ghép vào)" : "");
+          return '<div class="person-row alert">' +
+            '<div class="who"><strong>' + esc(it.name) + "</strong> · " + telLink(it.phone) + " · " + sizeTag(it) + pairTag(en) +
+            '<div class="meta">' + when + " — GỌI NGAY để khách chuẩn bị</div></div>" +
+            callBtn(it) +
+            '<button class="btn-sm btn-present" data-action="present" data-id="' + it.id + '">✅ Có mặt</button>' +
+            "</div>";
+        }).join(""));
+      }
+
+      function renderSession(c) {
+        var box = document.getElementById("session-list");
+        var endBtn = document.getElementById("end-session");
+        var startBtn = document.getElementById("start-session");
+
+        var sessionNote = document.getElementById("session-note");
+        if (c.inSession.length) {
+          setHtml(box, c.inSession.map(function (s) {
+            return '<div class="person-row">' +
+              '<div class="who"><strong>' + esc(s.item.name) + "</strong> · " + sizeTag(s.item) +
+              '<div class="meta">Kết thúc lúc ' + TFDQ.fmtTime(s.end) + "</div></div>" +
+              '<span class="session-count">' + TFDQ.fmtCountdown(s.end - c.now) + "</span>" +
+              "</div>";
+          }).join(""));
+          sessionNote.textContent = TFDQ.instructorNote(c.sessionPeople);
+          endBtn.classList.remove("hidden");
+          startBtn.disabled = true;
+        } else {
+          setHtml(box, '<p class="empty">Chưa có phiên nào đang chạy.</p>');
+          sessionNote.textContent = "";
+          endBtn.classList.add("hidden");
+          var ready = c.nextUp.filter(function (en) { return en.item.status === "PRESENT"; });
+          startBtn.disabled = ready.length === 0;
+          startBtn.textContent = ready.length
+            ? "▶ Bắt đầu phiên (" + ready.length + " khách đã có mặt)"
+            : "▶ Bắt đầu phiên với khách đã có mặt";
+        }
+      }
+
+      function renderQueue(c) {
+        var body = document.getElementById("queue-body");
+        if (!c.entries.length) {
+          setHtml(body, '<tr><td colspan="8" class="empty">Hàng chờ đang trống.</td></tr>');
+          return;
+        }
+        setHtml(body, c.entries.map(function (en) {
+          var it = en.item;
+          var actions = "";
+          if (it.status === "WAITING") {
+            actions = callBtn(it) + " " +
+              '<button class="btn-sm btn-present" data-action="present" data-id="' + it.id + '">✅ Có mặt</button> ';
+          } else if (it.status === "CALLED") {
+            actions = '<button class="btn-sm btn-present" data-action="present" data-id="' + it.id + '">✅ Có mặt</button> ';
+          }
+          actions += '<button class="btn-sm btn-cancel" data-action="cancel" data-id="' + it.id + '">Hủy</button>';
+          var row = "<tr" + (en.needsCall || en.overdue ? ' style="background:rgba(245,165,36,0.07)"' : "") + ">" +
+            "<td>" + en.position + "</td>" +
+            '<td class="name-cell"><strong class="name-toggle" data-action="contact" data-id="' + it.id + '" title="Bấm để xem SĐT">' +
+              esc(it.name) + " " + (contactOpen[it.id] ? "▴" : "▾") + "</strong></td>" +
+            "<td>" + sizeTag(it) + pairTag(en) + "</td>" +
+            "<td>" + telLink(it.phone) + "</td>" +
+            // Khách lẻ chưa ghép còn WAITING: slot là chỗ giữ tạm, có thể bị
+            // dời — không hiện giờ "chốt". Đã CALLED/PRESENT thì slot khóa
+            // giờ thật, hiện bình thường.
+            "<td>" + (en.waitingForPair && it.status === "WAITING" ? "— chưa chốt" : TFDQ.fmtTime(en.eta)) + "</td>" +
+            "<td>" + (en.waitingForPair && it.status === "WAITING" ? "—" : "~" + en.waitMin + " phút") + "</td>" +
+            '<td><span class="status-chip ' + it.status + '">' + it.status + "</span></td>" +
+            "<td>" + actions + "</td>" +
+            "</tr>";
+          // Hàng chi tiết liên hệ — mở/đóng bằng cách bấm tên khách
+          if (contactOpen[it.id]) {
+            var callNow = telHref(it.phone)
+              ? '<a class="btn-sm btn-call" href="' + telHref(it.phone) + '">📞 Gọi ngay</a>'
+              : "<em>Không có SĐT</em>";
+            row += '<tr class="contact-row"><td colspan="8">' +
+              "📱 <strong>" + esc(it.name) + "</strong> — SĐT: <strong>" + (it.phone ? esc(it.phone) : "—") + "</strong> " +
+              callNow + "</td></tr>";
+          }
+          return row;
+        }).join(""));
+      }
+
+      /* ============================================================
+         PHẦN 3 — BẢNG "TRÌNH TỰ GHÉP ĐÔI"
+         Gom khách theo SLOT (cùng giờ bay = bay chung buồng lái), xếp
+         theo thứ tự bay. Mỗi slot hiện đúng hai mốc thời gian mà yêu
+         cầu đòi hỏi:
+           • "Giờ khách lẻ book"      — createdAt của (các) khách đi 1 mình
+           • "Giờ khách 2 người book" — createdAt của nhóm đi 2 người
+         Slot nào chỉ có 1 người = đang chờ ghép, tô cam để nhân viên
+         biết còn trống 1 chỗ.
+         ============================================================ */
+      function renderPairing(c) {
+        var body = document.getElementById("pairing-body");
+
+        // Gom theo SLOT khách đã chọn (khách cùng slotKey = bay chung).
+        // Dữ liệu cũ chưa có slotKey thì rơi về giờ bay như trước.
+        var slots = {};
+        c.entries.forEach(function (en) {
+          var key = en.item.slotKey ||
+            (en.item.eta ? String(Date.parse(en.item.eta)) : "unpaid");
+          (slots[key] = slots[key] || []).push(en);
+        });
+
+        var keys = Object.keys(slots).sort(function (a, b) { return Number(a) - Number(b); });
+        if (!keys.length) {
+          setHtml(body, '<tr><td colspan="8" class="empty">Chưa có lượt nào đã thanh toán.</td></tr>');
+          return;
+        }
+
+        var order = 0;
+        var rows = keys.map(function (key) {
+          var members = slots[key];
+          var people = 0;
+          members.forEach(function (en) { people += TFDQ.sizeOf(en.item); });
+          var full = people >= 2;
+          order++;
+
+          // Hai mốc thời gian tách riêng theo loại khách
+          var soloTimes = [], duoTimes = [];
+          members.forEach(function (en) {
+            var t = en.item.createdAt ? TFDQ.fmtTime(Date.parse(en.item.createdAt)) : "—";
+            if (TFDQ.sizeOf(en.item) === 2) duoTimes.push(t); else soloTimes.push(t);
+          });
+
+          var names = members.map(function (en) {
+            return "<strong>" + esc(en.item.name) + "</strong>";
+          }).join(" <span style='color:var(--text-dim)'>+</span> ");
+
+          var kinds = members.map(function (en) {
+            return TFDQ.sizeOf(en.item) === 2 ? "👥 2 người" : "👤 lẻ";
+          }).join(" · ");
+
+          // Trạng thái ghép: ưu tiên giá trị server đã tính (pairState),
+          // nếu sheet chưa có (bản cũ) thì suy ra từ số người trong slot.
+          var ps = members[0].item.pairState || "";
+          var pairLabel, pairCls;
+          if (people >= 2 && members.length === 1) { pairLabel = "✅ Đủ cặp (đi 2 người)"; pairCls = "pair-ok"; }
+          else if (full) { pairLabel = "✅ Đã ghép đôi"; pairCls = "pair-ok"; }
+          else { pairLabel = "⏳ Đang chờ ghép — còn trống 1 chỗ"; pairCls = "pair-wait"; }
+          if (ps === "SOLO_WAITING") { pairLabel = "⏳ Đang chờ ghép — còn trống 1 chỗ"; pairCls = "pair-wait"; }
+
+          // Email đã gửi tới đâu (chỉ hiện khi server có ghi nhận)
+          var stages = members.map(function (en) {
+            var s = en.item.emailStage;
+            if (s === "SCHEDULED") return "📧 đã gửi giờ bay";
+            if (s === "HELD") return "✉️ mới gửi giữ chỗ";
+            return "—";
+          });
+          var uniqStages = stages.filter(function (v, i) { return stages.indexOf(v) === i; }).join(" · ");
+
+          var when = key === "unpaid" ? "—" : TFDQ.fmtTime(Number(key));
+
+          return '<tr class="' + pairCls + '">' +
+            "<td>" + order + "</td>" +
+            "<td><strong>" + when + "</strong></td>" +
+            "<td class='name-cell'>" + names + "</td>" +
+            "<td>" + kinds + "</td>" +
+            "<td>" + (soloTimes.length ? soloTimes.join("<br>") : "—") + "</td>" +
+            "<td>" + (duoTimes.length ? duoTimes.join("<br>") : "—") + "</td>" +
+            "<td>" + pairLabel + "</td>" +
+            "<td>" + uniqStages + "</td>" +
+            "</tr>";
+        }).join("");
+
+        setHtml(body, rows);
+      }
+
+      function renderHistory(c) {
+        var body = document.getElementById("history-body");
+        if (!c.history.length) {
+          setHtml(body, '<tr><td colspan="4" class="empty">Chưa có.</td></tr>');
+          return;
+        }
+        setHtml(body, c.history.slice(0, 50).map(function (it) {
+          var t = it.updatedAt ? TFDQ.fmtTime(Date.parse(it.updatedAt)) : "—";
+          var row = "<tr><td class='name-cell'><strong class='name-toggle' data-action='contact' data-id='" + it.id + "' title='Bấm để xem SĐT + giờ bay'>" +
+            esc(it.name) + " " + (contactOpen[it.id] ? "▴" : "▾") + "</strong></td><td>" + sizeTag(it) + "</td>" +
+            '<td><span class="status-chip ' + it.status + '">' + it.status + "</span></td>" +
+            "<td>" + t + "</td></tr>";
+          if (contactOpen[it.id]) {
+            var callNow = telHref(it.phone)
+              ? '<a class="btn-sm btn-call" href="' + telHref(it.phone) + '">📞 Gọi ngay</a>'
+              : "<em>Không có SĐT</em>";
+            var flyTime = it.eta ? TFDQ.fmtTime(Date.parse(it.eta)) : "— (hủy trước khi có giờ bay)";
+            row += '<tr class="contact-row"><td colspan="4">' +
+              "📱 <strong>" + esc(it.name) + "</strong> — SĐT: <strong>" + (it.phone ? esc(it.phone) : "—") + "</strong>" +
+              " · 🛫 Giờ bay: <strong>" + flyTime + "</strong> " + callNow + "</td></tr>";
+          }
+          return row;
+        }).join(""));
+      }
+
+      /* ---------- luật tự động ---------- */
+      function runAutoRules(c) {
+        // Bỏ qua khách đang có lệnh tay gửi dở (syncing) — nếu không, lệnh
+        // tự động có thể bị lệnh tay đến sau GHI ĐÈ ngược (race condition);
+        // nhịp 1 giây sau sẽ xử tiếp khi lệnh tay đã xong.
+        function busy(id) { return inFlight[id] || syncing[id]; }
+        var actions = [];
+        c.pendingPayments.forEach(function (en) {
+          if (en.overdue && !busy(en.item.id)) actions.push({ id: en.item.id, status: "PAYMENT_EXPIRED" });
+        });
+        c.entries.forEach(function (en) {
+          if (en.overdue && !busy(en.item.id)) actions.push({ id: en.item.id, status: "NO_SHOW" });
+        });
+        // Khách đã có mặt + tới giờ bay + buồng lái trống → tự vào phiên bay,
+        // đồng hồ đếm ngược thời gian bay tự chạy (không cần bấm ▶ nữa).
+        // Cả slot phải sạch lệnh dở mới bắt đầu — tránh vào phiên thiếu người.
+        var readyList = TFDQ.autoStartReady(c);
+        var slotBusy = c.nextUp.some(function (en) { return busy(en.item.id); });
+        if (!slotBusy) {
+          readyList.forEach(function (en) {
+            actions.push({ id: en.item.id, status: "IN_SESSION" });
+          });
+        }
+        c.inSession.forEach(function (s) {
+          if (c.now >= s.end && !busy(s.item.id)) actions.push({ id: s.item.id, status: "DONE" });
+        });
+        // Có khách 1-người đang lẻ trong khi còn chỗ ghép sớm hơn → tự ghép lại
+        if (TFDQ.needsPairing(lastItems) && !inFlight.__repair) {
+          inFlight.__repair = true;
+          TFDQ.repair()
+            .then(refresh)
+            .then(function () { delete inFlight.__repair; })
+            .catch(function () { delete inFlight.__repair; });
+        }
+        if (!actions.length) return;
+        actions.forEach(function (a) { inFlight[a.id] = true; });
+        Promise.all(actions.map(function (a) { return TFDQ.update(a.id, a.status); }))
+          .then(refresh)
+          .catch(function () {
+            showSyncError("Không gửi được lệnh tự động (mạng chập chờn) — sẽ tự thử lại.");
+          })
+          .then(function () {
+            // LUÔN xóa cờ inFlight kể cả khi gửi hỏng — nếu không, một lần
+            // rớt mạng làm khách kẹt vĩnh viễn ở 0:00 (không bao giờ tự hủy lại)
+            actions.forEach(function (a) { delete inFlight[a.id]; });
+          });
+      }
+
+      /* ---------- thao tác (optimistic — phản hồi TỨC THÌ) ----------
+         Bấm nút là giao diện đổi NGAY, lệnh gửi lên server chạy nền.
+         Server vẫn là nguồn chuẩn: phản hồi về sẽ thay bản dự đoán;
+         gửi hỏng thì báo lỗi + tải lại danh sách từ server. */
+      function showSyncError(msg) {
+        var el = document.getElementById("sync-error");
+        el.textContent = "⚠️ " + msg;
+        el.classList.remove("hidden");
+        clearTimeout(showSyncError._t);
+        showSyncError._t = setTimeout(function () { el.classList.add("hidden"); }, 8000);
+      }
+
+      function sendOp(id, run, applyLocal) {
+        lastItems.forEach(function (it) { if (it.id === id) applyLocal(it); });
+        syncing[id] = true;
+        render(); // đổi giao diện ngay, không chờ mạng
+        run().then(function (res) {
+          delete syncing[id];
+          if (res && res.ok && res.item) {
+            // hoà kết quả CHUẨN từ server (giờ bay do server quyết định)
+            allItems = allItems.map(function (it) { return it.id === res.item.id ? res.item : it; });
+            lastItems = TFDQ.filterByDay(allItems, selectedDay);
+            render();
+          } else {
+            showSyncError("Server không nhận lệnh (" + ((res && res.error) || "lỗi") + ") — đang tải lại…");
+            refresh();
+          }
+        }).catch(function () {
+          delete syncing[id];
+          showSyncError("Mất kết nối khi gửi lệnh — đang tải lại danh sách…");
+          refresh();
+        });
+      }
+
+      document.body.addEventListener("click", function (e) {
+        var btn = e.target.closest("[data-action]");
+        if (!btn) return;
+        var id = btn.getAttribute("data-id");
+        var action = btn.getAttribute("data-action");
+        if (action === "contact") {
+          contactOpen[id] = !contactOpen[id];
+          render();
+          return;
+        }
+        if (action === "enable-notify") {
+          try { Notification.requestPermission(function () { render(); }); } catch (e) {}
+          return;
+        }
+        if (syncing[id]) return; // lệnh trước cho khách này còn đang gửi
+        if (action === "cancel" && !confirm("Hủy lượt đăng ký này?")) return;
+        if (action === "pay") {
+          // Hình thức thanh toán nhân viên vừa đối chiếu với ảnh Zalo.
+          // Đọc TRƯỚC khi gửi: bảng vẽ lại sau đó sẽ thay thế thẻ <select>.
+          var sel = document.querySelector('[data-pm="' + id + '"]');
+          var payMethod = sel ? sel.value : "";
+          sendOp(id, function () {
+            return TFDQ.confirmPayment(id, { payMethod: payMethod });
+          }, function (it) {
+            // dự đoán giờ bay bằng ĐÚNG thuật toán ghép của server để hiện ngay
+            it.eta = new Date(TFDQ.nextEtaFor(lastItems, TFDQ.sizeOf(it))).toISOString();
+            it.status = "WAITING";
+            if (payMethod) it.payMethod = payMethod;
+            it.approvedAt = new Date().toISOString();
+            it.updatedAt = new Date().toISOString();
+          });
+          return;
+        }
+        var status = { call: "CALLED", present: "PRESENT", cancel: "CANCELLED" }[action];
+        if (!status) return;
+        sendOp(id, function () { return TFDQ.update(id, status); }, function (it) {
+          var nowIso = new Date().toISOString();
+          it.status = status;
+          if (status === "CALLED" && !it.calledAt) it.calledAt = nowIso;
+          it.updatedAt = nowIso;
+        });
+      });
+
+      document.getElementById("start-session").addEventListener("click", function () {
+        var c = TFDQ.compute(lastItems);
+        if (c.inSession.length) return;
+        var ready = c.nextUp.filter(function (en) { return en.item.status === "PRESENT"; });
+        if (!ready.length) return;
+        Promise.all(ready.map(function (en) {
+          return TFDQ.update(en.item.id, "IN_SESSION");
+        })).then(refresh);
+      });
+
+      document.getElementById("end-session").addEventListener("click", function () {
+        var c = TFDQ.compute(lastItems);
+        Promise.all(c.inSession.map(function (s) {
+          return TFDQ.update(s.item.id, "DONE");
+        })).then(refresh);
+      });
+
+      document.getElementById("walkin-form").addEventListener("submit", function (e) {
+        e.preventDefault();
+        var err = document.getElementById("walkin-error");
+        var submitBtn = e.target.querySelector("button[type=submit]");
+        err.textContent = "";
+        submitBtn.disabled = true;
+        TFDQ.register({
+          name: document.getElementById("w-name").value,
+          phone: document.getElementById("w-phone").value,
+          groupSize: document.getElementById("w-size").value
+        }).then(function (res) {
+          if (res.ok) {
+            // Nhân viên vừa tự tay nhập — đánh dấu đã biết TRƯỚC khi
+            // refresh() để không tự báo chuông/thông báo cho chính lượt này
+            if (res.item && res.item.id) { knownIds = knownIds || {}; knownIds[res.item.id] = true; }
+            document.getElementById("walkin-form").reset();
+            return refresh();
+          }
+          // Server chặn vì ngoài khung giờ nhận đăng ký — báo rõ cho nhân viên
+          // biết lý do và giờ mở lại, thay vì hiện mã lỗi "CLOSED" khó hiểu.
+          if (res.error === "CLOSED") {
+            var st = TFDQ.bookingStatus();
+            err.textContent = "Ngoài giờ nhận đăng ký (" +
+              (res.hours || TFDQ.bookingHoursText()) + ")." +
+              (st.opensAt ? " Mở lại lúc " + TFDQ.fmtTime(st.opensAt) +
+                (st.tomorrow ? " ngày mai" : "") + "." : "");
+            return;
+          }
+          err.textContent = "Không thêm được (" + (res.error || "lỗi") + ").";
+        }).catch(function () {
+          err.textContent = "Lỗi kết nối — thử lại.";
+        }).then(function () { submitBtn.disabled = false; });
+      });
+
+      /* ---------- chọn ngày ---------- */
+      function renderDayTabs() {
+        var bar = document.getElementById("day-tabs");
+        var today = TFDQ.todayVN();
+        var cfgDays = (CFG.EVENT_DAYS && CFG.EVENT_DAYS.length) ? CFG.EVENT_DAYS : [];
+        var dataDays = TFDQ.daysInData(allItems);
+        // Gộp ngày từ config + dữ liệu, loại trùng, sắp xếp
+        var seen = {};
+        var days = [];
+        cfgDays.concat(dataDays).forEach(function (d) {
+          if (!seen[d]) { seen[d] = true; days.push(d); }
+        });
+        days.sort();
+        // Luôn có "hôm nay" dù chưa có đăng ký nào
+        if (!seen[today]) { days.push(today); days.sort(); }
+
+        bar.innerHTML = days.map(function (d, i) {
+          var cls = "day-tab";
+          if (d === selectedDay) cls += " active";
+          if (d === today) cls += " today";
+          var label = (d === today) ? "Hôm nay (" + TFDQ.fmtDayLabel(d) + ")" : "Ngày " + (i + 1) + " (" + TFDQ.fmtDayLabel(d) + ")";
+          return '<button class="' + cls + '" data-day="' + d + '">' + label + '</button>';
+        }).join("");
+      }
+
+      document.getElementById("day-tabs").addEventListener("click", function (e) {
+        var btn = e.target.closest(".day-tab");
+        if (!btn) return;
+        selectedDay = btn.getAttribute("data-day");
+        lastItems = TFDQ.filterByDay(allItems, selectedDay);
+        render();
+      });
+
+      /* ---------- vòng lặp ---------- */
+      function refresh() {
+        if (refreshing) return Promise.resolve(); // mạng chậm — không xếp chồng request
+        refreshing = true;
+        return TFDQ.list().then(function (items) {
+          // Lượt có lệnh đang gửi: giữ bản dự đoán trên máy, chờ server xác nhận
+          // xong mới lấy bản server — tránh poll cũ ghi đè làm nút "nhảy ngược".
+          if (Object.keys(syncing).length) {
+            var localById = {};
+            allItems.forEach(function (it) { localById[it.id] = it; });
+            items = items.map(function (it) {
+              return syncing[it.id] && localById[it.id] ? localById[it.id] : it;
+            });
+          }
+          detectNewRegistrations(items);
+          allItems = items;
+          lastItems = TFDQ.filterByDay(items, selectedDay);
+          lastSyncAt = Date.now();
+          render();
+        }).catch(function () {
+          showSyncError("Không tải được dữ liệu từ server — tự thử lại sau 10 giây.");
+        }).then(function () { refreshing = false; });
+      }
+
+      setInterval(function () {
+        document.getElementById("clock").textContent =
+          new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+        if (!gate.classList.contains("hidden")) return;
+        render(); // cập nhật đếm ngược mỗi giây từ dữ liệu đã có
+      }, 1000);
+
+      setInterval(function () {
+        if (gate.classList.contains("hidden")) refresh();
+      }, 10000); // lấy dữ liệu mới mỗi 10 giây
+
+      TFDQ.onExternalChange(refresh);
+      if (gate.classList.contains("hidden")) refresh();
+    })();
+  </script>
+
+</body>
+</html>

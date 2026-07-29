@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title data-i18n-title="home.pageTitle">The Flight Deck × Flight to Carrot Day 2026</title>
+  <meta name="description" data-i18n-content="home.desc" content="The Flight Deck × Flight to Carrot Day 2026: quét mã QR tại gian hàng để đăng ký trải nghiệm bay, xem lại workshop đã qua &amp; góp ý workshop tiếp theo, hoặc liên hệ hợp tác doanh nghiệp.">
+  <link rel="icon" type="image/png" href="images/the-flight-deck-logo.png">
+  <link rel="stylesheet" href="style.css">
+  <!-- Carrot Day / Jun Pham Airways theme — luôn đặt SAU style.css -->
+  <link rel="stylesheet" href="carrot-day.css">
+  <!-- Thư viện tạo QR để ngay trong dự án thay vì tải từ CDN: gian hàng có
+       thể mất Internet, mà 3 mã QR này chính là thứ khách quét để vào trang.
+       defer: QR chỉ vẽ sau sự kiện load nên không cần chặn hiển thị. -->
+  <script defer src="qrcode.min.js"></script>
+</head>
+<body>
+
+  <header class="site-header">
+    <nav class="nav">
+      <a class="brand" href="index.html">
+        <img width="560" height="282" decoding="async" class="brand-logo" src="images/jun-pham-airways-mark.png" alt="Flight to Carrot Day — Jun Pham Airways">
+        <span class="brand-divider" aria-hidden="true"></span>
+        <span class="brand-text">
+          <strong>The Flight Deck</strong>
+          <small data-i18n="nav.tagline">Jun Pham Airways · 2026</small>
+        </span>
+      </a>
+      <div class="nav-links">
+        <a href="index.html" class="active" data-i18n="nav.home">Trang chủ</a>
+        <a href="experience.html" data-i18n="nav.experience">Trải nghiệm bay</a>
+        <a href="courses.html" data-i18n="nav.courses">Workshop</a>
+        <a href="partners.html" data-i18n="nav.partners">Hợp tác</a>
+      </div>
+    </nav>
+  </header>
+
+  <section class="hero hero-compact">
+
+    <!-- Lockup: The Flight Deck × Jun Pham Airways -->
+    <div class="hero-lockup">
+      <img width="1063" height="1063" fetchpriority="high" decoding="async" class="hero-lockup__tfd" src="images/the-flight-deck-logo.png" alt="The Flight Deck">
+      <span class="hero-lockup__x" aria-hidden="true">×</span>
+      <img width="1800" height="905" fetchpriority="high" decoding="async" class="hero-lockup__jpa" src="images/jun-pham-airways-logo.png" alt="Flight to Carrot Day — Jun Pham Airways">
+    </div>
+
+    <span class="kicker" data-i18n="home.kicker">Gian hàng trải nghiệm hàng không</span>
+
+    <!-- Poster title -->
+    <h1 class="carrot-title">
+      <span class="carrot-title__pre" data-i18n="home.titlePre">FLIGHT TO</span>
+      <span class="carrot-title__main">CARROT DAY</span>
+      <span class="carrot-title__sub" data-i18n="home.titleSub">The Flight Deck × Jun Pham · Chuyến bay đặc biệt 2026</span>
+    </h1>
+
+    <p class="lead" data-i18n="home.lead">Quét mã QR để bắt đầu — mỗi mã dẫn đến một trải nghiệm riêng.</p>
+
+    <!-- Oversized boarding pass: thông tin sự kiện -->
+    <div class="hero-pass orange-burst-bg">
+      <article class="boarding-pass-card boarding-pass-card--hero">
+
+        <div class="bp-main">
+          <div class="bp-airline">
+            <img width="560" height="282" loading="lazy" decoding="async" class="bp-airline__logo" src="images/jun-pham-airways-mark.png" alt="">
+            <span class="bp-airline__name">JUN PHAM AIRWAYS</span>
+            <span class="bp-airline__tag" data-i18n="home.bpTag">Boarding Pass</span>
+          </div>
+
+          <div class="bp-route">
+            <div class="bp-port bp-port--from">
+              <span class="bp-port__code">SGN</span>
+              <span class="bp-port__city" data-i18n="home.bpFrom">TP. Hồ Chí Minh</span>
+            </div>
+            <div class="bp-route__line" aria-hidden="true"><span>✈</span></div>
+            <div class="bp-port bp-port--to">
+              <span class="bp-port__code">TFD</span>
+              <span class="bp-port__city" data-i18n="home.bpTo">86 Đặng Văn Ngữ</span>
+            </div>
+          </div>
+
+          <!-- Ngày bay và giờ đặt chỗ được ĐIỀN TỪ config.js lúc tải trang.
+               Chữ trong HTML chỉ là dự phòng khi JS chưa chạy — đừng sửa ở
+               đây, sửa EVENT_DAYS / BOOKING_HOURS trong config.js. -->
+          <dl class="bp-details">
+            <div class="bp-field">
+              <dt data-i18n="home.bpDateLabel">Ngày bay</dt>
+              <dd id="bp-date">03.08 – 10.08.2026</dd>
+            </div>
+            <div class="bp-field bp-field--accent">
+              <dt data-i18n="home.bpTimeLabel">Giờ đặt chỗ</dt>
+              <div id="bp-hours">
+                <dd>08:00–13:00</dd>
+                <dd>17:00–21:00</dd>
+              </div>
+            </div>
+            <div class="bp-field">
+              <dt data-i18n="home.bpClassLabel">Hạng</dt>
+              <dd>MEMBERSHIP</dd>
+            </div>
+            <div class="bp-field">
+              <dt data-i18n="home.bpFlightLabel">Số hiệu</dt>
+              <dd>JP247</dd>
+            </div>
+          </dl>
+
+          <p class="green-tag green-tag--ribbon" data-i18n="home.bpVenue">📍 The Flight Deck · 86 Đặng Văn Ngữ</p>
+
+          <div class="bp-barcode" role="presentation"></div>
+        </div>
+
+        <aside class="bp-stub">
+          <span class="travel-stamp-badge">
+            <span class="travel-stamp-badge__top">Jun Pham Airways</span>
+            <span class="travel-stamp-badge__rule" aria-hidden="true"></span>
+            <span class="travel-stamp-badge__main">Carrot<br>Day</span>
+            <span class="travel-stamp-badge__rule" aria-hidden="true"></span>
+            <span class="travel-stamp-badge__bottom">2026 · Boarded</span>
+          </span>
+          <span class="bp-field__label" data-i18n="home.bpSeatLabel">Ghế</span>
+          <span class="bp-seat">26A</span>
+          <span class="bp-barcode bp-barcode--stub" role="presentation"></span>
+        </aside>
+
+      </article>
+    </div>
+
+    <div class="btn-row mt-2">
+      <a class="btn btn-carrot" href="experience.html#dang-ky" data-i18n="home.ctaBook">Đăng ký lượt bay</a>
+      <a class="btn btn-outline" href="courses.html" data-i18n="home.ctaWorkshop">Xem workshop</a>
+    </div>
+  </section>
+
+  <section class="section" id="three-paths">
+    <div class="card-grid">
+      <div class="card qr-only">
+        <div class="icon">🕹️</div>
+        <h3 data-i18n="home.card1Title">Trải nghiệm mô phỏng bay</h3>
+        <p data-i18n="home.card1Body">Đăng ký lượt bay ngay tại gian hàng — mọi lứa tuổi, không cần kinh nghiệm.</p>
+        <div class="card-qr" id="qr-home-experience"></div>
+        <p class="qr-scan-hint" data-i18n="home.card1Hint">📱 Quét để đăng ký lượt bay</p>
+      </div>
+
+      <div class="card qr-only">
+        <div class="icon">📸</div>
+        <h3 data-i18n="home.card2Title">Workshop đã qua &amp; Khảo sát</h3>
+        <p data-i18n="home.card2Body">Xem lại các workshop The Flight Deck đã tổ chức và cho chúng tôi biết bạn muốn workshop tiếp theo về chủ đề gì.</p>
+        <div class="card-qr" id="qr-home-courses"></div>
+        <p class="qr-scan-hint" data-i18n="home.card2Hint">📱 Quét để xem workshop đã qua &amp; điền khảo sát</p>
+      </div>
+
+      <div class="card qr-only">
+        <div class="icon">🤝</div>
+        <h3 data-i18n="home.card3Title">Hợp tác doanh nghiệp</h3>
+        <p data-i18n="home.card3Body">Team building, booth sự kiện, chương trình STEM cho trường học và hợp tác thương hiệu.</p>
+        <div class="card-qr" id="qr-home-partners"></div>
+        <p class="qr-scan-hint" data-i18n="home.card3Hint">📱 Quét để gửi yêu cầu hợp tác</p>
+      </div>
+    </div>
+  </section>
+
+  <footer class="site-footer">
+    <p class="brand-line">The Flight Deck × Flight to Carrot Day 2026</p>
+    <p data-i18n="footer.tagline">Đưa giấc mơ bay đến gần bạn hơn. © 2026 The Flight Deck.</p>
+    <p class="admin-link-row"><a href="admin.html" class="admin-link" data-i18n="home.adminLink">🔐 Quản lý gian hàng</a></p>
+  </footer>
+
+  <script src="i18n.js"></script>
+  <script src="config.js"></script>
+
+  <script>
+    /* ---------- Vé lên máy bay: lấy ngày & giờ TỪ config.js ----------
+       Trước đây ngày bay ghi cứng "15.08.2026" ngay trong HTML, trong khi
+       EVENT_DAYS trong config.js lại là tháng 7 — poster và hệ thống nói
+       hai ngày khác nhau mà không ai phát hiện. Giờ chỉ còn MỘT nguồn sự
+       thật: sửa config.js là cả trang chủ lẫn trang quản lý đều đúng theo.
+       Thiếu cấu hình thì giữ nguyên chữ dự phòng trong HTML. */
+    (function () {
+      var cfg = (typeof TFD_CONFIG !== "undefined") ? TFD_CONFIG : null;
+      if (!cfg) return;
+
+      /* "2026-08-15" -> "15.08.2026" */
+      function dmy(key) {
+        var p = String(key || "").split("-");
+        return p.length === 3 ? p[2] + "." + p[1] + "." + p[0] : "";
+      }
+
+      var days = (cfg.EVENT_DAYS || []).map(dmy).filter(Boolean);
+      var dateEl = document.getElementById("bp-date");
+      if (dateEl && days.length) {
+        // Nhiều ngày liên tiếp -> "17.07 – 19.07.2026" cho gọn tấm vé
+        if (days.length === 1) {
+          dateEl.textContent = days[0];
+        } else {
+          var first = days[0].slice(0, 5);
+          var last = days[days.length - 1];
+          dateEl.textContent = first + " – " + last;
+        }
+      }
+
+      var hours = cfg.BOOKING_HOURS || [];
+      var hoursEl = document.getElementById("bp-hours");
+      if (hoursEl && hours.length) {
+        hoursEl.innerHTML = hours.map(function (w) {
+          return "<dd>" + w.start + "–" + w.end + "</dd>";
+        }).join("");
+      }
+    })();
+
+    /* Tự động tạo 3 mã QR trên trang chủ.
+       Khi trang chạy trên web (http/https), QR trỏ đến chính website đó.
+       Khi mở file trực tiếp trên máy, QR dùng địa chỉ dự phòng bên dưới —
+       đổi thành link thật của bạn sau khi đưa trang lên mạng. */
+    var QR_FALLBACK_BASE = "https://theflightdeck2026.netlify.app";
+
+    var homeQRs = [
+      { id: "qr-home-experience", target: "experience.html#dang-ky" },
+      { id: "qr-home-courses",    target: "courses.html" },
+      { id: "qr-home-partners",   target: "partners.html#lien-he" }
+    ];
+
+    function qrBaseUrl() {
+      if (location.protocol === "http:" || location.protocol === "https:") {
+        return location.origin + location.pathname.replace(/[^\/]*$/, "");
+      }
+      return QR_FALLBACK_BASE.replace(/\/+$/, "") + "/";
+    }
+
+    function renderHomeQRs() {
+      var base = qrBaseUrl();
+      homeQRs.forEach(function (q) {
+        var box = document.getElementById(q.id);
+        if (!box) return;
+        var url = base + q.target;
+        box.innerHTML = "";
+        if (typeof QRCode === "undefined") {
+          box.innerHTML = '<span class="qr-fallback">' + url + "</span>";
+          return;
+        }
+        new QRCode(box, {
+          text: url,
+          width: 180,
+          height: 180,
+          correctLevel: QRCode.CorrectLevel.M
+        });
+        box.title = url;
+      });
+    }
+
+    window.addEventListener("load", renderHomeQRs);
+
+    /* Đăng ký service worker để cache ảnh (logo/poster khá nặng). Khách quét
+       QR vào lại trang nhiều lần trong ngày — lần sau lấy từ cache, không tốn
+       4G. SW không cache HTML/CSS/JS nên sửa nội dung vẫn có hiệu lực ngay. */
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", function () {
+        navigator.serviceWorker.register("sw.js").catch(function () {});
+      });
+    }
+  </script>
+
+</body>
+</html>

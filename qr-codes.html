@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Tạo mã QR cho gian hàng | Hobby Horizon</title>
+  <link rel="icon" type="image/png" href="images/the-flight-deck-logo.png">
+  <link rel="stylesheet" href="style.css">
+  <!-- Thư viện tạo QR (cần Internet lần đầu mở trang) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <style>
+    .qr-tools {
+      max-width: 720px;
+      margin: 0 auto 2.5rem;
+    }
+    .qr-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1.4rem;
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 0 1.2rem 3rem;
+    }
+    .qr-card {
+      background: #ffffff;
+      color: #0a1628;
+      border-radius: 14px;
+      padding: 1.6rem 1.4rem;
+      text-align: center;
+      box-shadow: var(--shadow);
+    }
+    .qr-card h3 {
+      font-size: 1.05rem;
+      margin-bottom: 0.2rem;
+    }
+    .qr-card .qr-sub {
+      font-size: 0.82rem;
+      color: #4a637f;
+      margin-bottom: 1rem;
+    }
+    .qr-box {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 1rem;
+      min-height: 200px;
+      align-items: center;
+    }
+    .qr-card .qr-url {
+      font-size: 0.72rem;
+      color: #4a637f;
+      word-break: break-all;
+    }
+    .qr-card .qr-brand {
+      font-weight: 800;
+      font-size: 0.85rem;
+      letter-spacing: 0.05em;
+      margin-top: 0.6rem;
+    }
+    @media print {
+      .site-header, .qr-tools, .site-footer, .hero { display: none !important; }
+      body { background: #fff; }
+      .qr-grid { padding: 1rem; }
+      .qr-card { box-shadow: none; border: 1px dashed #999; page-break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+
+  <section class="hero" style="padding-bottom: 2.5rem;">
+    <span class="kicker">Công cụ nội bộ</span>
+    <h1>Tạo <span class="accent">3 mã QR</span> cho gian hàng</h1>
+    <p class="lead">
+      Nhập địa chỉ website sau khi bạn đã đưa trang lên mạng (ví dụ:
+      <em>https://hobbyhorizon.vn</em> hoặc link GitHub Pages / Netlify),
+      sau đó nhấn "Tạo mã QR" và in trang này.
+    </p>
+  </section>
+
+  <div class="section qr-tools" style="padding-top: 0;">
+    <div class="form-card">
+      <div class="form-group">
+        <label for="base-url">Địa chỉ website của bạn (base URL)</label>
+        <input type="url" id="base-url" placeholder="https://theflightdeck2026.netlify.app" value="https://theflightdeck2026.netlify.app">
+      </div>
+      <div class="center btn-row">
+        <button class="btn btn-primary" onclick="generateAll()">Tạo mã QR ⚡</button>
+        <button class="btn btn-ghost" onclick="window.print()">In trang này 🖨️</button>
+      </div>
+      <p class="form-note">
+        Mẹo: khi in, chỉ 3 thẻ QR được in ra (phần còn lại tự động ẩn) — cắt rời và dán lên standee tại gian hàng.
+        <br>Quản lý hàng chờ trải nghiệm bay: mở <a href="admin.html">admin.html</a> (cần PIN).
+      </p>
+    </div>
+  </div>
+
+  <div class="qr-grid">
+    <div class="qr-card">
+      <h3>🕹️ Trải nghiệm mô phỏng bay</h3>
+      <p class="qr-sub">QR 1 — Khách tại gian hàng</p>
+      <div class="qr-box" id="qr-experience"></div>
+      <p class="qr-url" id="url-experience"></p>
+      <p class="qr-brand">THE FLIGHT DECK × FLIGHT TO CARROT DAY 2026</p>
+    </div>
+
+    <div class="qr-card">
+      <h3>📸 Workshop &amp; Khảo sát</h3>
+      <p class="qr-sub">QR 2 — Khách cá nhân (B2C)</p>
+      <div class="qr-box" id="qr-courses"></div>
+      <p class="qr-url" id="url-courses"></p>
+      <p class="qr-brand">THE FLIGHT DECK × FLIGHT TO CARROT DAY 2026</p>
+    </div>
+
+    <div class="qr-card">
+      <h3>🤝 Hợp tác doanh nghiệp</h3>
+      <p class="qr-sub">QR 3 — Đối tác (B2B)</p>
+      <div class="qr-box" id="qr-partners"></div>
+      <p class="qr-url" id="url-partners"></p>
+      <p class="qr-brand">THE FLIGHT DECK × FLIGHT TO CARROT DAY 2026</p>
+    </div>
+  </div>
+
+  <footer class="site-footer">
+    <p class="brand-line">The Flight Deck × Flight to Carrot Day 2026</p>
+    <p>Trang này chỉ dùng nội bộ để tạo và in mã QR.</p>
+  </footer>
+
+  <script>
+    var pages = [
+      { id: "experience", file: "experience.html" },
+      { id: "courses",    file: "courses.html" },
+      { id: "partners",   file: "partners.html" }
+    ];
+
+    function generateAll() {
+      if (typeof QRCode === "undefined") {
+        alert("Không tải được thư viện QR. Vui lòng kiểm tra kết nối Internet rồi tải lại trang.");
+        return;
+      }
+      var base = document.getElementById("base-url").value.trim().replace(/\/+$/, "");
+      if (!base) {
+        alert("Vui lòng nhập địa chỉ website trước.");
+        return;
+      }
+      pages.forEach(function (p) {
+        var url = base + "/" + p.file;
+        var box = document.getElementById("qr-" + p.id);
+        box.innerHTML = "";
+        new QRCode(box, {
+          text: url,
+          width: 200,
+          height: 200,
+          correctLevel: QRCode.CorrectLevel.M
+        });
+        document.getElementById("url-" + p.id).textContent = url;
+      });
+    }
+
+    window.addEventListener("load", generateAll);
+  </script>
+
+</body>
+</html>

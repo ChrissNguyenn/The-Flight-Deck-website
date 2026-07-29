@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Kiểm tra hệ thống | The Flight Deck</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="icon" type="image/png" href="images/the-flight-deck-logo.png">
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .check-main { max-width: 720px; margin: 0 auto; padding: 2rem 1.2rem 3rem; }
+    .check-step {
+      display: flex;
+      gap: 0.8rem;
+      align-items: flex-start;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      padding: 0.85rem 1rem;
+      margin-bottom: 0.55rem;
+      font-size: 0.95rem;
+    }
+    .check-step .ico { flex-shrink: 0; width: 1.6rem; text-align: center; }
+    .check-step .detail { color: var(--text-dim); font-size: 0.83rem; margin-top: 0.15rem; word-break: break-word; }
+    .check-step.fail { border-color: #e0524d; }
+    .check-step.pass { border-color: rgba(47, 191, 113, 0.55); }
+    .verdict {
+      margin-top: 1.4rem;
+      border-radius: var(--radius);
+      padding: 1.2rem 1.4rem;
+      text-align: center;
+      font-size: 1.05rem;
+      font-weight: 700;
+      display: none;
+    }
+    .verdict.ok { display: block; background: rgba(47, 191, 113, 0.13); border: 1px solid rgba(47, 191, 113, 0.5); color: #5fe0a1; }
+    .verdict.bad { display: block; background: rgba(224, 82, 77, 0.13); border: 1px solid rgba(224, 82, 77, 0.5); color: #ff8f8a; }
+    .verdict p { font-weight: 400; font-size: 0.9rem; margin-top: 0.5rem; color: var(--text-dim); }
+  </style>
+</head>
+<body>
+
+  <main class="check-main">
+    <h1 style="font-size:1.4rem;margin-bottom:0.4rem;">🔬 Kiểm tra hệ thống hàng chờ</h1>
+    <p style="color:var(--text-dim);margin-bottom:1.6rem;font-size:0.95rem;">
+      Trang này chạy thử toàn bộ vòng đời một lượt đăng ký trên <strong>Google Sheet thật</strong>:
+      đăng ký → vào hàng chờ → gọi → có mặt → bay → hoàn thành. Sau khi chạy, mở Google Sheet
+      để thấy dòng <em>TEST</em> — có thể xóa dòng đó bất cứ lúc nào.
+    </p>
+
+    <div class="btn-row" style="justify-content:flex-start;margin-bottom:1.5rem;">
+      <button class="btn btn-primary" id="run-btn">▶ Chạy kiểm tra</button>
+    </div>
+
+    <div id="steps"></div>
+    <div class="verdict" id="verdict"></div>
+  </main>
+
+  <script src="config.js"></script>
+  <script>
+    (function () {
+      var CFG = window.TFD_CONFIG || {};
+      var URL_ = CFG.SCRIPT_URL || "";
+      var stepsBox = document.getElementById("steps");
+      var verdict = document.getElementById("verdict");
+      var runBtn = document.getElementById("run-btn");
+
+      function step(label) {
+        var div = document.createElement("div");
+        div.className = "check-step";
+        div.innerHTML = '<span class="ico">⏳</span><div><strong>' + label + "</strong><div class='detail'></div></div>";
+        stepsBox.appendChild(div);
+        return {
+          pass: function (detail) {
+            div.classList.add("pass");
+            div.querySelector(".ico").textContent = "✅";
+            if (detail) div.querySelector(".detail").textContent = detail;
+          },
+          fail: function (detail) {
+            div.classList.add("fail");
+            div.querySelector(".ico").textContent = "❌";
+            if (detail) div.querySelector(".detail").textContent = detail;
+            throw new Error(detail || label);
+          }
+        };
+      }
+
+      function post(params) {
+        return fetch(URL_, { method: "POST", body: new URLSearchParams(params) })
+          .then(function (r) { return r.json(); });
+      }
+
+      function getList() {
+        return fetch(URL_ + "?action=list&t=" + Date.now())
+          .then(function (r) { return r.json(); });
+      }
+
+      function run() {
+        stepsBox.innerHTML = "";
+        verdict.className = "verdict";
+        runBtn.disabled = true;
+
+        var testName = "TEST — có thể xóa dòng này";
+        var testId = null;
+        var testEta = 0;
+        var t0 = 0;
+
+        Promise.resolve().then(function () {
+          var s = step("1. Cấu hình SCRIPT_URL trong config.js");
+          if (!URL_ || URL_.indexOf("http") !== 0) {
+            s.fail("SCRIPT_URL đang trống — làm theo README mục \"Kết nối Google Sheet\" rồi chạy lại.");
+          }
+          s.pass(URL_.slice(0, 60) + "…");
+
+          var s2 = step("2. Kết nối tới Google Apps Script (đọc danh sách)");
+          t0 = Date.now();
+          return getList().then(function (data) {
+            if (!data.ok) s2.fail("Phản hồi không hợp lệ: " + JSON.stringify(data).slice(0, 120));
+            s2.pass("Kết nối OK — " + (Date.now() - t0) + "ms, hiện có " + data.items.length + " dòng.");
+          }, function (err) {
+            s2.fail("Không gọi được endpoint. Kiểm tra: đã Deploy dạng Web app, quyền \"Anyone\"? (" + err + ")");
+          });
+        }).then(function () {
+          var s = step("3. Đăng ký khách thử (ghi vào Sheet, hệ thống tính giờ bay)");
+          return post({ action: "register", name: testName, groupSize: "2" })
+            .then(function (res) {
+              if (!res.ok || !res.item) s.fail("Đăng ký thất bại: " + JSON.stringify(res).slice(0, 120));
+              if (!res.item.eta || String(res.item.groupSize) !== "2") {
+                s.fail("Server đang chạy CODE CŨ (thiếu giờ bay đã chốt / số người). " +
+                  "Dán lại google-apps-script.gs rồi Deploy → Manage deployments → ✏️ → New version.");
+              }
+              testId = res.item.id;
+              testEta = Date.parse(res.item.eta);
+              s.pass("Đã tạo đăng ký id=" + testId + " · giờ bay: " + res.item.eta + " · nhóm 2 người (15 phút)");
+            });
+        }).then(function () {
+          var s = step("4. Đọc lại danh sách — dòng thử phải xuất hiện");
+          return getList().then(function (data) {
+            var found = (data.items || []).filter(function (it) { return it.id === testId; })[0];
+            if (!found) s.fail("Không thấy dòng vừa ghi trong Sheet.");
+            if (found.status !== "WAITING") s.fail("Trạng thái sai: " + found.status);
+            s.pass("Dòng thử có mặt, trạng thái WAITING.");
+          });
+        }).then(function () {
+          var s = step("5. Slot nối tiếp — lượt thứ 2 phải bay SAU lượt thứ 1, không trùng giờ");
+          return post({ action: "register", name: "TEST lượt 2 — có thể xóa", groupSize: "1" })
+            .then(function (res) {
+              if (!res.ok || !res.item || !res.item.eta) s.fail("Không đăng ký được lượt thứ 2: " + JSON.stringify(res).slice(0, 120));
+              var eta2 = Date.parse(res.item.eta);
+              if (eta2 < testEta + 15 * 60000) {
+                s.fail("SAI: lượt 2 được xếp lúc " + res.item.eta + " — trùng/chèn vào slot của lượt 1 " +
+                  "(phải sau ít nhất 15 phút vì lượt 1 là nhóm 2 người).");
+              }
+              var gapMin = Math.round((eta2 - testEta) / 60000);
+              // dọn dẹp: hủy lượt thử thứ 2 để không chiếm chỗ hàng chờ thật
+              return post({ action: "update", id: res.item.id, status: "CANCELLED" }).then(function () {
+                s.pass("Lượt 2 bay sau lượt 1 đúng " + gapMin + " phút (slot riêng). Đã tự hủy lượt thử này.");
+              });
+            });
+        }).then(function () {
+          var s = step("6. Gọi khách (CALLED — mốc tự hủy 5 phút)");
+          return post({ action: "update", id: testId, status: "CALLED" }).then(function (res) {
+            if (!res.ok || !res.item.calledAt) s.fail("calledAt không được ghi: " + JSON.stringify(res).slice(0, 120));
+            s.pass("Đã ghi giờ gọi: " + res.item.calledAt);
+          });
+        }).then(function () {
+          var s = step("7. Có mặt → vào phiên bay (IN_SESSION)");
+          return post({ action: "update", id: testId, status: "PRESENT" }).then(function () {
+            return post({ action: "update", id: testId, status: "IN_SESSION" });
+          }).then(function (res) {
+            if (!res.ok || !res.item.sessionStart) s.fail("sessionStart không được ghi: " + JSON.stringify(res).slice(0, 120));
+            s.pass("Đã ghi giờ bắt đầu phiên: " + res.item.sessionStart);
+          });
+        }).then(function () {
+          var s = step("8. Hoàn thành phiên (DONE)");
+          return post({ action: "update", id: testId, status: "DONE" }).then(function (res) {
+            if (!res.ok || res.item.status !== "DONE") s.fail("Không chuyển được sang DONE.");
+            s.pass("Vòng đời đầy đủ: WAITING → CALLED → PRESENT → IN_SESSION → DONE ✔");
+          });
+        }).then(function () {
+          verdict.className = "verdict ok";
+          verdict.innerHTML = "🎉 HỆ THỐNG HOẠT ĐỘNG HOÀN HẢO" +
+            "<p>Mở Google Sheet của bạn — sheet <strong>Registrations</strong> sẽ có dòng \"" + testName +
+            "\" (trạng thái DONE). Xóa các dòng TEST trước sự kiện là xong.<br>" +
+            "Gợi ý kiểm tra thêm: mở <a href='experience.html'>trang đăng ký</a> trên điện thoại (qua QR) và " +
+            "<a href='admin.html'>trang quản lý</a> trên máy tính cùng lúc để xem dữ liệu đồng bộ trực tiếp.</p>";
+        }).catch(function (err) {
+          verdict.className = "verdict bad";
+          verdict.innerHTML = "Kiểm tra dừng lại do lỗi ở bước trên." +
+            "<p>" + String(err && err.message || err) + "</p>";
+        }).then(function () {
+          runBtn.disabled = false;
+        });
+      }
+
+      runBtn.addEventListener("click", run);
+    })();
+  </script>
+
+</body>
+</html>

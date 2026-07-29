@@ -1,0 +1,1736 @@
+/* ============================================
+   Hobby Horizon — The Flight Deck
+   Shared stylesheet for all pages
+   ============================================ */
+
+:root {
+  --navy-900: #0a1628;
+  --navy-800: #0f2038;
+  --navy-700: #16304f;
+  --sky-500: #38a8e8;
+  --sky-400: #5cbcf0;
+  --amber-500: #f5a524;
+  --amber-400: #ffc04d;
+  --text-main: #eaf2fa;
+  --text-dim: #9db4cc;
+  --card-bg: #122642;
+  --card-border: #1e3a5f;
+  --radius: 14px;
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
+  background: var(--navy-900);
+  color: var(--text-main);
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+
+img {
+  max-width: 100%;
+}
+
+a {
+  color: var(--sky-400);
+}
+
+/* ---------- Header / nav ---------- */
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: rgba(10, 22, 40, 0.92);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--card-border);
+}
+
+.nav {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 0.8rem 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  text-decoration: none;
+  color: var(--text-main);
+  font-weight: 700;
+  font-size: 1.1rem;
+  letter-spacing: 0.02em;
+}
+
+.brand .logo {
+  font-size: 1.5rem;
+}
+
+.brand .logo-img {
+  width: 42px;
+  height: 42px;
+  object-fit: contain;
+  background: #ffffff;
+  border-radius: 9px;
+  padding: 2px;
+  flex-shrink: 0;
+}
+
+.brand small {
+  display: block;
+  font-weight: 400;
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.nav-links {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.nav-links a {
+  color: var(--text-dim);
+  text-decoration: none;
+  font-size: 0.92rem;
+  padding: 0.45rem 0.85rem;
+  border-radius: 999px;
+  transition: color 0.2s, background 0.2s;
+}
+
+.nav-links a:hover,
+.nav-links a.active {
+  color: var(--text-main);
+  background: var(--navy-700);
+}
+
+/* ---------- Hero ---------- */
+.hero {
+  position: relative;
+  overflow: hidden;
+  padding: 5rem 1.2rem 4.5rem;
+  text-align: center;
+  background:
+    radial-gradient(ellipse 80% 60% at 50% -10%, rgba(56, 168, 232, 0.25), transparent),
+    radial-gradient(ellipse 50% 40% at 85% 20%, rgba(245, 165, 36, 0.12), transparent),
+    var(--navy-900);
+}
+
+.hero .kicker {
+  display: inline-block;
+  font-size: 0.8rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--amber-400);
+  border: 1px solid rgba(245, 165, 36, 0.4);
+  padding: 0.35rem 1rem;
+  border-radius: 999px;
+  margin-bottom: 1.4rem;
+}
+
+.hero h1 {
+  font-size: clamp(2rem, 5.5vw, 3.4rem);
+  line-height: 1.15;
+  margin-bottom: 1rem;
+  font-weight: 800;
+}
+
+.hero h1 .accent {
+  background: linear-gradient(90deg, var(--sky-400), var(--amber-400));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* courses.html — tiêu đề màu đặc, không gradient.
+   effects.js tách h1 ra từng từ và gán .accent cho MỖI từ, nên gradient
+   chạy lại từ đầu ở từng chữ => mỗi chữ một màu, rất rối. Màu đặc + quầng
+   sáng vừa nổi vừa đọc được. Dùng Inter 900 cho khớp chữ lớn ở dưới trang. */
+.hero.hero--solid h1 {
+  font-family: 'Inter', "Segoe UI", system-ui, sans-serif;
+  font-size: clamp(2.1rem, 5.8vw, 3.7rem);
+  font-weight: 900;
+  letter-spacing: -0.02em;
+}
+
+.hero.hero--solid h1 .accent {
+  background: none;
+  -webkit-background-clip: border-box;
+  background-clip: border-box;
+  color: var(--amber-400);
+  -webkit-text-fill-color: var(--amber-400);
+  text-shadow: 0 0 32px rgba(255, 192, 77, 0.4);
+}
+
+.hero p.lead {
+  max-width: 620px;
+  margin: 0 auto 2.2rem;
+  color: var(--text-dim);
+  font-size: 1.08rem;
+}
+
+/* ---------- Buttons ---------- */
+.btn {
+  display: inline-block;
+  padding: 0.85rem 1.9rem;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 1rem;
+  text-decoration: none;
+  cursor: pointer;
+  border: none;
+  transition: transform 0.15s, box-shadow 0.15s, background 0.2s;
+}
+
+.btn:hover {
+  transform: translateY(-2px);
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--sky-500), #2286c4);
+  color: #fff;
+  box-shadow: 0 6px 20px rgba(56, 168, 232, 0.35);
+}
+
+.btn-amber {
+  background: linear-gradient(135deg, var(--amber-400), #e08b00);
+  color: #1a1200;
+  box-shadow: 0 6px 20px rgba(245, 165, 36, 0.3);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-main);
+  border: 1.5px solid var(--card-border);
+}
+
+.btn-ghost:hover {
+  border-color: var(--sky-400);
+}
+
+.btn-row {
+  display: flex;
+  gap: 0.9rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* ---------- Sections ---------- */
+.section {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 3.5rem 1.2rem;
+}
+
+.section-title {
+  text-align: center;
+  margin-bottom: 0.6rem;
+  font-size: clamp(1.5rem, 3.5vw, 2.1rem);
+}
+
+.section-sub {
+  text-align: center;
+  color: var(--text-dim);
+  max-width: 640px;
+  margin: 0 auto 2.5rem;
+}
+
+/* ---------- Cards ---------- */
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1.4rem;
+}
+
+.card {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+  padding: 1.8rem 1.6rem;
+  box-shadow: var(--shadow);
+  transition: transform 0.2s, border-color 0.2s;
+  display: flex;
+  flex-direction: column;
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  border-color: var(--sky-500);
+}
+
+.card .icon {
+  font-size: 2.2rem;
+  margin-bottom: 0.9rem;
+}
+
+.card h3 {
+  font-size: 1.2rem;
+  margin-bottom: 0.5rem;
+}
+
+.card p {
+  color: var(--text-dim);
+  font-size: 0.95rem;
+  flex-grow: 1;
+}
+
+.card .btn {
+  margin-top: 1.3rem;
+  align-self: flex-start;
+  font-size: 0.92rem;
+  padding: 0.65rem 1.4rem;
+}
+
+.card .tag {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--amber-400);
+  margin-bottom: 0.6rem;
+}
+
+/* ---------- QR trong thẻ (trang chủ) ---------- */
+.hero-compact {
+  padding: 3.2rem 1.2rem 2.2rem;
+}
+
+/* ---------- Lockup logo (The Flight Deck × Mai Anh Đào × Hobby Horizon) ---------- */
+.collab-logos {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 1.2rem;
+  margin: 0.6rem 0 1.6rem;
+}
+
+/* Các ô logo trong suốt — logo hiển thị trực tiếp trên nền tối */
+.logo-tile {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 118px;
+  height: 118px;
+}
+
+.logo-tile img {
+  width: 100%;
+  height: 100%;
+}
+
+/* Logo TFD gốc màu đen — đổi sang trắng + quầng sáng nhẹ để nổi trên nền tối */
+.logo-tfd img {
+  object-fit: contain;
+  filter: brightness(0) invert(1) drop-shadow(0 0 12px rgba(255, 255, 255, 0.25));
+}
+
+/* Logo Mai Anh Đào Group — logo ngang, giữ nguyên màu đỏ và phần chữ trong logo;
+   quầng sáng trắng nhẹ phía sau giúp chữ đỏ đậm rõ trên nền tối */
+.logo-mad {
+  width: 230px;
+  justify-content: flex-end;
+}
+
+.logo-mad img {
+  width: auto;
+  max-width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: brightness(1.1)
+          drop-shadow(0 0 10px rgba(255, 255, 255, 0.35))
+          drop-shadow(0 0 24px rgba(255, 255, 255, 0.18));
+}
+
+/* Logo Hobby Horizon — PNG nền trong suốt (đã tách nền đen + bỏ dòng
+   ngày/địa điểm), logo ngang giống layout của logo-mad */
+.logo-hh {
+  width: 230px;
+  justify-content: flex-start;
+}
+
+.logo-hh img {
+  width: auto;
+  max-width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.collab-x {
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--amber-400);
+}
+
+.hero .collab-title {
+  letter-spacing: 0.045em;
+  font-size: clamp(1.5rem, 4.2vw, 2.5rem);
+}
+
+.collab-title .collab-x-inline {
+  color: var(--amber-400);
+}
+
+/* Màu đỏ thương hiệu Mai Anh Đào (#DE2A35 trong logo) — pha sáng dần
+   để chữ dễ đọc trên nền tối, kèm quầng đỏ nhẹ */
+.mad-accent {
+  background: linear-gradient(90deg, #ff6b72, #de2a35);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 0 14px rgba(222, 42, 53, 0.45));
+}
+
+/* Màu neon cyan–magenta lấy từ logo Singularity của Hobby Horizon 2026 */
+.hh-accent {
+  background: linear-gradient(90deg, #6fe3ff, #ff5ce1);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Dòng "HOBBY HORIZON 2026" — căn giữa, gạch chân */
+.hero .hh-title {
+  margin: 0.5rem 0 0;
+  font-size: clamp(1.35rem, 3.8vw, 2.2rem);
+  letter-spacing: 0.08em;
+}
+
+.hh-title .hh-accent {
+  display: inline-block;
+  padding-bottom: 0.3rem;
+  border-bottom: 3px solid;
+  border-image: linear-gradient(90deg, #6fe3ff, #ff5ce1) 1;
+}
+
+/* Trên điện thoại 5 phần tử (logo × logo × logo) cần ~480px nhưng chỉ có
+   ~345px, nên flex-wrap đẩy xuống dòng và dấu × bị rớt lại lẻ loi ở đầu
+   dòng 2. Khoá nowrap và cho kích thước co theo vw để cả cụm nằm gọn 1 hàng —
+   đây là một lockup thương hiệu, tách dòng là hỏng ý nghĩa. */
+@media (max-width: 560px) {
+  .collab-logos {
+    flex-wrap: nowrap;
+    gap: 0.45rem;
+    margin: 0.4rem 0 1.2rem;
+  }
+  .logo-tile { width: 17vw; height: 17vw; max-width: 84px; max-height: 84px; }
+  .logo-mad { width: 34vw; max-width: 168px; }
+  .logo-hh { width: 30vw; max-width: 148px; }
+  .collab-x { font-size: 1.15rem; }
+}
+
+/* "THE FLIGHT DECK × MAI ANH DAO GROUP" tự xuống dòng sẽ tách thành
+   "… × MAI / ANH DAO GROUP" — cắt đôi tên thương hiệu. Giữ tên liền khối
+   để chỗ xuống dòng luôn rơi vào sau dấu ×. */
+.collab-title .mad-accent { white-space: nowrap; }
+
+.card.qr-only {
+  text-align: center;
+  align-items: center;
+}
+
+.card-qr {
+  background: #ffffff;
+  border-radius: 10px;
+  padding: 0.75rem;
+  margin: 1.2rem auto 0.6rem;
+  width: fit-content;
+  min-width: 204px;
+  min-height: 204px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.card-qr img,
+.card-qr canvas {
+  display: block;
+}
+
+.card-qr .qr-fallback {
+  color: #0a1628;
+  font-size: 0.72rem;
+  word-break: break-all;
+  max-width: 180px;
+  text-align: center;
+}
+
+.qr-scan-hint {
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  margin-bottom: 0.4rem;
+}
+
+.card .qr-scan-hint {
+  flex-grow: 0;
+  font-weight: 600;
+  color: var(--sky-400);
+}
+
+/* ---------- Steps ---------- */
+.steps {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 1.2rem;
+  counter-reset: step;
+}
+
+.step {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+  padding: 1.5rem 1.3rem;
+  position: relative;
+}
+
+.step::before {
+  counter-increment: step;
+  content: counter(step);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.1rem;
+  height: 2.1rem;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--sky-500), #2286c4);
+  color: #fff;
+  font-weight: 800;
+  margin-bottom: 0.8rem;
+}
+
+.step h4 {
+  margin-bottom: 0.35rem;
+}
+
+.step p {
+  color: var(--text-dim);
+  font-size: 0.9rem;
+}
+
+/* ---------- Feature list ---------- */
+.feature-list {
+  list-style: none;
+  display: grid;
+  gap: 0.8rem;
+  max-width: 680px;
+  margin: 0 auto;
+}
+
+.feature-list li {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+  padding: 0.9rem 1.2rem;
+  display: flex;
+  gap: 0.8rem;
+  align-items: flex-start;
+}
+
+.feature-list li .check {
+  color: var(--amber-400);
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+/* ---------- Form ---------- */
+.form-card {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+  padding: 2rem 1.8rem;
+  max-width: 560px;
+  margin: 0 auto;
+  box-shadow: var(--shadow);
+}
+
+.form-group {
+  margin-bottom: 1.1rem;
+}
+
+.form-group label {
+  display: block;
+  font-size: 0.88rem;
+  font-weight: 600;
+  margin-bottom: 0.35rem;
+  color: var(--text-dim);
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  width: 100%;
+  padding: 0.75rem 0.95rem;
+  border-radius: 10px;
+  border: 1.5px solid var(--card-border);
+  background: var(--navy-800);
+  color: var(--text-main);
+  /* KHÔNG hạ xuống dưới 16px: Safari trên iPhone tự phóng to trang khi
+     người dùng chạm vào ô nhập có chữ nhỏ hơn 16px, rồi không thu lại —
+     khách đang điền form đăng ký bị lệch bố cục giữa chừng. */
+  font-size: 16px;
+  font-family: inherit;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: var(--sky-400);
+}
+
+.checkbox-group {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.checkbox-group label {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: var(--navy-800);
+  border: 1.5px solid var(--card-border);
+  border-radius: 10px;
+  padding: 0.55rem 0.85rem;
+  font-size: 0.92rem;
+  font-weight: 400;
+  color: var(--text-main);
+  margin-bottom: 0;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.checkbox-group label:hover {
+  border-color: var(--sky-400);
+}
+
+.checkbox-group input[type="checkbox"] {
+  width: 1.05rem;
+  height: 1.05rem;
+  flex-shrink: 0;
+  accent-color: var(--sky-500);
+}
+
+/* ---------- Chọn số người bay (2 ô) ---------- */
+.size-choice {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.7rem;
+}
+
+@media (max-width: 620px) {
+  .size-choice { grid-template-columns: 1fr; }
+}
+
+.size-option {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-areas:
+    "icon title"
+    "desc desc";
+  align-items: center;
+  gap: 0.2rem 0.7rem;
+  background: var(--navy-800);
+  border: 1.5px solid var(--card-border);
+  border-radius: var(--radius);
+  padding: 0.9rem 1rem;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.size-option:hover {
+  border-color: var(--sky-400);
+}
+
+.size-option:has(input:checked) {
+  border-color: var(--sky-400);
+  background: rgba(56, 168, 232, 0.12);
+}
+
+.size-option input[type="radio"] {
+  display: none;
+}
+
+.size-option-icon {
+  grid-area: icon;
+  font-size: 1.5rem;
+}
+
+.size-option-title {
+  grid-area: title;
+  font-weight: 800;
+  color: var(--text-main);
+}
+
+.size-option-desc {
+  grid-area: desc;
+  font-size: 0.85rem;
+  color: var(--text-dim);
+  line-height: 1.4;
+}
+
+.form-note {
+  font-size: 0.82rem;
+  color: var(--text-dim);
+  margin-top: 0.9rem;
+  text-align: center;
+}
+
+/* ---------- Nút chuyển ngôn ngữ VI / EN ----------
+   z-index 9998: dưới con trỏ tùy chỉnh (9999) nhưng trên mọi thứ khác. */
+.lang-toggle {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 9998;
+  min-width: 46px;
+  padding: 0.45rem 0.8rem;
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--amber-400);
+  background: rgba(10, 22, 40, 0.82);
+  border: 1px solid rgba(255, 192, 77, 0.45);
+  border-radius: 999px;
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+  transition: background 0.25s, border-color 0.25s, transform 0.25s;
+}
+
+.lang-toggle:hover {
+  background: rgba(255, 192, 77, 0.16);
+  border-color: var(--amber-400);
+  transform: translateY(-1px);
+}
+
+.lang-toggle:focus-visible {
+  outline: 2px solid var(--amber-400);
+  outline-offset: 2px;
+}
+
+@media (max-width: 720px) {
+  .lang-toggle { top: 0.6rem; right: 0.6rem; padding: 0.4rem 0.7rem; }
+}
+
+/* ---------- Contact strip ---------- */
+.contact-strip {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 1.5rem;
+}
+
+.contact-strip a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--navy-700);
+  border: 1px solid var(--card-border);
+  color: var(--text-main);
+  text-decoration: none;
+  padding: 0.6rem 1.2rem;
+  border-radius: 999px;
+  font-size: 0.92rem;
+  transition: border-color 0.2s;
+}
+
+.contact-strip a:hover {
+  border-color: var(--sky-400);
+}
+
+/* ---------- Footer ---------- */
+.site-footer {
+  border-top: 1px solid var(--card-border);
+  padding: 2.5rem 1.2rem;
+  text-align: center;
+  color: var(--text-dim);
+  font-size: 0.88rem;
+}
+
+.site-footer .brand-line {
+  font-weight: 700;
+  color: var(--text-main);
+  margin-bottom: 0.4rem;
+}
+
+.site-footer .admin-link {
+  display: inline-block;
+  margin-top: 0.9rem;
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  text-decoration: none;
+  border: 1px solid var(--card-border);
+  border-radius: 999px;
+  padding: 0.35rem 0.9rem;
+  opacity: 0.65;
+  transition: opacity 0.2s, border-color 0.2s;
+}
+
+.site-footer .admin-link:hover {
+  opacity: 1;
+  border-color: var(--sky-400);
+}
+
+/* ---------- Hàng chờ (trang đăng ký bay) ---------- */
+.queue-banner {
+  max-width: 560px;
+  margin: 0 auto 1.4rem;
+  background: var(--navy-700);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+  padding: 0.95rem 1.3rem;
+  text-align: center;
+  font-size: 0.98rem;
+}
+
+.queue-banner strong {
+  color: var(--sky-400);
+}
+
+.demo-note {
+  max-width: 560px;
+  margin: -0.6rem auto 1.4rem;
+  color: var(--amber-400);
+}
+
+.my-status {
+  text-align: center;
+}
+
+.my-status .my-name {
+  color: var(--text-dim);
+  margin-bottom: 1rem;
+}
+
+.my-status .my-big {
+  font-size: 3.2rem;
+  font-weight: 800;
+  color: var(--sky-400);
+  line-height: 1.1;
+}
+
+.my-status .my-line {
+  margin-top: 0.6rem;
+  color: var(--text-dim);
+}
+
+.my-status .my-line strong {
+  color: var(--text-main);
+}
+
+.my-status .countdown {
+  color: var(--sky-400);
+  font-variant-numeric: tabular-nums;
+}
+
+.my-alert {
+  display: inline-block;
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  background: rgba(245, 165, 36, 0.15);
+  color: var(--amber-400);
+  border: 1px solid rgba(245, 165, 36, 0.5);
+  border-radius: 999px;
+  padding: 0.55rem 1.4rem;
+  margin: 0.4rem 0;
+}
+
+.my-alert.ok {
+  background: rgba(47, 191, 113, 0.13);
+  color: #5fe0a1;
+  border-color: rgba(47, 191, 113, 0.5);
+}
+
+.my-alert.bad {
+  background: rgba(224, 82, 77, 0.13);
+  color: #ff8f8a;
+  border-color: rgba(224, 82, 77, 0.5);
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* ---------- Utility ---------- */
+.center { text-align: center; }
+.mt-2 { margin-top: 2rem; }
+
+.pill-row {
+  display: flex;
+  gap: 0.6rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin: 1.2rem 0;
+}
+
+.cockpit-photo {
+  max-width: 640px;
+  margin: 1.5rem auto 0;
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid var(--card-border);
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.35);
+}
+
+.cockpit-photo img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.pill {
+  background: var(--navy-700);
+  border: 1px solid var(--card-border);
+  border-radius: 999px;
+  padding: 0.4rem 1rem;
+  font-size: 0.85rem;
+  color: var(--text-dim);
+}
+
+
+@media (max-width: 560px) {
+  .hero { padding: 3.5rem 1rem 3rem; }
+  .section { padding: 2.5rem 1rem; }
+}
+
+/* ============================================
+   Hiệu ứng chuyển động (effects.js) — chỉ hoạt động
+   khi html có class .fx (JS bật, không giảm chuyển động)
+   ============================================ */
+
+/* Vào trang: toàn trang trượt nhẹ lên */
+html.fx body {
+  animation: fx-page-in 0.55s cubic-bezier(0.19, 1, 0.22, 1) both;
+}
+
+@keyframes fx-page-in {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* Rời trang */
+html.fx.fx-leave body {
+  opacity: 0;
+  transform: translateY(-14px);
+  transition: opacity 0.24s ease, transform 0.24s ease;
+}
+
+/* Tách chữ tiêu đề hero */
+html.fx .fx-w {
+  display: inline-block;
+  overflow: hidden;
+  vertical-align: bottom;
+  padding-bottom: 0.08em;
+  margin-bottom: -0.08em;
+}
+
+html.fx .fx-wi {
+  display: inline-block;
+  transform: translateY(115%);
+  transition: transform 0.85s cubic-bezier(0.19, 1, 0.22, 1);
+}
+
+html.fx .hero.fx-in .fx-wi {
+  transform: translateY(0);
+}
+
+/* Các phần tử hero trồi lên lần lượt */
+html.fx .hero .fx-rise {
+  opacity: 0;
+  transform: translateY(26px);
+  transition: opacity 0.7s ease, transform 0.7s cubic-bezier(0.19, 1, 0.22, 1);
+}
+
+html.fx .hero.fx-in .fx-rise {
+  opacity: 1;
+  transform: none;
+}
+
+/* Lộ dần khi cuộn */
+html.fx .fx-reveal {
+  opacity: 0;
+  transform: translateY(34px);
+  transition: opacity 0.75s ease, transform 0.75s cubic-bezier(0.19, 1, 0.22, 1);
+}
+
+html.fx .fx-reveal.fx-in {
+  opacity: 1;
+  transform: none;
+}
+
+/* Dải marquee chữ viền chạy ngang */
+.fx-marquee {
+  overflow: hidden;
+  white-space: nowrap;
+  border-top: 1px solid var(--card-border);
+  border-bottom: 1px solid var(--card-border);
+  background: var(--navy-800);
+  padding: 0.85rem 0;
+  transform: rotate(-1.2deg) scale(1.03);
+  margin: 0.5rem 0 1rem;
+}
+
+.fx-marquee-track {
+  display: inline-flex;
+  animation: fx-marquee 22s linear infinite;
+}
+
+.fx-marquee-track span {
+  font-size: clamp(1rem, 2.6vw, 1.5rem);
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: transparent;
+  -webkit-text-stroke: 1px rgba(92, 188, 240, 0.65);
+  padding-right: 2.5rem;
+  flex-shrink: 0;
+}
+
+.fx-marquee-track span:nth-child(even) {
+  -webkit-text-stroke: 1px rgba(245, 165, 36, 0.55);
+}
+
+@keyframes fx-marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+/* Con trỏ tùy chỉnh (chỉ desktop) */
+.fxc-dot,
+.fxc-ring {
+  position: fixed;
+  top: 0;
+  left: 0;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0;
+}
+
+.fxc-dot {
+  width: 6px;
+  height: 6px;
+  background: var(--sky-400);
+}
+
+.fxc-ring {
+  width: 38px;
+  height: 38px;
+  border: 1.5px solid rgba(92, 188, 240, 0.75);
+  transition: opacity 0.3s ease;
+  will-change: transform;
+}
+
+/* Nút & thẻ: JS điều khiển transform nên tắt hover CSS gốc khi fx bật */
+html.fx .btn {
+  transition: transform 0.25s cubic-bezier(0.19, 1, 0.22, 1), box-shadow 0.2s, background 0.2s;
+}
+
+html.fx .card,
+html.fx .step {
+  transition: transform 0.35s cubic-bezier(0.19, 1, 0.22, 1), border-color 0.25s;
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fx-marquee-track { animation: none; }
+}
+
+/* ============================================================
+   courses.html — intro richtext, marquee, cockpit photo,
+   flying-plane workshop showcase (cargokite-inspired)
+   ============================================================ */
+
+/* ---------- richtext block (image + heading + paragraph) ---------- */
+.richtext {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 1rem 1.2rem 2rem;
+}
+.richtext-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3.2rem;
+  align-items: start;
+  position: relative;
+  opacity: 0;
+  transform: translateY(30px);
+  transition: opacity 0.8s ease, transform 0.8s ease;
+}
+.richtext-grid.in-view { opacity: 1; transform: translateY(0); }
+
+.richtext-img {
+  position: relative;
+  width: 100%;
+  border-radius: 18px;
+  overflow: hidden;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+}
+.richtext-img:after { content: ""; display: block; width: 100%; padding-bottom: var(--aspect, 100%); }
+.richtext-img img {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+  transform: scale(1.12);
+  transition: transform 1.1s cubic-bezier(.22,1,.36,1);
+}
+.richtext-grid.in-view .richtext-img img { transform: scale(1); }
+/* decorative accent square, positioned outside the top-right corner */
+.richtext-decor {
+  position: absolute;
+  top: -1.4rem;
+  right: -1.4rem;
+  width: 4.6rem;
+  height: 4.6rem;
+  background: var(--amber-400);
+  opacity: 0.14;
+  border-radius: 8px;
+  pointer-events: none;
+  transition: opacity 0.8s ease 0.3s, transform 0.8s ease 0.3s;
+  transform: scale(0.4);
+}
+.richtext-grid.in-view .richtext-decor { opacity: 0.16; transform: scale(1); }
+
+.richtext-body { padding-top: 0.4rem; }
+.richtext-label {
+  display: inline-block;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--amber-400);
+  margin: 0 0 1.2rem;
+}
+.richtext-statement {
+  font-family: 'Inter', "Segoe UI", system-ui, sans-serif;
+  font-size: clamp(2.2rem, 4.6vw, 3.4rem);
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  color: var(--text-main);
+  margin: 0 0 1.8rem;
+  max-width: 14ch;
+}
+.richtext-body .feature-list { margin-bottom: 1.4rem; }
+
+@media (max-width: 720px) {
+  .richtext-grid { grid-template-columns: 1fr; }
+  .richtext-img { order: 1; }
+  .richtext-body { order: 2; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .richtext-grid, .richtext-img img, .richtext-decor { transition: none !important; }
+  .richtext-grid { opacity: 1; transform: none; }
+  .richtext-img img { transform: none; }
+}
+
+/* ---------- swipe transition: statement 1 -> plane sweeps right-to-left -> statement 2 ---------- */
+.swipe-section { position: relative; height: 220vh; background: #05070d; }
+.swipe-sticky {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.swipe-text {
+  position: absolute;
+  left: 0;
+  right: 0;
+  margin: 0 auto;
+  max-width: 1000px;
+  padding: 0 2rem;
+  text-align: center;
+  font-family: 'Inter', "Segoe UI", system-ui, sans-serif;
+  font-size: clamp(1.8rem, 5vw, 3.6rem);
+  font-weight: 800;
+  line-height: 1.18;
+  letter-spacing: -0.01em;
+  color: var(--text-main);
+  will-change: opacity;
+}
+.swipe-text .swipe-accent { color: var(--amber-400); }
+.swipe-plane {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  /* ảnh A320neo rộng; thân máy bay (~1/3 chiều cao ảnh) phải đủ dày để
+     che trọn khối chữ lúc đổi nội dung — cỡ lớn + dịch chỉnh trong JS */
+  width: min(190vw, 2000px);
+  filter: drop-shadow(0 10px 34px rgba(0,0,0,0.55));
+  will-change: transform, opacity;
+}
+.swipe-plane img { width: 100%; height: auto; display: block; }
+@media (max-width: 720px) {
+  .swipe-plane { width: 360vw; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .swipe-section { height: auto; }
+  .swipe-sticky { position: relative; height: auto; flex-direction: column; padding: 5rem 1.4rem; }
+  .swipe-text { position: relative; }
+  .swipe-plane { display: none; }
+}
+
+/* ---------- cockpit photo showcase (VATPAC-style collage) ---------- */
+.cockpit-shot {
+  max-width: 1100px;
+  margin: 3rem auto 0;
+  padding: 0 1.2rem 1rem;
+  opacity: 0;
+  transform: translateY(30px);
+  transition: opacity 0.8s ease, transform 0.8s ease;
+}
+.cockpit-shot.in-view { opacity: 1; transform: translateY(0); }
+
+/* collage container — 2-column: small stack left, big right */
+.cockpit-collage {
+  display: grid;
+  grid-template-columns: 38% 1fr;
+  gap: 1rem;
+  align-items: center;
+}
+
+/* left column: two stacked images */
+.cockpit-collage__stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* shared card style */
+.cockpit-collage__card {
+  position: relative;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid var(--card-border);
+  box-shadow: 0 8px 32px rgba(0,0,0,.35);
+}
+.cockpit-collage__card img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scale(1.08);
+  transition: transform 1.1s cubic-bezier(.22,1,.36,1);
+}
+.cockpit-shot.in-view .cockpit-collage__card img { transform: scale(1); }
+
+/* small top card — shifted right & slight tilt */
+.cockpit-collage__card--sm-top {
+  aspect-ratio: 3 / 4;
+  transform: translateX(12px) rotate(-1.2deg);
+  transition: transform 0.7s cubic-bezier(.22,1,.36,1) 0.1s;
+  z-index: 2;
+}
+.cockpit-shot.in-view .cockpit-collage__card--sm-top {
+  transform: translateX(0) rotate(0);
+}
+
+/* small bottom card — slight opposite tilt */
+.cockpit-collage__card--sm-bot {
+  aspect-ratio: 16 / 10;
+  transform: translateX(-8px) rotate(1deg);
+  transition: transform 0.7s cubic-bezier(.22,1,.36,1) 0.25s;
+  z-index: 1;
+}
+.cockpit-shot.in-view .cockpit-collage__card--sm-bot {
+  transform: translateX(0) rotate(0);
+}
+
+/* main (big) card — right column */
+.cockpit-collage__card--main {
+  aspect-ratio: 4 / 3;
+  border-radius: 18px;
+  box-shadow: 0 12px 48px rgba(0,0,0,.45);
+}
+
+.cockpit-shot__caption { margin-top: 1rem; color: var(--text-dim); font-size: 0.92rem; text-align: center; }
+
+/* mobile: single column */
+@media (max-width: 700px) {
+  .cockpit-collage {
+    grid-template-columns: 1fr;
+  }
+  .cockpit-collage__stack {
+    flex-direction: row;
+    gap: 0.7rem;
+  }
+  .cockpit-collage__card--sm-top,
+  .cockpit-collage__card--sm-bot {
+    flex: 1;
+    aspect-ratio: 1 / 1;
+    transform: none;
+  }
+  .cockpit-collage__card--main {
+    aspect-ratio: 16 / 9;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cockpit-shot, .cockpit-collage__card img,
+  .cockpit-collage__card--sm-top,
+  .cockpit-collage__card--sm-bot { transition: none !important; }
+  .cockpit-shot { opacity: 1; transform: none; }
+  .cockpit-collage__card img { transform: none; }
+  .cockpit-collage__card--sm-top,
+  .cockpit-collage__card--sm-bot { transform: none; }
+}
+
+/* ---------- scroll-pinned plane + workshop timeline + image (3-col) ---------- */
+.fly-workshop-section { position: relative; height: 280vh; }
+.fly-workshop-sticky {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: stretch;
+  gap: 2.4rem;
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 0 1.4rem;
+}
+.fw-col { display: flex; flex-direction: column; justify-content: center; min-width: 0; }
+.fw-col--list { align-items: flex-start; }
+.fw-col--image { align-items: flex-end; }
+
+.fw-heading {
+  font-family: 'Inter', "Segoe UI", system-ui, sans-serif;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin: 0 0 1.4rem;
+}
+.fw-steps { display: flex; gap: 0.5rem; margin-bottom: 1.7rem; }
+.fw-step-dot { width: 28px; height: 3px; border-radius: 2px; background: var(--card-border); transition: background 0.3s; }
+.fw-step-dot.is-active { background: var(--amber-400); }
+
+/* scroll-windows: each slot is stacked exactly on top of the others and its
+   opacity is driven by scroll progress — one workshop fades fully out
+   before the next fades in (see segmentOpacity in workshop-intro.js), no
+   crossfade overlap and no sliding motion */
+.fw-scroll-window { position: relative; width: 100%; }
+.fw-scroll-track { position: relative; width: 100%; height: 100%; }
+
+.fw-col--list .fw-scroll-window { height: 420px; }
+.fw-slot--text { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; will-change: opacity; }
+.fw-active__title {
+  font-family: 'Inter', "Segoe UI", system-ui, sans-serif;
+  font-size: clamp(2.8rem, 6vw, 4.6rem);
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  line-height: 1.02;
+  margin: 0 0 1.2rem;
+  color: var(--text-main);
+  max-width: 11ch;
+}
+.fw-active__brief {
+  font-family: 'Inter', "Segoe UI", system-ui, sans-serif;
+  color: var(--text-dim);
+  font-size: 1rem;
+  font-weight: 500;
+  line-height: 1.6;
+  margin: 0;
+  max-width: 30ch;
+}
+
+.fw-col--plane { position: relative; width: 200px; }
+.fly-trail {
+  position: absolute;
+  left: calc(50% + 26px);
+  top: 4%;
+  bottom: 4%;
+  width: 1px;
+  background: linear-gradient(to bottom, transparent, rgba(92,188,240,0.35), transparent);
+}
+/* Khung phải đúng tỉ lệ viewBox 370x388 (h = w * 1.0486). A320 nhìn từ trên
+   gần vuông, nên khung cũ 150x420 kéo dài máy bay ra gấp ~3 lần. */
+.fly-plane {
+  position: absolute;
+  bottom: 0;
+  left: calc(50% + 26px);
+  /* translate(-50%) phải nằm sẵn ở CSS: khi xếp dọc trên điện thoại, JS không
+     ghi transform nữa — thiếu dòng này máy bay sẽ lệch phải nửa thân. */
+  transform: translate(-50%, 0);
+  width: min(180px, 25vw);
+  height: min(189px, 26.2vw);
+  color: var(--amber-400);
+  filter: drop-shadow(0 0 32px rgba(255,192,77,0.5));
+  will-change: transform;
+}
+.fly-plane svg { width: 100%; height: 100%; display: block; }
+
+/* min-height đặt bằng cột chữ bên trái: ảnh nằm trong .fw-slot (absolute)
+   nên không tự đẩy chiều cao window — thiếu min-height thì window co lại
+   và khối ảnh tràn ra ngoài. */
+.fw-col--image .fw-scroll-window { height: auto; width: 100%; max-width: 100%; min-height: clamp(380px, 32vw, 430px); }
+.fw-slot--image { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; will-change: opacity; }
+.fw-image-box {
+  width: 220px;
+  height: 280px;
+  border: 1.5px dashed var(--card-border);
+  border-radius: 14px;
+  background: var(--navy-800);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 0.5rem;
+  color: var(--text-dim);
+  font-size: 0.85rem;
+  text-align: center;
+  padding: 1.2rem;
+  box-sizing: border-box;
+}
+.fw-image-box span { font-size: 2rem; }
+.fw-image-box strong { color: var(--text-main); font-size: 0.92rem; font-weight: 700; text-wrap: balance; }
+
+/* ---------- Workshop image stack (multiple images in right column) ---------- */
+/* Chiều cao hàng co giãn theo bề ngang màn hình: cột ảnh rộng ~
+   (min(1280,vw) - 292) / 2, nên 15vw giữ tỉ lệ ảnh gần như không đổi từ
+   máy tính xuống điện thoại. Trên mobile (<=820px) tự về 140px như cũ. */
+.fw-image-stack {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  grid-template-rows: repeat(2, clamp(140px, 15vw, 200px));
+  gap: 0.7rem;
+  width: 100%;
+}
+
+.fw-image-stack__item {
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--card-border);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.3);
+  transition: border-color 0.3s, transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.fw-image-stack__item img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.fw-image-stack__item:nth-child(1) {
+  grid-column: 1 / -1;
+}
+
+/* Chỉ 2 ảnh: xếp so le theo đường chéo — ảnh ngang ở trên-trái, ảnh dọc ở
+   dưới-phải, góc chồng nhẹ lên nhau. Bỏ grid, dùng absolute để 2 ảnh chồng
+   được (lưới 2x2 mặc định vừa chừa 1 ô trống vừa không cho chồng).
+   aspect-ratio khớp đúng tỉ lệ file gốc (4:3 và 3:4) nên object-fit: cover
+   không cắt mất phần nào của ảnh. */
+/* Chiều cao theo tỉ lệ bề ngang (không theo vw): chiều cao 2 ảnh vốn tính
+   từ bề ngang khung, nên khung cũng phải co theo bề ngang thì phần chồng
+   nhau mới giữ nguyên tỉ lệ. Nếu khóa cứng theo vw, màn hình hẹp sẽ khiến
+   ảnh dọc trùm gần hết cạnh phải ảnh ngang. */
+.fw-image-stack--pair {
+  display: block;
+  position: relative;
+  aspect-ratio: 7 / 6;
+}
+
+.fw-image-stack--pair .fw-image-stack__item {
+  position: absolute;
+}
+
+.fw-image-stack--pair .fw-image-stack__item:nth-child(1) {
+  top: 0;
+  left: 0;
+  width: 64%;
+  aspect-ratio: 4 / 3;
+  grid-column: auto;
+}
+
+.fw-image-stack--pair .fw-image-stack__item:nth-child(2) {
+  right: 0;
+  bottom: 0;
+  width: 45%;
+  aspect-ratio: 3 / 4;
+  z-index: 2;
+}
+
+.fw-image-stack__item:hover {
+  border-color: var(--sky-500);
+  transform: translateY(-2px);
+  z-index: 3;
+}
+
+/* Điện thoại/tablet (và khi người dùng bật "giảm chuyển động"): BỎ HẲN kiểu
+   kể chuyện theo cuộn, chuyển sang danh sách xếp dọc — cả 3 workshop luôn hiện.
+
+   Vì sao: kiểu cũ chỉ chạy được khi khối được GHIM (sticky) giữa màn hình.
+   Trên điện thoại phần ghim bị tắt, nên khối cao 1336px trong khi độ mờ lại
+   tính theo quãng (1336 - 844) = 492px. Kết quả: cuộn tới progress = 1 thì
+   vẫn còn 844px nữa mới hết khối, mà tại progress = 1 cả 3 mục đều mờ về 0 —
+   và trước đó chữ cũng đã trôi khỏi màn hình. Đo thực tế: KHÔNG mục nào
+   từng hiện ra trên máy 390px.
+
+   workshop-intro.js sẽ chuyển khối ảnh vào trong cụm chữ tương ứng để mỗi
+   workshop là một cụm hoàn chỉnh (chữ + đúng ảnh của nó). */
+@media (max-width: 820px), (prefers-reduced-motion: reduce) {
+  .fly-workshop-section { height: auto; }
+  .fly-workshop-sticky {
+    position: relative;
+    height: auto;
+    grid-template-columns: 1fr;
+    padding: 3rem 1.4rem;
+    gap: 1.4rem;
+    overflow: visible;
+  }
+  .fw-col--list { align-items: center; text-align: center; }
+  .fw-col--image { display: none; }  /* ảnh đã được JS chuyển sang cụm chữ */
+  .fw-steps { display: none; }       /* cả 3 mục đều hiện -> chấm chỉ dẫn vô nghĩa */
+  /* máy bay cao tối đa 189px (min(189px, 26.2vw)) — cột phải đủ chỗ, nếu
+     không trên tablet nó sẽ tràn lên đè khối ảnh phía trên */
+  .fw-col--plane { width: 100%; height: 200px; }
+
+  /* khung cuộn -> dòng chảy bình thường, xếp dọc */
+  .fw-col--list .fw-scroll-window { height: auto; }
+  .fw-scroll-window { min-height: 0; }
+  .fw-scroll-track { display: flex; flex-direction: column; gap: 3.4rem; }
+  .fw-slot--text { position: static; opacity: 1; align-items: center; }
+
+  .fw-active__title {
+    max-width: none;
+    font-size: clamp(2rem, 7.5vw, 2.8rem);
+  }
+  .fw-image-stack { margin-top: 1.4rem; }
+}
+
+/* ============================================================
+   ĐIỆN THOẠI & TABLET — cảm ứng, tai thỏ, hiệu năng cuộn
+   Đặt ở CUỐI file để thắng các quy tắc phía trên.
+   Bối cảnh: gần như toàn bộ khách vào trang bằng cách quét QR
+   tại gian hàng, tức là 100% bằng điện thoại cầm tay; nhân viên
+   trực admin.html trên tablet suốt cả ngày.
+   ============================================================ */
+
+/* ---------- 1. Không cho tràn ngang ----------
+   Dùng `clip` chứ không phải `hidden`: `hidden` biến phần tử thành khung
+   cuộn, làm hỏng `position: sticky` của thanh nav. */
+html,
+body {
+  overflow-x: clip;
+}
+
+/* ---------- 2. Vùng an toàn (tai thỏ / thanh chỉ báo) ----------
+   experience.html chạy được dạng app ("Thêm vào MH chính") với
+   status-bar-style = black-translucent, nghĩa là nội dung tràn LÊN DƯỚI
+   thanh trạng thái. Không chừa chỗ thì dòng đầu bị tai thỏ che.
+   Cần `viewport-fit=cover` trong thẻ meta viewport thì env() mới có giá trị. */
+.site-header {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+/* Trang không có thanh nav (experience.html) — hero là khối đầu tiên */
+body > .hero:first-child {
+  padding-top: calc(5rem + env(safe-area-inset-top, 0px));
+}
+
+.site-footer {
+  padding-bottom: calc(2.5rem + env(safe-area-inset-bottom, 0px));
+}
+
+.lang-toggle {
+  top: calc(1rem + env(safe-area-inset-top, 0px));
+  right: calc(1rem + env(safe-area-inset-right, 0px));
+}
+
+/* Nút đổi ngôn ngữ nằm cố định ở góc phải trên. Khi bề ngang màn hình
+   xấp xỉ bề ngang khung nội dung, nó đè lên mục cuối của thanh nav —
+   chừa sẵn chỗ cho nó. */
+@media (max-width: 1100px) {
+  .nav {
+    padding-right: calc(4.5rem + env(safe-area-inset-right, 0px));
+  }
+}
+
+/* ---------- 3. Thiết bị cảm ứng: vùng chạm & phản hồi ---------- */
+@media (pointer: coarse) {
+  /* Bỏ độ trễ 300ms và đổi màu nhấp nháy mặc định (xám xịt của trình duyệt)
+     sang màu thương hiệu, để khách biết máy đã nhận thao tác chạm. */
+  a,
+  button,
+  label,
+  summary,
+  [data-action] {
+    -webkit-tap-highlight-color: rgba(56, 168, 232, 0.18);
+    touch-action: manipulation;
+  }
+
+  /* Tối thiểu 44px — cỡ đầu ngón tay theo hướng dẫn của Apple/Google.
+     Trước đây các mục này chỉ cao ~30–37px nên hay bấm trượt. */
+  .nav-links a,
+  .contact-strip a,
+  .site-footer .admin-link,
+  .brand {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
+
+  .btn {
+    min-height: 48px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .lang-toggle {
+    min-height: 44px;
+    min-width: 52px;
+  }
+
+  /* Ô chọn số người bay: cả thẻ là vùng chạm, cho rộng rãi hẳn */
+  .size-option {
+    padding: 1.1rem 1rem;
+  }
+}
+
+/* ---------- 4. Máy không có chuột: bỏ hiệu ứng hover ----------
+   Trên cảm ứng, :hover "dính" lại sau khi chạm — nút cứ nổi lên và giữ
+   nguyên đó cho tới khi chạm chỗ khác, trông như bị lỗi. */
+@media (hover: none) {
+  .btn:hover,
+  .card:hover,
+  .step:hover,
+  .lang-toggle:hover {
+    transform: none;
+  }
+}
+
+/* ---------- 5. Hiệu năng cuộn trên điện thoại ----------
+   backdrop-filter: blur() bắt máy tính lại vùng mờ ở MỖI khung hình cuộn
+   (thanh nav dính trên cùng nên luôn nằm trong vùng vẽ). Đây là nguyên nhân
+   chính gây giật khi vuốt trên máy tầm trung. Nền đục cho kết quả nhìn
+   gần như y hệt mà không tốn gì. */
+@media (max-width: 1024px) {
+  .site-header {
+    backdrop-filter: none;
+    background: rgba(10, 22, 40, 0.98);
+  }
+
+  .lang-toggle {
+    backdrop-filter: none;
+  }
+}
+
+/* ---------- 6. Tablet (dọc & ngang) ---------- */
+@media (min-width: 561px) and (max-width: 1024px) {
+  .section {
+    padding: 3rem 1.6rem;
+  }
+
+  /* Cho form/banner rộng thêm — tablet thừa chỗ, cột hẹp 560px nhìn lọt thỏm */
+  .form-card,
+  .queue-banner,
+  .demo-note {
+    max-width: 680px;
+  }
+
+  .booking-hours-note {
+    max-width: 680px;
+  }
+
+  .card-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* Ô chọn 1 người / 2 người: tablet đủ rộng để xếp ngang */
+  .size-choice {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* ---------- 7. Điện thoại nằm ngang ----------
+   Chiều cao chỉ còn ~390px: hero cao 5rem trên + 4.5rem dưới chiếm gần hết
+   màn hình, khách phải cuộn mới thấy nội dung. */
+@media (max-height: 480px) and (orientation: landscape) {
+  .hero,
+  body > .hero:first-child {
+    padding-top: calc(2rem + env(safe-area-inset-top, 0px));
+    padding-bottom: 2rem;
+  }
+
+  .section {
+    padding-top: 2rem;
+    padding-bottom: 2rem;
+  }
+}
+
+/* ---------- 8. Màn hình rất hẹp (≤360px) ----------
+   iPhone SE / máy Android giá rẻ — vẫn còn khá nhiều tại sự kiện. */
+@media (max-width: 360px) {
+  .hero {
+    padding-left: 0.85rem;
+    padding-right: 0.85rem;
+  }
+
+  .section {
+    padding-left: 0.85rem;
+    padding-right: 0.85rem;
+  }
+
+  .form-card {
+    padding: 1.4rem 1.1rem;
+  }
+
+  .btn {
+    padding-left: 1.3rem;
+    padding-right: 1.3rem;
+  }
+
+  .my-status .my-big {
+    font-size: 2.6rem;
+  }
+
+  /* Nút đổi ngôn ngữ đừng đè lên tiêu đề trên máy hẹp */
+  .lang-toggle {
+    font-size: 0.72rem;
+    padding: 0.4rem 0.6rem;
+  }
+}
+
+/* ---------- 9. Thẻ trạng thái "lượt bay của bạn" ----------
+   Đây là màn hình khách nhìn nhiều nhất (mở suốt lúc chờ tới lượt),
+   nên ưu tiên đọc nhanh bằng một tay. */
+@media (max-width: 560px) {
+  .my-status .my-alert {
+    display: block;
+    font-size: 1rem;
+    padding: 0.6rem 0.9rem;
+  }
+
+  /* Đồng hồ đếm ngược: chữ số cố định bề ngang để không nhảy layout mỗi giây */
+  .my-status .countdown,
+  .booking-hours-note .countdown {
+    font-variant-numeric: tabular-nums;
+    font-size: 1.05em;
+  }
+}

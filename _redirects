@@ -1,0 +1,7 @@
+# Netlify redirects — đường dẫn ngắn dễ nhớ
+# (chỉ hoạt động sau khi deploy lên Netlify)
+/admin    /admin.html          200
+/quanly   /admin.html          200
+/qr       /qr-codes.html       200
+/check    /system-check.html   200
+/bay      /experience.html     200
