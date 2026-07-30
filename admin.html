@@ -699,9 +699,28 @@
         // Quá 25 giây (≥ 2 nhịp poll) chưa lấy được dữ liệu mới → báo đỏ,
         // nhân viên biết ngay đang nhìn dữ liệu CŨ thay vì tưởng là mới nhất
         var staleSec = Math.round((Date.now() - lastSyncAt) / 1000);
-        document.getElementById("stat-mode").textContent =
-          !TFDQ.isRemote() ? "⚠️ Thử nghiệm (máy này)"
-            : (staleSec > 25 ? "🔴 Mất kết nối — dữ liệu cũ " + staleSec + "s" : "☁️ Google Sheet");
+        /* Bản Apps Script đang chạy có mới không?
+           TFDQ_SERVER_VERSION là null khi server chưa trả trường version —
+           tức bản deploy có từ trước khi thêm cột slot. Đây chính là nguyên
+           nhân của lỗi "có trên server nhưng thiếu slotKey", nên phải báo
+           thật rõ ngay trên thanh trạng thái. */
+        var EXPECTED_SCRIPT_VERSION = 3;
+        var sv = (typeof TFDQ_SERVER_VERSION === "undefined") ? undefined : TFDQ_SERVER_VERSION;
+        var modeEl = document.getElementById("stat-mode");
+        if (!TFDQ.isRemote()) {
+          modeEl.textContent = "⚠️ Thử nghiệm (máy này)";
+        } else if (staleSec > 25) {
+          modeEl.textContent = "🔴 Mất kết nối — dữ liệu cũ " + staleSec + "s";
+        } else if (sv === undefined) {
+          modeEl.textContent = "☁️ Google Sheet";           // chưa tải xong lần nào
+        } else if (sv === null || sv < EXPECTED_SCRIPT_VERSION) {
+          modeEl.textContent = "⚠️ Apps Script CŨ (v" + (sv === null ? "?" : sv) +
+            " < v" + EXPECTED_SCRIPT_VERSION + ") — deploy lại!";
+          modeEl.style.color = "#ff8f8a";
+        } else {
+          modeEl.textContent = "☁️ Google Sheet (v" + sv + ")";
+          modeEl.style.color = "";
+        }
         document.getElementById("stat-sync").textContent = Object.keys(syncing).length;
 
         var notifyEl = document.getElementById("stat-notify");
@@ -1274,12 +1293,30 @@
         }).then(function (items) {
           var byId = {};
           (items || []).forEach(function (it) { byId[it.id] = it; });
+          var missingSlot = 0;
           created.forEach(function (id) {
             var it = byId[id];
             if (!it) return bad("Mã " + id + " KHÔNG thấy trong dữ liệu server");
-            if (it.slotKey) ok("Mã " + id + " đã có trên server — slot " + it.slotKey + ", trạng thái " + it.status);
-            else bad("Mã " + id + " có trên server nhưng THIẾU slotKey");
+            if (it.slotKey && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(it.slotKey)) {
+              ok("Mã " + id + " đã có trên server — slot " + it.slotKey + ", trạng thái " + it.status);
+            } else {
+              missingSlot++;
+              bad("Mã " + id + " có trên server nhưng slotKey sai/thiếu: " + JSON.stringify(it.slotKey || null));
+            }
           });
+
+          /* Thiếu slotKey ở TẤT CẢ các lượt gần như luôn có một nguyên nhân:
+             bản Apps Script đang chạy là bản CŨ (chưa có cột slot). Nói thẳng
+             ra đây thay vì để người dùng tự đoán. */
+          if (missingSlot && missingSlot === created.length) {
+            tlog("");
+            tlog("  ⚠ TẤT CẢ đều thiếu slotKey — gần như chắc chắn bản Apps Script", "bad");
+            tlog("    đang chạy là BẢN CŨ (chưa có cột 'Slot đã chọn').", "bad");
+            tlog("    Cách sửa: mở Google Sheet → Extensions → Apps Script →", "info");
+            tlog("    dán lại toàn bộ google-apps-script.gs → Deploy →", "info");
+            tlog("    Manage deployments → sửa bản hiện có → Version: New version.", "info");
+            tlog("    (Tạo 'New deployment' sẽ ra URL MỚI, phải cập nhật SCRIPT_URL.)", "info");
+          }
 
           // Đặt trùng slot đã có người → phải bị từ chối
           tlog("");

@@ -29,6 +29,10 @@
    chưa thanh toán sẽ tự chuyển PAYMENT_EXPIRED và không giữ chỗ cho ai.
    ============================================ */
 
+/* Phiên bản Apps Script mà server báo về (null = bản cũ, chưa có trường
+   version). Trang admin đọc biến này để cảnh báo deploy cũ. */
+var TFDQ_SERVER_VERSION;
+
 var TFDQ = (function () {
   var CFG = window.TFD_CONFIG || {};
   var SESSION_MS = (CFG.SESSION_MINUTES || 15) * 60000;  // mọi slot đều dài như nhau
@@ -97,6 +101,9 @@ var TFDQ = (function () {
       signal: ctrl ? ctrl.signal : undefined
     }).then(function (r) { return r.json(); }).then(function (data) {
       if (timer) clearTimeout(timer);
+      // Ghi nhớ phiên bản Apps Script đang chạy để trang quản lý cảnh báo
+      // khi bản deploy đã cũ hơn code trong dự án.
+      TFDQ_SERVER_VERSION = (data && data.version != null) ? data.version : null;
       return data.items || [];
     }).catch(function (err) {
       if (timer) clearTimeout(timer);

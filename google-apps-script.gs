@@ -27,8 +27,15 @@
    "hobby horizon" (một file dùng chung rất dễ đã có tab tên "Payments"
    hay "Log" — trùng tên là ghi đè lên dữ liệu cũ của bạn).
    ============================================================ */
-var SHEET_NAME = 'Jun Pham flight';        // đăng ký lượt bay (tab chính)
+var SHEET_NAME = 'Jun Pham';               // đăng ký lượt bay (tab chính)
 var LOG_SHEET_NAME = 'Jun Pham log';       // nhật ký lỗi (email hỏng…)
+
+/* Số phiên bản của FILE NÀY. Website đọc giá trị này để biết bản Apps
+   Script đang chạy có mới không.
+   ⚠️ TĂNG SỐ NÀY mỗi lần sửa file rồi deploy lại — nhờ nó mà lỗi "đã sửa
+   code rồi mà chạy vẫn như cũ" (do quên bấm Deploy) hiện ra ngay thay vì
+   phải mò. */
+var SCRIPT_VERSION = 3;
 /* Thứ tự cột trong sheet — các cột đầu là thông tin khách (tiếng Việt),
    các cột sau để hệ thống hàng chờ vận hành. HEADERS là khóa nội bộ
    (khớp JSON trả về website), HEADER_LABELS là tiêu đề hiển thị.
@@ -427,6 +434,26 @@ function migrate_(sheet, row1) {
   }
 }
 
+/* slotKey phải luôn ở dạng 'YYYY-MM-DDTHH:MM'.
+   Chuỗi đó trông y hệt một mốc thời gian ISO nên Google Sheets rất hay TỰ
+   ĐỔI nó thành kiểu Ngày giờ (nhất là khi tab đã bị chuyển thành "Bảng"
+   khiến trySetTextFormat_ không đặt được định dạng chữ). Lúc đọc ra ta
+   nhận về một đối tượng Date → chuỗi kiểu "Mon Aug 03 2026 10:00:00
+   GMT+0700" → không khớp slot nào, giao diện 3 trạng thái hỏng hoàn toàn.
+   Hàm này đưa mọi biến thể về đúng một dạng chuẩn. */
+function normSlotKey_(v) {
+  if (v == null || v === '') return '';
+  if (Object.prototype.toString.call(v) === '[object Date]') {
+    if (isNaN(v.getTime())) return '';
+    return Utilities.formatDate(v, TIMEZONE, "yyyy-MM-dd'T'HH:mm");
+  }
+  var s = String(v).trim();
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(s)) return s;      // đã đúng dạng
+  var t = Date.parse(s);                                         // chuỗi ngày kiểu khác
+  if (!isNaN(t)) return Utilities.formatDate(new Date(t), TIMEZONE, "yyyy-MM-dd'T'HH:mm");
+  return '';
+}
+
 function readAll_(sheet) {
   var last = sheet.getLastRow();
   if (last < 2) return [];
@@ -434,9 +461,16 @@ function readAll_(sheet) {
   return values.map(function (row, i) {
     var item = { row: i + 2 };
     HEADERS.forEach(function (h, c) {
+      if (h === 'slotKey') { item[h] = normSlotKey_(row[c]); return; }
       var v = String(row[c] || '');
       item[h] = TIME_FIELDS.indexOf(h) !== -1 ? toIso_(v) : v;
     });
+    /* Dữ liệu cũ (đăng ký trước khi có tính năng chọn slot) không có
+       slotKey — suy ra từ giờ bay để giao diện vẫn xếp đúng nhóm. */
+    if (!item.slotKey && item.eta) {
+      var ms = Date.parse(item.eta);
+      if (!isNaN(ms)) item.slotKey = msToSlotKey_(ms);
+    }
     return item;
   });
 }
@@ -500,7 +534,7 @@ function cachePut_(items) {
       HEADERS.forEach(function (h) { o[h] = it[h] || ''; });
       return o;
     });
-    var s = JSON.stringify({ ok: true, items: slim });
+    var s = JSON.stringify({ ok: true, version: SCRIPT_VERSION, items: slim });
     var cache = CacheService.getScriptCache();
     if (s.length < 95000) cache.put(CACHE_KEY, s, CACHE_TTL_SEC);
     else cache.remove(CACHE_KEY); // quá lớn cho cache — doGet đọc thẳng sheet
@@ -976,6 +1010,43 @@ function dayKeyVn_(iso) {
   return Utilities.formatDate(new Date(iso), TIMEZONE, 'yyyy-MM-dd');
 }
 
+/* action=diag — trả về tình trạng thật của bản Apps Script đang chạy.
+   Dùng để trả lời ngay câu "code sửa rồi mà sao chạy vẫn sai?": nếu
+   version ở đây khác version trong file trên máy thì bản deploy đã cũ,
+   phải Deploy → Manage deployments → Edit → New version. */
+function diag_(sheet) {
+  var head = [];
+  try {
+    var lastCol = Math.max(sheet.getLastColumn(), HEADER_LABELS.length);
+    head = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(String);
+  } catch (err) {}
+
+  var items = readAll_(sheet);
+  var withSlot = 0, badSlot = [];
+  items.forEach(function (it) {
+    if (it.slotKey && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(it.slotKey)) withSlot++;
+    else if (it.status && ['CANCELLED', 'PAYMENT_EXPIRED', 'NO_SHOW'].indexOf(it.status) === -1) {
+      if (badSlot.length < 5) badSlot.push({ id: it.id, slotKey: it.slotKey || '(trống)', eta: it.eta || '' });
+    }
+  });
+
+  return json_({
+    ok: true,
+    version: SCRIPT_VERSION,
+    sheetName: SHEET_NAME,
+    sheetExists: !!SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME),
+    headerOk: HEADER_LABELS.every(function (l, i) { return head[i] === l; }),
+    hasSlotColumn: head.indexOf('Slot đã chọn') !== -1,
+    slotColumnIndex: head.indexOf('Slot đã chọn'),
+    headers: head,
+    rows: items.length,
+    rowsWithValidSlot: withSlot,
+    rowsWithBadSlot: badSlot,
+    scheduleDays: (FLIGHT_SCHEDULE.groups || []).reduce(function (n, g) { return n + (g.dates || []).length; }, 0),
+    timezone: TIMEZONE
+  });
+}
+
 function doGet(e) {
   // Trả từ cache nếu có — không đụng Sheet, chịu tải cao
   try {
@@ -988,7 +1059,7 @@ function doGet(e) {
   var items = readAll_(getSheet_());
   cachePut_(items);
   items = items.map(function (it) { delete it.row; return it; });
-  return json_({ ok: true, items: items });
+  return json_({ ok: true, version: SCRIPT_VERSION, items: items });
 }
 
 function doPost(e) {
@@ -1008,6 +1079,7 @@ function doPost(e) {
     if (p.action === 'update') return update_(sheet, p);
     if (p.action === 'confirmPayment') return confirmPayment_(sheet, p);
     if (p.action === 'repair') return repair_(sheet);
+    if (p.action === 'diag') return diag_(sheet);
     return json_({ ok: false, error: 'UNKNOWN_ACTION' });
   } finally {
     lock.releaseLock();

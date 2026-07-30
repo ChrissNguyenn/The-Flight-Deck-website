@@ -55,7 +55,7 @@
     "home.titleSub": "The Flight Deck × Jun Pham · Special flight 2026",
     "home.bpTag": "Boarding Pass",
     "home.bpFrom": "Ho Chi Minh City",
-    "home.bpTo": "86 Dang Van Ngu",
+    "home.bpTo": "HA NOI",
     "home.bpDateLabel": "Date",
     "home.bpTimeLabel": "Booking hours",
     "home.bpClassLabel": "Class",
