@@ -217,6 +217,46 @@ Rồi mở `config.js` và điền:
 > thử nghiệm. Cách xử lý: hoặc kéo–thả cả thư mục lên Netlify (thư mục trên máy
 > vẫn có `config.js`), hoặc thêm bước build sinh `config.js` từ biến môi trường.
 
+## 🚀 Deploy lên GitHub Pages (theflightdeck.tech)
+
+Repo đã có sẵn workflow: **đẩy code lên `main` là tự deploy**.
+
+### Cài một lần
+
+1. **Settings → Pages → Source: GitHub Actions**
+2. **Settings → Secrets and variables → Actions → New repository secret**, thêm 2 cái:
+
+   | Secret | Giá trị |
+   |---|---|
+   | `TFD_SCRIPT_URL` | URL Web App của Google Apps Script |
+   | `TFD_ADMIN_PIN` | Mã PIN mở `admin.html` |
+
+3. **Settings → Pages → Custom domain**: `theflightdeck.tech` (file `CNAME` đã có sẵn),
+   bật **Enforce HTTPS**.
+
+Vì sao phải làm bước 2: `config.js` bị `.gitignore` nên bản deploy sẽ **thiếu**
+file đó. Workflow chạy `tools/build-config.js` để dựng lại từ Secrets ngay trước
+khi deploy. **Thiếu Secret thì workflow dừng hẳn, không deploy** — thà không có
+trang còn hơn có một trang nhận đăng ký rồi đánh rơi vào localStorage máy khách.
+
+> ⚠️ Secrets giữ hai giá trị đó ngoài **kho GitHub**, không phải ngoài **website**.
+> `config.js` vẫn được gửi tới trình duyệt khách, ai xem mã nguồn trang cũng đọc
+> được. Muốn an toàn thật phải kiểm tra quyền phía server trong `google-apps-script.gs`.
+
+### Link ngắn
+
+GitHub Pages **không đọc** file `_redirects` (đó là của Netlify). Nên mỗi link
+ngắn là một thư mục có `index.html` tự chuyển hướng:
+
+| Link | Tới |
+|---|---|
+| `theflightdeck.tech/admin` · `/quanly` | `admin.html` |
+| `theflightdeck.tech/bay` | `experience.html` |
+| `theflightdeck.tech/qr` | `qr-codes.html` |
+| `theflightdeck.tech/check` | `system-check.html` |
+
+File `_redirects` vẫn giữ lại để dùng được nếu sau này chuyển sang Netlify.
+
 ## Cách xem thử ngay
 
 Nhấp đúp vào `index.html` — trang sẽ mở trong trình duyệt. Không cần cài đặt gì.

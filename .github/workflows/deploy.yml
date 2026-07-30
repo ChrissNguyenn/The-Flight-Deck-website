@@ -1,0 +1,56 @@
+name: Deploy to GitHub Pages
+
+# Đẩy code lên main là tự build + deploy lên https://theflightdeck.tech
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:      # cho phép bấm chạy tay trong tab Actions
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Không chạy chồng hai lần deploy; lần mới nhất thắng
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # config.js bị .gitignore (chứa SCRIPT_URL + ADMIN_PIN) nên phải
+      # dựng lại từ Secrets, nếu không trang deploy sẽ chạy ở chế độ thử
+      # nghiệm: không có lịch bay, đăng ký không vào Google Sheet.
+      # Thiếu Secret thì bước này DỪNG HẲN — thà không deploy còn hơn
+      # deploy một trang nhận đăng ký rồi đánh rơi.
+      - name: Sinh config.js từ Secrets
+        env:
+          TFD_SCRIPT_URL: ${{ secrets.TFD_SCRIPT_URL }}
+          TFD_ADMIN_PIN: ${{ secrets.TFD_ADMIN_PIN }}
+        run: node tools/build-config.js
+
+      # Chốt chặn: nếu vì lý do gì đó config.js vẫn thiếu giá trị thì dừng
+      - name: Kiểm tra config.js hợp lệ
+        run: |
+          grep -q 'script.google.com/macros' config.js || { echo "config.js thiếu SCRIPT_URL"; exit 1; }
+          echo "config.js OK"
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.'
+
+      - id: deployment
+        uses: actions/deploy-pages@v4
