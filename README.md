@@ -1,6 +1,8 @@
-# The Flight Deck × Hobby Horizon 2026 (Website)
+# The Flight Deck × Flight to Carrot Day 2026 (Website)
 
-Website cho gian hàng **The Flight Deck** tại **Hobby Horizon 2026**: trang chủ hiển thị 3 mã QR, hệ thống hàng chờ trải nghiệm bay có kết nối Google Sheet, và trang quản lý cho nhân viên gian hàng.
+🌐 <https://theflightdeck.tech>
+
+Website cho gian hàng **The Flight Deck** tại **Flight to Carrot Day 2026**: trang chủ hiển thị 3 mã QR, hệ thống đặt slot bay 15 phút có kết nối Google Sheet, và trang quản lý cho nhân viên gian hàng.
 
 ## Cấu trúc trang
 
@@ -67,7 +69,7 @@ Website cho gian hàng **The Flight Deck** tại **Hobby Horizon 2026**: trang c
   khách có **5 phút** để có mặt — quá hạn, hệ thống **tự hủy lượt** và đẩy
   người kế tiếp lên.
 - Trang quản lý: mở `admin.html` — trên Netlify có đường dẫn ngắn
-  **`/admin`** (ví dụ `theflightdeck2026.netlify.app/admin`, cấu hình trong file
+  **`/admin`** (ví dụ `theflightdeck.tech/admin`, cấu hình trong file
   `_redirects`; các link ngắn khác: `/qr`, `/check`, `/bay`). Nhập PIN
   (đổi trong `config.js`). Còn có nút "🔐 Quản lý gian hàng" ở chân trang chủ.
   Có thể: gọi khách, xác nhận có mặt, bắt đầu / kết thúc phiên, hủy lượt, thêm khách
@@ -224,10 +226,10 @@ Nhấp đúp vào `index.html` — trang sẽ mở trong trình duyệt. Không 
 1. **Kết nối Google Sheet** (5 phút — xem mục bên dưới) → dán Web app URL vào
    `SCRIPT_URL` trong `config.js`. Đổi luôn `ADMIN_PIN`.
 2. **Đưa web lên mạng**: vào <https://app.netlify.com/drop> (đăng nhập miễn phí),
-   kéo thả **cả thư mục này** vào. Sau đó vào *Site configuration → Change site name*,
-   đặt tên **`theflightdeck2026`** → địa chỉ thành `https://theflightdeck2026.netlify.app`
-   (3 mã QR trong thư mục `qr/` đã trỏ sẵn về địa chỉ này — nếu đặt tên khác, cần tạo lại QR).
-3. **Chạy kiểm tra tự động**: mở `https://theflightdeck2026.netlify.app/system-check.html`
+   kéo thả **cả thư mục này** vào, rồi gắn tên miền **`theflightdeck.tech`** ở
+   *Domain management*. 3 mã QR trong `qr/` đã trỏ sẵn về tên miền này —
+   **đổi tên miền là phải tạo lại QR** (xem mục bên dưới).
+3. **Chạy kiểm tra tự động**: mở `https://theflightdeck.tech/system-check.html`
    → bấm **▶ Chạy kiểm tra**. Trang sẽ tự chạy đủ vòng đời: đăng ký → gọi → có mặt →
    bay → hoàn thành, và báo ✅/❌ từng bước. Xong, mở Google Sheet thấy dòng TEST là
    dữ liệu đã vào sheet thật. Xóa các dòng TEST trước sự kiện.
@@ -243,13 +245,16 @@ Nhấp đúp vào `index.html` — trang sẽ mở trong trình duyệt. Không 
 ## Cách tạo 3 mã QR (làm lại nếu đổi địa chỉ web)
 
 - Cách nhanh: mở `qr-codes.html`, nhập địa chỉ web, nhấn **Tạo mã QR** rồi **In trang này**.
-- 3 file PNG trong thư mục `qr/` được tạo sẵn cho `https://theflightdeck2026.netlify.app`:
+- 3 file PNG trong thư mục `qr/` được tạo sẵn cho **`https://theflightdeck.tech`**
+  (1200×1200, mức sửa lỗi **H** = chịu được xước/bẩn khi in dán ở gian hàng):
   `QR1-trai-nghiem-bay.png` · `QR2-khoa-hoc-workshop.png` · `QR3-doanh-nghiep.png`.
 
 ## Những chỗ cần thay trước khi dùng thật
 
 - **`config.js`** — dán `SCRIPT_URL` (bước trên) và đổi `ADMIN_PIN`.
-- **`QR_FALLBACK_BASE`** ở cuối `index.html` — đổi thành địa chỉ thật của website.
+- **`QR_FALLBACK_BASE`** ở cuối `index.html` — hiện là `https://theflightdeck.tech`.
+  Chỉ dùng khi mở file trực tiếp từ ổ đĩa; khi chạy trên web, mã QR trên trang chủ
+  tự lấy đúng tên miền đang mở nên không cần sửa gì.
 - **Email nhận form B2B/khảo sát workshop**: sửa `CONTACT_EMAIL` ở đầu `form-handler.js` (hiện là `theflightdeckcoffee@gmail.com`).
 
 ### Thông tin liên hệ đã điền thật (không còn là mẫu)
