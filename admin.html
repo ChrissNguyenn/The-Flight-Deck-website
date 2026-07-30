@@ -1109,6 +1109,24 @@
             allItems = allItems.map(function (it) { return it.id === res.item.id ? res.item : it; });
             lastItems = TFDQ.filterByDay(allItems, selectedDay);
             render();
+
+            /* Duyệt xong mà email KHÔNG đi thì phải báo ngay tại chỗ.
+               Trước đây lỗi gửi mail chỉ nằm im trong sheet Log, nhân viên
+               tưởng khách đã nhận thư xác nhận giờ bay. */
+            if (res.emailSent === false) {
+              var why = res.emailError || "không rõ nguyên nhân";
+              TFD_UI.toast("⚠️ ĐÃ DUYỆT nhưng KHÔNG gửi được email cho khách — " + why +
+                ". Hãy báo giờ bay cho khách qua Zalo.", "error", 15000);
+              showSyncError("Email không gửi được: " + why);
+            } else if (res.emailSent === true) {
+              var q = (typeof res.mailQuotaLeft === "number" && res.mailQuotaLeft >= 0)
+                ? " (còn " + res.mailQuotaLeft + " email hôm nay)" : "";
+              TFD_UI.toast("✅ Đã duyệt và gửi email cho khách" + q, "success", 5000);
+              if (typeof res.mailQuotaLeft === "number" && res.mailQuotaLeft >= 0 && res.mailQuotaLeft < 10) {
+                TFD_UI.toast("⚠️ Sắp hết hạn mức email trong ngày (còn " + res.mailQuotaLeft +
+                  "). Quá hạn mức thì khách sẽ không nhận được thư.", "error", 12000);
+              }
+            }
           } else {
             showSyncError("Server không nhận lệnh (" + ((res && res.error) || "lỗi") + ") — đang tải lại…");
             refresh();

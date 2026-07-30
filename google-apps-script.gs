@@ -908,26 +908,72 @@ function htmlToText_(html) {
     .trim();
 }
 
+/* Lý do KHÔNG gửi được của lần gửi gần nhất — confirmPayment_ trả về cho
+   trang quản lý để nhân viên biết ngay, thay vì email lặng lẽ không đi. */
+var LAST_MAIL_ERROR = '';
+
+/**
+ * Gửi email cho khách.
+ *
+ * Thử GmailApp trước (hỗ trợ đặt địa chỉ gửi = alias), NHƯNG nếu hỏng thì
+ * lùi về MailApp.
+ *
+ * Vì sao phải có bước lùi: hai API này xin QUYỀN KHÁC NHAU —
+ *   MailApp  → script.send_mail   (hẹp)
+ *   GmailApp → mail.google.com    (toàn quyền Gmail)
+ * Bản deploy nào được cấp quyền từ trước khi code đổi sang GmailApp sẽ
+ * KHÔNG có quyền rộng đó, GmailApp ném lỗi và email im lặng không đi.
+ * MailApp gần như luôn còn quyền, nên vẫn gửi được — mất tính năng đổi
+ * địa chỉ gửi, nhưng khách VẪN nhận được thư, đó mới là điều quan trọng.
+ */
 function sendMail_(item, subject, htmlBody, attachments) {
-  if (!MAIL_ENABLED) return false;
-  if (!isEmail_(item.email)) return false;   // khách không điền email — bỏ qua êm
+  LAST_MAIL_ERROR = '';
+  if (!MAIL_ENABLED) { LAST_MAIL_ERROR = 'MAIL_ENABLED=false'; return false; }
+  if (!isEmail_(item.email)) { LAST_MAIL_ERROR = 'khách không có email hợp lệ'; return false; }
+
+  var to = String(item.email).trim();
+  var plain = htmlToText_(htmlBody);
+  var opts = {
+    htmlBody: htmlBody,
+    name: MAIL_SENDER_NAME,
+    // Khách bấm "Trả lời" phải đến hộp thư TFD, kể cả khi script đang
+    // chạy dưới một tài khoản Google khác.
+    replyTo: SUPPORT_EMAIL
+  };
+  if (attachments && attachments.length) opts.attachments = attachments;
+
+  // 1) GmailApp — cho phép đặt địa chỉ gửi nếu đã xác minh alias
   try {
-    var opts = {
-      htmlBody: htmlBody,
-      name: MAIL_SENDER_NAME,
-      // Khách bấm "Trả lời" phải đến hộp thư TFD, kể cả khi script đang
-      // chạy dưới một tài khoản Google khác.
-      replyTo: SUPPORT_EMAIL
-    };
-    if (attachments && attachments.length) opts.attachments = attachments;
     var from = fromAddress_();
-    if (from) opts.from = from;
-    GmailApp.sendEmail(String(item.email).trim(), subject, htmlToText_(htmlBody), opts);
+    var gOpts = opts;
+    if (from) { gOpts = {}; for (var k in opts) gOpts[k] = opts[k]; gOpts.from = from; }
+    GmailApp.sendEmail(to, subject, plain, gOpts);
     return true;
-  } catch (err) {
-    logError_('sendMail_ ' + item.id, err);
+  } catch (errGmail) {
+    logError_('sendMail_/GmailApp ' + item.id, errGmail);
+    LAST_MAIL_ERROR = 'GmailApp: ' + (errGmail && errGmail.message || errGmail);
+  }
+
+  // 2) MailApp — quyền hẹp hơn, thường vẫn còn hiệu lực
+  try {
+    MailApp.sendEmail({
+      to: to, subject: subject, htmlBody: htmlBody, body: plain,
+      name: MAIL_SENDER_NAME, replyTo: SUPPORT_EMAIL,
+      attachments: (attachments && attachments.length) ? attachments : undefined
+    });
+    LAST_MAIL_ERROR = '';       // gửi được rồi thì không còn là lỗi
+    return true;
+  } catch (errMail) {
+    logError_('sendMail_/MailApp ' + item.id, errMail);
+    LAST_MAIL_ERROR += ' | MailApp: ' + (errMail && errMail.message || errMail);
     return false;
   }
+}
+
+/* Còn gửi được bao nhiêu email hôm nay (Gmail thường 100/ngày).
+   Hết quota là một nguyên nhân rất hay gặp khiến email im lặng không đi. */
+function mailQuotaLeft_() {
+  try { return MailApp.getRemainingDailyQuota(); } catch (err) { return -1; }
 }
 
 /* ============================================================
@@ -1480,5 +1526,15 @@ function confirmPayment_(sheet, p) {
 
   cachePut_(items);
   delete target.row;
-  return json_({ ok: true, item: target });
+
+  /* Báo về trang quản lý email đã đi hay chưa. Trước đây gửi hỏng chỉ ghi
+     vào sheet Log — nhân viên bấm duyệt thấy "thành công" và tưởng khách
+     đã nhận thư, trong khi thực tế không có email nào cả. */
+  return json_({
+    ok: true,
+    item: target,
+    emailSent: (target.emailStage === MAIL_HELD || target.emailStage === MAIL_SCHEDULED),
+    emailError: LAST_MAIL_ERROR || '',
+    mailQuotaLeft: mailQuotaLeft_()
+  });
 }
