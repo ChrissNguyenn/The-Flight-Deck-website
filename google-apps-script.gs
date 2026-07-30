@@ -159,6 +159,18 @@ var MAIL_SENDER_NAME = 'The Flight Deck';
    vẫn đến đúng hộp thư của TFD. */
 var MAIL_FROM = 'theflightdeckcoffee@gmail.com';
 
+/* Có dùng GmailApp để đặt địa chỉ gửi (CÁCH 2 ở trên) không?
+   ĐỂ false TRỪ KHI THẬT SỰ CẦN.
+
+   Bật lên = script phải xin quyền https://mail.google.com/ — tức là ĐỌC,
+   XOÁ và GỬI toàn bộ Gmail của tài khoản đó, chỉ để đổi một dòng "From".
+   Tắt đi thì chỉ cần script.send_mail ("gửi email thay bạn"), hẹp hơn
+   nhiều và ít bị từ chối hơn hẳn.
+
+   Nếu script do chính theflightdeckcoffee@gmail.com sở hữu (CÁCH 1) thì
+   để false là đúng: email vốn đã đi từ địa chỉ đó rồi. */
+var MAIL_USE_GMAIL_ALIAS = false;
+
 /* Bật/tắt toàn bộ việc gửi email. Đặt false khi đang thử nghiệm để không
    bắn email thật cho khách trong lúc test luồng duyệt. */
 var MAIL_ENABLED = true;
@@ -892,6 +904,9 @@ var aliasChecked_ = false;
 var aliasUsable_ = false;
 function fromAddress_() {
   if (!MAIL_FROM) return '';
+  /* Tắt cờ = không đụng tới GmailApp.getAliases(). Một lần gọi đó thôi
+     cũng đã kéo theo quyền toàn Gmail — thứ ta đang cố tránh. */
+  if (!MAIL_USE_GMAIL_ALIAS) return '';
   if (aliasChecked_) return aliasUsable_ ? MAIL_FROM : '';
   aliasChecked_ = true;
   try {
@@ -938,16 +953,20 @@ var LAST_MAIL_ERROR = '';
 /**
  * Gửi email cho khách.
  *
- * Thử GmailApp trước (hỗ trợ đặt địa chỉ gửi = alias), NHƯNG nếu hỏng thì
- * lùi về MailApp.
+ * MẶC ĐỊNH DÙNG MailApp, KHÔNG DÙNG GmailApp — cố ý như vậy.
  *
- * Vì sao phải có bước lùi: hai API này xin QUYỀN KHÁC NHAU —
- *   MailApp  → script.send_mail   (hẹp)
- *   GmailApp → mail.google.com    (toàn quyền Gmail)
- * Bản deploy nào được cấp quyền từ trước khi code đổi sang GmailApp sẽ
- * KHÔNG có quyền rộng đó, GmailApp ném lỗi và email im lặng không đi.
- * MailApp gần như luôn còn quyền, nên vẫn gửi được — mất tính năng đổi
- * địa chỉ gửi, nhưng khách VẪN nhận được thư, đó mới là điều quan trọng.
+ * Hai API làm cùng một việc nhưng xin QUYỀN rất khác nhau:
+ *   MailApp  → script.send_mail  "gửi email thay bạn"     (hẹp)
+ *   GmailApp → mail.google.com   ĐỌC/XOÁ/GỬI toàn bộ Gmail (rất rộng)
+ *
+ * GmailApp chỉ hơn đúng một điểm: đặt được địa chỉ gửi (alias). Đổi cả
+ * hộp thư lấy một dòng "From" đẹp hơn là cái giá quá đắt — và trong thực
+ * tế nó đã làm hỏng việc: quyền rộng dễ bị từ chối/thu hồi hơn, GmailApp
+ * ném lỗi, khách không nhận được email nào.
+ *
+ * Chỉ bật MAIL_USE_GMAIL_ALIAS khi script chạy dưới một tài khoản KHÁC và
+ * bạn đã xác minh "gửi thư bằng địa chỉ khác" — xem ghi chú ở MAIL_FROM.
+ * Dù bật hay tắt, hỏng đường này vẫn tự lùi sang đường kia.
  */
 function sendMail_(item, subject, htmlBody, attachments) {
   LAST_MAIL_ERROR = '';
@@ -956,41 +975,39 @@ function sendMail_(item, subject, htmlBody, attachments) {
 
   var to = String(item.email).trim();
   var plain = htmlToText_(htmlBody);
-  var opts = {
-    htmlBody: htmlBody,
-    name: MAIL_SENDER_NAME,
-    // Khách bấm "Trả lời" phải đến hộp thư TFD, kể cả khi script đang
-    // chạy dưới một tài khoản Google khác.
-    replyTo: SUPPORT_EMAIL
-  };
-  if (attachments && attachments.length) opts.attachments = attachments;
+  var errs = [];
 
-  // 1) GmailApp — cho phép đặt địa chỉ gửi nếu đã xác minh alias
-  try {
-    var from = fromAddress_();
-    var gOpts = opts;
-    if (from) { gOpts = {}; for (var k in opts) gOpts[k] = opts[k]; gOpts.from = from; }
-    GmailApp.sendEmail(to, subject, plain, gOpts);
-    return true;
-  } catch (errGmail) {
-    logError_('sendMail_/GmailApp ' + item.id, errGmail);
-    LAST_MAIL_ERROR = 'GmailApp: ' + (errGmail && errGmail.message || errGmail);
-  }
-
-  // 2) MailApp — quyền hẹp hơn, thường vẫn còn hiệu lực
-  try {
+  function viaMailApp() {
     MailApp.sendEmail({
       to: to, subject: subject, htmlBody: htmlBody, body: plain,
       name: MAIL_SENDER_NAME, replyTo: SUPPORT_EMAIL,
       attachments: (attachments && attachments.length) ? attachments : undefined
     });
-    LAST_MAIL_ERROR = '';       // gửi được rồi thì không còn là lỗi
-    return true;
-  } catch (errMail) {
-    logError_('sendMail_/MailApp ' + item.id, errMail);
-    LAST_MAIL_ERROR += ' | MailApp: ' + (errMail && errMail.message || errMail);
-    return false;
   }
+  function viaGmailApp() {
+    var opts = { htmlBody: htmlBody, name: MAIL_SENDER_NAME, replyTo: SUPPORT_EMAIL };
+    if (attachments && attachments.length) opts.attachments = attachments;
+    var from = fromAddress_();
+    if (from) opts.from = from;
+    GmailApp.sendEmail(to, subject, plain, opts);
+  }
+
+  var order = MAIL_USE_GMAIL_ALIAS
+    ? [['GmailApp', viaGmailApp], ['MailApp', viaMailApp]]
+    : [['MailApp', viaMailApp], ['GmailApp', viaGmailApp]];
+
+  for (var i = 0; i < order.length; i++) {
+    try {
+      order[i][1]();
+      LAST_MAIL_ERROR = '';        // gửi được rồi thì không còn là lỗi
+      return true;
+    } catch (err) {
+      logError_('sendMail_/' + order[i][0] + ' ' + item.id, err);
+      errs.push(order[i][0] + ': ' + (err && err.message || err));
+    }
+  }
+  LAST_MAIL_ERROR = errs.join(' | ');
+  return false;
 }
 
 /* Còn gửi được bao nhiêu email hôm nay (Gmail thường 100/ngày).
@@ -1040,7 +1057,9 @@ function TEST_guiEmailThu() {
   testLog_(out, 'Alias "gửi bằng địa chỉ khác" dùng được? ' + (alias ? 'CÓ → ' + alias : 'KHÔNG'));
   testLog_(out, '→ KHÁCH SẼ THẤY THƯ ĐẾN TỪ  : ' + (alias || owner));
   testLog_(out, 'Reply-To (khách bấm Trả lời): ' + SUPPORT_EMAIL);
-  testLog_(out, 'Còn gửi được hôm nay        : ' + mailQuotaLeft_() + ' email');
+  var quota = mailQuotaLeft_();
+  testLog_(out, 'Còn gửi được hôm nay        : ' +
+    (quota < 0 ? 'KHÔNG ĐỌC ĐƯỢC — script chưa được cấp quyền gửi email' : quota + ' email'));
   testLog_(out, 'MAIL_ENABLED                : ' + MAIL_ENABLED);
   testLog_(out, 'Đang gửi 2 thư thử tới      : ' + TEST_EMAIL_TO);
 
