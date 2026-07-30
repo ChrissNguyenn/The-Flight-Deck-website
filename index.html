@@ -119,9 +119,13 @@
                tải xong (onload). Làm ngược lại (ảnh trước, lỗi mới đổi)
                sẽ để một khoảng trống nhấp nháy trên vé trong lúc tải, và
                nếu quên thêm file thì vé khuyết hẳn một mảng. -->
+          <!-- KHÔNG dùng loading="lazy" ở đây: ảnh đang để hidden (display:none)
+               nên không bao giờ lọt vào khung nhìn → trình duyệt hoãn tải mãi →
+               onload không chạy → con dấu không bao giờ hiện. Ảnh display:none
+               vẫn được tải bình thường nếu bỏ lazy. -->
           <img class="stamp-img" src="images/carrot-day-stamp.png"
-               alt="Con dấu Carrot Day 2026" width="420" height="420"
-               loading="lazy" decoding="async" hidden
+               alt="Con dấu Carrot Day 2026" width="493" height="484"
+               decoding="async" hidden
                onload="this.hidden=false;this.nextElementSibling.hidden=true;"
                onerror="this.remove();">
           <span class="travel-stamp-badge">

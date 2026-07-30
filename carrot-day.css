@@ -769,8 +769,12 @@ a { color: var(--cd-orange-deep); }
   mix-blend-mode: multiply;
 }
 
-/* Thiếu file ảnh → ẩn hẳn thẻ img, hiện con dấu CSS dự phòng */
-.stamp-img.is-missing { display: none; }
+/* Thuộc tính hidden của HTML chỉ là `display:none` ở stylesheet mặc định
+   của trình duyệt — BẤT KỲ khai báo display nào của mình cũng thắng nó.
+   .travel-stamp-badge có display:inline-flex nên khi ảnh tải xong và đặt
+   hidden=true, con dấu CSS VẪN hiện → tấm vé có hai con dấu chồng nhau.
+   Phải ép ẩn thật sự: */
+[hidden] { display: none !important; }
 
 .travel-stamp-badge {
   display: inline-flex;
