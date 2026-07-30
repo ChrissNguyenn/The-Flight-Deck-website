@@ -6,6 +6,10 @@
   <title>Tạo mã QR cho gian hàng | Hobby Horizon</title>
   <link rel="icon" type="image/png" href="images/the-flight-deck-logo.png">
   <link rel="stylesheet" href="style.css">
+  <!-- Cùng font tiêu đề với các trang khác, và font này CÓ bộ tiếng Việt -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@700;800;900&display=swap">
   <!-- Thư viện tạo QR (cần Internet lần đầu mở trang) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <style>
@@ -51,6 +55,8 @@
       word-break: break-all;
     }
     .qr-card .qr-brand {
+      /* "Carrot Day" ở đây phải cùng font tiêu đề với toàn site */
+      font-family: "Be Vietnam Pro", "Segoe UI", system-ui, sans-serif;
       font-weight: 800;
       font-size: 0.85rem;
       letter-spacing: 0.05em;
@@ -61,6 +67,10 @@
       body { background: #fff; }
       .qr-grid { padding: 1rem; }
       .qr-card { box-shadow: none; border: 1px dashed #999; page-break-inside: avoid; }
+    }
+    .site-footer .brand-line {
+      font-family: "Be Vietnam Pro", "Segoe UI", system-ui, sans-serif;
+      font-weight: 800;
     }
   </style>
 </head>

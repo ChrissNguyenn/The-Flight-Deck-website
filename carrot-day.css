@@ -12,7 +12,20 @@
    restored by removing one <link>.
    ============================================================ */
 
-@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap");
+/* ⚠️ FONT PHẢI CÓ BỘ KÝ TỰ TIẾNG VIỆT (subset "vietnamese").
+   Trước đây dùng Poppins làm font tiêu đề — POPPINS KHÔNG CÓ bộ tiếng
+   Việt (chỉ latin, latin-ext, devanagari). Chữ có dấu (ằ, ộ, ữ, ế…) không
+   tìm thấy glyph nên trình duyệt tự lấy từ font dự phòng CHO TỪNG KÝ TỰ —
+   thành ra một dòng chữ trộn hai font, dấu bị lệch/khác nét. Đó chính là
+   "lỗi dấu tiếng Việt".
+
+   Ba font dưới đây đều có subset "vietnamese" — kiểm tra bằng cách mở
+   link @import phía dưới và tìm dòng đánh dấu subset "vietnamese":
+     • Be Vietnam Pro — thiết kế riêng cho tiếng Việt, dấu đặt chuẩn nhất
+     • Plus Jakarta Sans — chữ nội dung
+     • Space Mono — chữ kiểu vé máy bay
+   ĐỔI FONT MỚI: nhớ kiểm tra font đó có "vietnamese" trước khi dùng. */
+@import url("https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap");
 
 /* ============================================================
    1. DESIGN TOKENS
@@ -41,7 +54,10 @@
   --cd-stamp: #d62b34;        /* passport-stamp red         */
 
   /* ---- Typography ----------------------------------------- */
-  --cd-font-display: "Poppins", "Nunito", "Segoe UI", system-ui, sans-serif;
+  /* Font dự phòng cũng phải có tiếng Việt: Segoe UI / system-ui trên
+     Windows và -apple-system trên iOS đều đủ dấu. KHÔNG để Poppins hay
+     Nunito ở đây nữa — thiếu dấu là lại lỗi như cũ. */
+  --cd-font-display: "Be Vietnam Pro", "Segoe UI", system-ui, -apple-system, sans-serif;
   --cd-font-body: "Plus Jakarta Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
   --cd-font-ticket: "Space Mono", "SFMono-Regular", "Consolas", ui-monospace, monospace;
 
@@ -615,10 +631,62 @@ a { color: var(--cd-orange-deep); }
 }
 
 /* Ô lưới mặc định có min-width:auto = KHÔNG co nhỏ hơn nội dung, nên giá
-   trị dài (VD "03–10.08.2026") đẩy tràn sang cột bên cạnh và đè lên chữ.
+   trị dài đẩy tràn sang cột bên cạnh và đè lên chữ.
    min-width:0 cho phép ô co lại đúng phần chia của nó. */
 .bp-field {
   min-width: 0;
+}
+
+/* --- Lịch bay trên vé -----------------------------------------
+   Chiếm TRỌN chiều ngang thay vì chen vào một cột hẹp: mỗi nhóm ngày là
+   một dòng riêng, phần ngày và phần giờ tự xuống dòng khi màn hình hẹp
+   nên không bao giờ đè lên nhau.                                   */
+.bp-schedule {
+  margin: 0 0 clamp(1rem, 2.5vw, 1.5rem);
+  padding: 0.75rem 0.9rem;
+  background: var(--cd-orange-tint);
+  border-left: 4px solid var(--cd-orange);
+  border-radius: var(--cd-radius-sm);
+}
+
+.bp-schedule__label {
+  font-family: var(--cd-font-ticket);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--cd-navy-soft);
+  margin-bottom: 0.4rem;
+}
+
+.bp-schedule__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.3rem;
+}
+
+.bp-schedule__list li {
+  display: flex;
+  flex-wrap: wrap;          /* hẹp quá thì giờ xuống dòng, không tràn */
+  align-items: baseline;
+  gap: 0.15rem 0.5rem;
+  font-family: var(--cd-font-ticket);
+  font-size: clamp(0.78rem, 2.1vw, 0.95rem);
+  line-height: 1.4;
+}
+
+.bp-schedule__days {
+  font-weight: 700;
+  color: var(--cd-navy);
+  white-space: nowrap;
+}
+
+.bp-schedule__hours {
+  font-weight: 700;
+  color: var(--cd-orange-deep);
+  white-space: nowrap;
 }
 
 .bp-field dt,
@@ -687,6 +755,22 @@ a { color: var(--cd-orange-deep); }
 /* ============================================================
    7. DECORATIVE UTILITY — .travel-stamp-badge
    ============================================================ */
+
+/* --- Con dấu từ Key Visual (ảnh thật) ---------------------------
+   Thay cho con dấu vẽ bằng CSS. Ảnh nền trong suốt (PNG/WebP), hơi
+   nghiêng và mờ nhẹ cho giống mộc đóng thật trên vé giấy. */
+.stamp-img {
+  width: clamp(96px, 26vw, 132px);
+  height: auto;
+  transform: rotate(-11deg);
+  opacity: 0.92;
+  flex-shrink: 0;
+  /* mix-blend-mode: mực dấu ăn vào nền giấy thay vì dán đè lên trên */
+  mix-blend-mode: multiply;
+}
+
+/* Thiếu file ảnh → ẩn hẳn thẻ img, hiện con dấu CSS dự phòng */
+.stamp-img.is-missing { display: none; }
 
 .travel-stamp-badge {
   display: inline-flex;

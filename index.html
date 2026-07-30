@@ -72,7 +72,7 @@
             </div>
             <div class="bp-route__line" aria-hidden="true"><span>✈</span></div>
             <div class="bp-port bp-port--to">
-              <span class="bp-port__code">TFD</span>
+              <span class="bp-port__code">HAN</span>
               <span class="bp-port__city" data-i18n="home.bpTo">86 Đặng Văn Ngữ</span>
             </div>
           </div>
@@ -80,18 +80,22 @@
           <!-- Ngày bay và giờ đặt chỗ được ĐIỀN TỪ config.js lúc tải trang.
                Chữ trong HTML chỉ là dự phòng khi JS chưa chạy — đừng sửa ở
                đây, sửa EVENT_DAYS / BOOKING_HOURS trong config.js. -->
+          <!-- Lịch bay chiếm TRỌN chiều ngang, mỗi nhóm ngày một dòng.
+               Trước đây nhét "Ngày bay" và "Giờ đặt chỗ" vào 2 cột hẹp
+               cạnh nhau nên chữ tràn và đè lên nhau. Nội dung được điền
+               từ FLIGHT_SCHEDULE trong config.js (chữ dưới đây chỉ là dự
+               phòng khi JS chưa chạy) — sửa lịch thì sửa config.js. -->
+          <div class="bp-schedule" id="bp-schedule">
+            <div class="bp-schedule__label" data-i18n="home.bpTimeLabel">Giờ đặt chỗ</div>
+            <ul class="bp-schedule__list">
+              <li><span class="bp-schedule__days">Ngày 3-7/8 &amp; 10/8:</span>
+                  <span class="bp-schedule__hours">10h-13h | 17h-21h</span></li>
+              <li><span class="bp-schedule__days">Ngày 8-9/8:</span>
+                  <span class="bp-schedule__hours">08h-12h | 19h-21h</span></li>
+            </ul>
+          </div>
+
           <dl class="bp-details">
-            <div class="bp-field">
-              <dt data-i18n="home.bpDateLabel">Ngày bay</dt>
-              <dd id="bp-date">03.08 – 10.08.2026</dd>
-            </div>
-            <div class="bp-field bp-field--accent">
-              <dt data-i18n="home.bpTimeLabel">Giờ đặt chỗ</dt>
-              <div id="bp-hours">
-                <dd>08:00–13:00</dd>
-                <dd>17:00–21:00</dd>
-              </div>
-            </div>
             <div class="bp-field">
               <dt data-i18n="home.bpClassLabel">Hạng</dt>
               <dd>MEMBERSHIP</dd>
@@ -108,6 +112,18 @@
         </div>
 
         <aside class="bp-stub">
+          <!-- Con dấu lấy từ Key Visual gốc: đặt ảnh tại
+               images/carrot-day-stamp.png (nền trong suốt, ~420×420).
+
+               Mặc định HIỆN con dấu vẽ bằng CSS; ảnh chỉ thay thế nó khi
+               tải xong (onload). Làm ngược lại (ảnh trước, lỗi mới đổi)
+               sẽ để một khoảng trống nhấp nháy trên vé trong lúc tải, và
+               nếu quên thêm file thì vé khuyết hẳn một mảng. -->
+          <img class="stamp-img" src="images/carrot-day-stamp.png"
+               alt="Con dấu Carrot Day 2026" width="420" height="420"
+               loading="lazy" decoding="async" hidden
+               onload="this.hidden=false;this.nextElementSibling.hidden=true;"
+               onerror="this.remove();">
           <span class="travel-stamp-badge">
             <span class="travel-stamp-badge__top">Jun Pham Airways</span>
             <span class="travel-stamp-badge__rule" aria-hidden="true"></span>
@@ -161,36 +177,53 @@
       var cfg = (typeof TFD_CONFIG !== "undefined") ? TFD_CONFIG : null;
       if (!cfg) return;
 
-      /* "2026-08-15" -> "15.08.2026" */
-      function dmy(key) {
+      var groups = (cfg.FLIGHT_SCHEDULE && cfg.FLIGHT_SCHEDULE.groups) || [];
+      var listEl = document.querySelector("#bp-schedule .bp-schedule__list");
+      if (!listEl || !groups.length) return;   // giữ chữ dự phòng trong HTML
+
+      /* "2026-08-03" -> "3/8" (bỏ số 0 đầu cho gọn tấm vé) */
+      function dm(key) {
         var p = String(key || "").split("-");
-        return p.length === 3 ? p[2] + "." + p[1] + "." + p[0] : "";
+        if (p.length !== 3) return "";
+        return String(+p[2]) + "/" + String(+p[1]);
       }
 
-      var raw = (cfg.EVENT_DAYS || []).slice().sort();
-      var days = raw.map(dmy).filter(Boolean);
-      var dateEl = document.getElementById("bp-date");
-      if (dateEl && days.length) {
-        if (days.length === 1) {
-          dateEl.textContent = days[0];
-        } else {
-          /* Cùng tháng thì bỏ tháng lặp: "03–10.08.2026" thay vì
-             "03.08 – 10.08.2026". Ô trên vé rất hẹp — chuỗi dài làm chữ
-             tràn sang cột "Giờ đặt chỗ" bên cạnh. */
-          var a = raw[0].split("-"), b = raw[raw.length - 1].split("-");
-          dateEl.textContent = (a[1] === b[1] && a[0] === b[0])
-            ? a[2] + "–" + b[2] + "." + b[1] + "." + b[0]
-            : days[0].slice(0, 5) + " – " + days[days.length - 1];
+      /* Gom ngày liên tiếp thành khoảng: [3,4,5,6,7,10] -> "3-7/8 & 10/8" */
+      function daysLabel(dates) {
+        var sorted = dates.slice().sort();
+        var runs = [], cur = [sorted[0]];
+        for (var i = 1; i < sorted.length; i++) {
+          var prev = new Date(sorted[i - 1] + "T00:00:00Z").getTime();
+          var now = new Date(sorted[i] + "T00:00:00Z").getTime();
+          if (now - prev === 86400000) cur.push(sorted[i]);
+          else { runs.push(cur); cur = [sorted[i]]; }
         }
+        runs.push(cur);
+        return runs.map(function (run) {
+          if (run.length === 1) return dm(run[0]);
+          // cùng tháng thì chỉ ghi tháng một lần: "3-7/8"
+          var a = run[0].split("-"), b = run[run.length - 1].split("-");
+          return (a[1] === b[1])
+            ? String(+a[2]) + "-" + String(+b[2]) + "/" + String(+b[1])
+            : dm(run[0]) + "-" + dm(run[run.length - 1]);
+        }).join(" & ");
       }
 
-      var hours = cfg.BOOKING_HOURS || [];
-      var hoursEl = document.getElementById("bp-hours");
-      if (hoursEl && hours.length) {
-        hoursEl.innerHTML = hours.map(function (w) {
-          return "<dd>" + w.start + "–" + w.end + "</dd>";
-        }).join("");
+      /* "10:00"-"13:00" -> "10h-13h" (đúng kiểu chữ trên vé) */
+      function hrs(w) {
+        function h(t) {
+          var p = String(t).split(":");
+          return p[1] === "00" ? p[0] + "h" : p[0] + "h" + p[1];
+        }
+        return h(w.start) + "-" + h(w.end);
       }
+
+      listEl.innerHTML = groups.map(function (g) {
+        var days = daysLabel(g.dates || []);
+        var windows = (g.windows || []).map(hrs).join(" | ");
+        return "<li><span class='bp-schedule__days'>Ngày " + days + ":</span> " +
+               "<span class='bp-schedule__hours'>" + windows + "</span></li>";
+      }).join("");
     })();
 
     /* Tự động tạo 3 mã QR trên trang chủ.
