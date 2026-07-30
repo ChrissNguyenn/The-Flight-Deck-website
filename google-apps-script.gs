@@ -190,6 +190,15 @@ var BOOKING_HOURS = [
 var FLIGHT_SCHEDULE = {
   slotMinutes: 15,
   groups: [
+    /* 🧪 NGÀY TEST — XOÁ CẢ KHỐI NÀY TRƯỚC KHI SỰ KIỆN BẮT ĐẦU.
+       Phải khớp với khối cùng tên trong config.js, nếu không máy khách
+       cho chọn mà server lại từ chối (BAD_SLOT). */
+    {
+      label: 'Ngày test',
+      test: true,
+      dates: ['2026-07-30'],
+      windows: [{ start: '08:00', end: '22:00' }]
+    },
     {
       label: 'Ngày thường',
       dates: ['2026-08-03', '2026-08-04', '2026-08-05', '2026-08-06', '2026-08-07', '2026-08-10'],

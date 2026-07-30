@@ -222,6 +222,11 @@
         return h(w.start) + "-" + h(w.end);
       }
 
+      /* Bỏ nhóm ngày test khỏi tấm vé: khách thật không cần thấy ngày
+         nội bộ. Ngày đó vẫn hiện trong lưới chọn giờ và trang quản lý. */
+      groups = groups.filter(function (g) { return !g.test; });
+      if (!groups.length) return;
+
       listEl.innerHTML = groups.map(function (g) {
         var days = daysLabel(g.dates || []);
         var windows = (g.windows || []).map(hrs).join(" | ");
