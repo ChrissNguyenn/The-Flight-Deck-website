@@ -167,14 +167,13 @@ var MAIL_ENABLED = true;
    trong config.js. Website đã khóa nút ngoài giờ; chốt chặn ở đây phòng
    trường hợp đồng hồ máy khách sai hoặc có người gọi thẳng vào API.
    Để trống ([]) = nhận đăng ký cả ngày. */
-/* Bao trùm mọi khung bay của mọi nhóm ngày trong FLIGHT_SCHEDULE
-   (08:00–12:00 và 10:00–13:00 gộp thành 08:00–13:00; 17:00–21:00 và
-   19:00–21:00 gộp thành 17:00–21:00). Đây chỉ là cổng chặn thô theo giờ
-   trong ngày — slot cụ thể ngày nào mở thì validateSlot_ mới chốt. */
-var BOOKING_HOURS = [
-  { start: '08:00', end: '13:00' },
-  { start: '17:00', end: '21:00' }
-];
+/* SUY RA từ FLIGHT_SCHEDULE, không ghi cứng nữa — xem bookingHours_().
+
+   Trước đây đây là một mảng gõ tay và nó ĐÃ LỆCH: thêm ngày test mở
+   08:00–22:00 làm website cho đăng ký lúc 14:00, còn máy chủ vẫn giữ
+   08:00–13:00 + 17:00–21:00 nên từ chối thẳng. Khách/sếp bấm được nút
+   nhưng nhận lỗi "ngoài giờ nhận đăng ký" — kiểu lỗi không ai ngờ tới.
+   Suy ra từ một nguồn duy nhất thì không thể lệch được nữa. */
 
 /* ============================================================
  * SLOT ENGINE — PHẢI GIỐNG HỆT slots.js của website
@@ -196,8 +195,8 @@ var FLIGHT_SCHEDULE = {
     {
       label: 'Ngày test',
       test: true,
-      dates: ['2026-07-30'],
-      windows: [{ start: '08:00', end: '22:00' }]
+      dates: ['2026-07-30', '2026-07-31', '2026-08-01', '2026-08-02'],
+      windows: [{ start: '00:00', end: '23:59' }]
     },
     {
       label: 'Ngày thường',
@@ -310,25 +309,49 @@ function validateSlot_(index, key, groupSize, nowMs) {
 }
 
 /** Đang trong khung giờ nhận đăng ký? (tính theo giờ VN của server) */
+/* Khung giờ nhận đăng ký = bao trùm mọi khung bay của mọi nhóm ngày, đã
+   gộp các khoảng chồng nhau. Giống hệt đoạn suy diễn cuối config.js nên
+   hai bên không thể lệch. Tính một lần rồi nhớ luôn. */
+var BOOKING_HOURS_ = null;
+function bookingHours_() {
+  if (BOOKING_HOURS_) return BOOKING_HOURS_;
+  var wins = [];
+  (FLIGHT_SCHEDULE.groups || []).forEach(function (g) {
+    (g.windows || []).forEach(function (w) {
+      wins.push({ s: toMin_(w.start), e: toMin_(w.end) });
+    });
+  });
+  wins.sort(function (a, b) { return a.s - b.s; });
+  var merged = [];
+  wins.forEach(function (w) {
+    var last = merged[merged.length - 1];
+    if (last && w.s <= last.e) last.e = Math.max(last.e, w.e);
+    else merged.push({ s: w.s, e: w.e });
+  });
+  BOOKING_HOURS_ = merged.map(function (w) {
+    return { start: toHm_(w.s), end: toHm_(w.e) };
+  });
+  return BOOKING_HOURS_;
+}
+
 function isBookingOpen_(now) {
-  if (!BOOKING_HOURS || !BOOKING_HOURS.length) return true;
+  var hours = bookingHours_();
+  if (!hours.length) return true;
   var d = now || new Date();
   // Giờ VN bất kể múi giờ của project Apps Script
   var hm = Utilities.formatDate(d, TIMEZONE, 'HH:mm').split(':');
   var mod = (+hm[0]) * 60 + (+hm[1]);
-  for (var i = 0; i < BOOKING_HOURS.length; i++) {
-    var s = BOOKING_HOURS[i].start.split(':');
-    var e = BOOKING_HOURS[i].end.split(':');
-    var start = (+s[0]) * 60 + (+s[1]);
-    var end = (+e[0]) * 60 + (+e[1]);
+  for (var i = 0; i < hours.length; i++) {
+    var start = toMin_(hours[i].start);
+    var end = toMin_(hours[i].end);
     if (mod >= start && mod < end) return true;
   }
   return false;
 }
 
-/** "10:00-13:00, 18:00-21:00" — dùng trong thông báo lỗi */
+/** "08:00-13:00, 17:00-21:00" — dùng trong thông báo lỗi */
 function bookingHoursText_() {
-  return BOOKING_HOURS.map(function (w) { return w.start + '-' + w.end; }).join(', ');
+  return bookingHours_().map(function (w) { return w.start + '-' + w.end; }).join(', ');
 }
 var QUEUE_STATUSES_ = ['WAITING', 'CALLED', 'PRESENT'];
 
@@ -974,6 +997,73 @@ function sendMail_(item, subject, htmlBody, attachments) {
    Hết quota là một nguyên nhân rất hay gặp khiến email im lặng không đi. */
 function mailQuotaLeft_() {
   try { return MailApp.getRemainingDailyQuota(); } catch (err) { return -1; }
+}
+
+/* ============================================================
+ * GỬI THỬ EMAIL — CHẠY THẲNG TRONG APPS SCRIPT EDITOR
+ * ============================================================
+ * Cách dùng: mở Apps Script → chọn hàm TEST_guiEmailThu ở ô hàm phía trên
+ * → bấm ▶ Run → cấp quyền khi Google hỏi → mở Thực thi (Executions) xem
+ * nhật ký. Không cần deploy, không đụng vào dữ liệu khách.
+ *
+ * Đây là cách DUY NHẤT để biết chắc email đi từ địa chỉ nào: máy chủ Gmail
+ * quyết định điều đó, không phải đoạn mã này. Nhật ký sẽ in ra địa chỉ thật.
+ *
+ * Gửi 2 thư — đúng 2 kịch bản khách thật sẽ nhận:
+ *   1. Khách lẻ chưa ghép đôi — KHÔNG có giờ bay
+ *   2. Khách 2 người — CÓ giờ bay + tệp lịch .ics đính kèm
+ */
+var TEST_EMAIL_TO = 'theduc4a@gmail.com';   // đổi thành email của bạn nếu cần
+
+function TEST_guiEmailThu() {
+  var owner = '(không đọc được)';
+  try { owner = Session.getEffectiveUser().getEmail(); } catch (err) {}
+
+  var alias = fromAddress_();
+  Logger.log('Tài khoản đang chạy script : ' + owner);
+  Logger.log('MAIL_FROM mong muốn        : ' + MAIL_FROM);
+  Logger.log('Alias "gửi bằng địa chỉ khác" dùng được? ' + (alias ? 'CÓ → ' + alias : 'KHÔNG'));
+  Logger.log('→ Khách sẽ thấy thư đến từ : ' + (alias || owner));
+  Logger.log('Reply-To (khách bấm Trả lời): ' + SUPPORT_EMAIL);
+  Logger.log('Còn gửi được hôm nay        : ' + mailQuotaLeft_() + ' email');
+  Logger.log('Đang gửi 2 thư thử tới      : ' + TEST_EMAIL_TO);
+
+  // Giờ bay giả: slot 15 phút gần nhất của ngày mai, cho .ics ra ngày hợp lệ
+  var etaMs = Math.ceil((Date.now() + 86400000) / 900000) * 900000;
+
+  var mau = {
+    id: 'THUTHU01',
+    name: 'Khách Gửi Thử',
+    phone: '0900000000',
+    email: TEST_EMAIL_TO,
+    amount: String(PRICE_PER_PERSON),
+    payMethod: 'BANK',
+    groupSize: '1',
+    eta: new Date(etaMs).toISOString(),
+    seq: '1',
+    mailSeq: '0'
+  };
+
+  var ok1 = sendHeldEmail_(mau);
+  Logger.log('1. Thư "đang chờ ghép đôi" (không có giờ bay) : ' +
+    (ok1 ? 'ĐÃ GỬI' : 'HỎNG — ' + LAST_MAIL_ERROR));
+
+  var mau2 = {};
+  for (var k in mau) mau2[k] = mau[k];
+  mau2.id = 'THUTHU02';
+  mau2.groupSize = '2';
+  mau2.amount = String(PRICE_PER_PERSON * 2);
+  var ok2 = sendScheduledEmail_(mau2, 'new');
+  Logger.log('2. Thư "xác nhận giờ bay" (kèm lịch .ics)     : ' +
+    (ok2 ? 'ĐÃ GỬI' : 'HỎNG — ' + LAST_MAIL_ERROR));
+
+  if (ok1 && ok2) {
+    Logger.log('XONG — kiểm tra hộp thư ' + TEST_EMAIL_TO + ' (ngó cả mục Spam).');
+  } else {
+    Logger.log('CÓ THƯ GỬI HỎNG — xem lý do ở trên và tab "' + LOG_SHEET_NAME + '".');
+  }
+  return { owner: owner, seenAs: alias || owner, held: ok1, scheduled: ok2,
+    error: LAST_MAIL_ERROR, quotaLeft: mailQuotaLeft_() };
 }
 
 /* ============================================================

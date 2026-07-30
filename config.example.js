@@ -70,15 +70,20 @@ var TFD_CONFIG = {
          thật không thấy), nhưng VẪN hiện trong lưới chọn giờ và trang
          quản lý để test được.
 
+         Mở tới hết 2/8 (ngay trước ngày bay thật đầu tiên 3/8) và mở
+         nguyên 24h — sếp thử lúc nửa đêm cũng được. Trước đây chỉ có đúng
+         một ngày 30/7 và đóng lúc 22:00, nên qua 22h là không bấm thử
+         được nữa.
+
          ⚠️ Khung giờ rộng ở đây cũng nới luôn giờ NHẬN ĐĂNG KÝ chung
-         (BOOKING_HOURS suy ra từ tất cả các khung bên dưới) thành
-         08:00–22:00 mỗi ngày. Xoá khối này là mọi thứ trở lại như cũ.
+         (BOOKING_HOURS suy ra từ tất cả các khung bên dưới) thành cả
+         ngày. Xoá khối này là mọi thứ trở lại như cũ.
          ============================================================ */
       {
         label: "Ngày test",
         test: true,
-        dates: ["2026-07-30"],
-        windows: [{ start: "08:00", end: "22:00" }]
+        dates: ["2026-07-30", "2026-07-31", "2026-08-01", "2026-08-02"],
+        windows: [{ start: "00:00", end: "23:59" }]
       },
       {
         label: "Ngày thường",
