@@ -35,7 +35,7 @@ var LOG_SHEET_NAME = 'Jun Pham log';       // nhật ký lỗi (email hỏng…)
    ⚠️ TĂNG SỐ NÀY mỗi lần sửa file rồi deploy lại — nhờ nó mà lỗi "đã sửa
    code rồi mà chạy vẫn như cũ" (do quên bấm Deploy) hiện ra ngay thay vì
    phải mò. */
-var SCRIPT_VERSION = 3;
+var SCRIPT_VERSION = 4;
 /* Thứ tự cột trong sheet — các cột đầu là thông tin khách (tiếng Việt),
    các cột sau để hệ thống hàng chờ vận hành. HEADERS là khóa nội bộ
    (khớp JSON trả về website), HEADER_LABELS là tiêu đề hiển thị.
@@ -201,15 +201,9 @@ var MAIL_ENABLED = true;
 var FLIGHT_SCHEDULE = {
   slotMinutes: 15,
   groups: [
-    /* 🧪 NGÀY TEST — XOÁ CẢ KHỐI NÀY TRƯỚC KHI SỰ KIỆN BẮT ĐẦU.
-       Phải khớp với khối cùng tên trong config.js, nếu không máy khách
-       cho chọn mà server lại từ chối (BAD_SLOT). */
-    {
-      label: 'Ngày test',
-      test: true,
-      dates: ['2026-07-30', '2026-07-31', '2026-08-01', '2026-08-02'],
-      windows: [{ start: '00:00', end: '23:59' }]
-    },
+    /* Ngày test (30/7–2/8) đã XOÁ khi lên sóng — chỉ còn ngày bay thật.
+       Bật lại thì phải thêm ở CẢ config.js, nếu không máy khách cho chọn
+       mà server lại từ chối (BAD_SLOT). */
     {
       label: 'Ngày thường',
       dates: ['2026-08-03', '2026-08-04', '2026-08-05', '2026-08-06', '2026-08-07', '2026-08-10'],

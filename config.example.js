@@ -60,31 +60,11 @@ var TFD_CONFIG = {
   FLIGHT_SCHEDULE: {
     slotMinutes: 15,
     groups: [
-      /* ============================================================
-         🧪 NGÀY TEST — XOÁ CẢ KHỐI NÀY TRƯỚC KHI SỰ KIỆN BẮT ĐẦU
-         ------------------------------------------------------------
-         Mở nguyên ngày để sếp/nhân viên tự đặt thử bất cứ lúc nào, không
-         phải chờ đúng khung giờ thật.
-
-         test: true  → ngày này KHÔNG hiện trên tấm vé ở trang chủ (khách
-         thật không thấy), nhưng VẪN hiện trong lưới chọn giờ và trang
-         quản lý để test được.
-
-         Mở tới hết 2/8 (ngay trước ngày bay thật đầu tiên 3/8) và mở
-         nguyên 24h — sếp thử lúc nửa đêm cũng được. Trước đây chỉ có đúng
-         một ngày 30/7 và đóng lúc 22:00, nên qua 22h là không bấm thử
-         được nữa.
-
-         ⚠️ Khung giờ rộng ở đây cũng nới luôn giờ NHẬN ĐĂNG KÝ chung
-         (BOOKING_HOURS suy ra từ tất cả các khung bên dưới) thành cả
-         ngày. Xoá khối này là mọi thứ trở lại như cũ.
-         ============================================================ */
-      {
-        label: "Ngày test",
-        test: true,
-        dates: ["2026-07-30", "2026-07-31", "2026-08-01", "2026-08-02"],
-        windows: [{ start: "00:00", end: "23:59" }]
-      },
+      /* Ngày test (30/7–2/8, mở 24h) đã được XOÁ khi website lên sóng —
+         chỉ còn ngày bay thật. Cần bật lại để thử luồng đăng ký ngoài giờ
+         thì thêm một nhóm { test: true, dates: [...], windows: [...] } vào
+         đây và vào FLIGHT_SCHEDULE trong google-apps-script.gs (hai nơi
+         phải khớp, lệch là máy khách cho chọn mà server từ chối). */
       {
         label: "Ngày thường",
         dates: ["2026-08-03", "2026-08-04", "2026-08-05", "2026-08-06", "2026-08-07", "2026-08-10"],
