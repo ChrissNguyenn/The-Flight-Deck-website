@@ -1002,9 +1002,13 @@ function mailQuotaLeft_() {
 /* ============================================================
  * GỬI THỬ EMAIL — CHẠY THẲNG TRONG APPS SCRIPT EDITOR
  * ============================================================
- * Cách dùng: mở Apps Script → chọn hàm TEST_guiEmailThu ở ô hàm phía trên
- * → bấm ▶ Run → cấp quyền khi Google hỏi → mở Thực thi (Executions) xem
- * nhật ký. Không cần deploy, không đụng vào dữ liệu khách.
+ * Cách dùng: mở Apps Script → ở thanh trên, ô chọn hàm cạnh nút ▶ Run
+ * PHẢI hiện đúng chữ TEST_guiEmailThu → bấm ▶ Run → cấp quyền khi Google
+ * hỏi. Không cần deploy, không đụng vào dữ liệu khách.
+ *
+ * ⚠️ Ô đó mặc định là doGet. Chạy doGet thì xong trong 1 giây, KHÔNG có
+ * dòng nhật ký nào và dĩ nhiên không có email — dấu hiệu nhận biết là
+ * nhật ký chỉ có "Execution started / completed".
  *
  * Đây là cách DUY NHẤT để biết chắc email đi từ địa chỉ nào: máy chủ Gmail
  * quyết định điều đó, không phải đoạn mã này. Nhật ký sẽ in ra địa chỉ thật.
@@ -1015,18 +1019,30 @@ function mailQuotaLeft_() {
  */
 var TEST_EMAIL_TO = 'theduc4a@gmail.com';   // đổi thành email của bạn nếu cần
 
+/* Ghi ra CẢ HAI nơi: Logger (bảng nhật ký của trình soạn thảo) và console
+   (Cloud Logging). Bản Rhino cũ chỉ có Logger, bản V8 hiện dòng console rõ
+   hơn — ghi cả hai thì đằng nào cũng thấy. */
+function testLog_(lines, msg) {
+  lines.push(msg);
+  try { Logger.log(msg); } catch (err) {}
+  try { console.log(msg); } catch (err) {}
+}
+
 function TEST_guiEmailThu() {
+  var out = [];
   var owner = '(không đọc được)';
   try { owner = Session.getEffectiveUser().getEmail(); } catch (err) {}
 
   var alias = fromAddress_();
-  Logger.log('Tài khoản đang chạy script : ' + owner);
-  Logger.log('MAIL_FROM mong muốn        : ' + MAIL_FROM);
-  Logger.log('Alias "gửi bằng địa chỉ khác" dùng được? ' + (alias ? 'CÓ → ' + alias : 'KHÔNG'));
-  Logger.log('→ Khách sẽ thấy thư đến từ : ' + (alias || owner));
-  Logger.log('Reply-To (khách bấm Trả lời): ' + SUPPORT_EMAIL);
-  Logger.log('Còn gửi được hôm nay        : ' + mailQuotaLeft_() + ' email');
-  Logger.log('Đang gửi 2 thư thử tới      : ' + TEST_EMAIL_TO);
+  testLog_(out, '===== GỬI THỬ EMAIL — phiên bản script ' + SCRIPT_VERSION + ' =====');
+  testLog_(out, 'Tài khoản đang chạy script  : ' + owner);
+  testLog_(out, 'MAIL_FROM mong muốn         : ' + MAIL_FROM);
+  testLog_(out, 'Alias "gửi bằng địa chỉ khác" dùng được? ' + (alias ? 'CÓ → ' + alias : 'KHÔNG'));
+  testLog_(out, '→ KHÁCH SẼ THẤY THƯ ĐẾN TỪ  : ' + (alias || owner));
+  testLog_(out, 'Reply-To (khách bấm Trả lời): ' + SUPPORT_EMAIL);
+  testLog_(out, 'Còn gửi được hôm nay        : ' + mailQuotaLeft_() + ' email');
+  testLog_(out, 'MAIL_ENABLED                : ' + MAIL_ENABLED);
+  testLog_(out, 'Đang gửi 2 thư thử tới      : ' + TEST_EMAIL_TO);
 
   // Giờ bay giả: slot 15 phút gần nhất của ngày mai, cho .ics ra ngày hợp lệ
   var etaMs = Math.ceil((Date.now() + 86400000) / 900000) * 900000;
@@ -1045,7 +1061,7 @@ function TEST_guiEmailThu() {
   };
 
   var ok1 = sendHeldEmail_(mau);
-  Logger.log('1. Thư "đang chờ ghép đôi" (không có giờ bay) : ' +
+  testLog_(out, '1. Thư "đang chờ ghép đôi" (không có giờ bay) : ' +
     (ok1 ? 'ĐÃ GỬI' : 'HỎNG — ' + LAST_MAIL_ERROR));
 
   var mau2 = {};
@@ -1054,16 +1070,29 @@ function TEST_guiEmailThu() {
   mau2.groupSize = '2';
   mau2.amount = String(PRICE_PER_PERSON * 2);
   var ok2 = sendScheduledEmail_(mau2, 'new');
-  Logger.log('2. Thư "xác nhận giờ bay" (kèm lịch .ics)     : ' +
+  testLog_(out, '2. Thư "xác nhận giờ bay" (kèm lịch .ics)     : ' +
     (ok2 ? 'ĐÃ GỬI' : 'HỎNG — ' + LAST_MAIL_ERROR));
 
   if (ok1 && ok2) {
-    Logger.log('XONG — kiểm tra hộp thư ' + TEST_EMAIL_TO + ' (ngó cả mục Spam).');
+    testLog_(out, 'XONG — kiểm tra hộp thư ' + TEST_EMAIL_TO + ' (ngó cả mục Spam).');
   } else {
-    Logger.log('CÓ THƯ GỬI HỎNG — xem lý do ở trên và tab "' + LOG_SHEET_NAME + '".');
+    testLog_(out, 'CÓ THƯ GỬI HỎNG — xem lý do ở trên.');
   }
+
+  /* Ghi luôn vào tab nhật ký. Bảng "Execution log" của trình soạn thảo
+     rất hay bị thu gọn hoặc lọc mất dòng Info; ghi vào Sheet thì mở file
+     là thấy, không phụ thuộc giao diện. */
+  logError_('TEST_guiEmailThu', out.join(' | '));
+
+  /* Hỏng thì NÉM LỖI, đừng "Execution completed" êm ru. Chạy xong màu
+     xanh mà hộp thư trống rỗng là kiểu im lặng khó chịu nhất. */
+  if (!ok1 || !ok2) {
+    throw new Error('KHÔNG GỬI ĐƯỢC EMAIL — ' + (LAST_MAIL_ERROR || 'không rõ lý do') +
+      '. Toàn bộ chi tiết đã ghi ở tab "' + LOG_SHEET_NAME + '".');
+  }
+
   return { owner: owner, seenAs: alias || owner, held: ok1, scheduled: ok2,
-    error: LAST_MAIL_ERROR, quotaLeft: mailQuotaLeft_() };
+    error: LAST_MAIL_ERROR, quotaLeft: mailQuotaLeft_(), log: out };
 }
 
 /* ============================================================
