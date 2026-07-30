@@ -32,7 +32,6 @@
     "home.pageTitle": "The Flight Deck × Flight to Carrot Day 2026",
     "home.desc": "The Flight Deck × Flight to Carrot Day 2026: scan a QR code at our booth to book a flight experience, browse past workshops & help shape the next one, or get in touch about a partnership.",
     "home.kicker": "Aviation experience booth",
-    "home.lead": "Scan a QR code to start — each one opens a different experience.",
     "home.card1Title": "Flight simulator experience",
     "home.card1Body": "Book a flight right at the booth — any age, no experience needed.",
     "home.card1Hint": "📱 Scan to book a flight",
@@ -47,7 +46,7 @@
     /* ---------- navbar dùng chung ---------- */
     "nav.tagline": "Jun Pham Airways · 2026",
     "nav.home": "Home",
-    "nav.experience": "Flight experience",
+    "nav.experience": "Book a flight",
     "nav.courses": "Workshops",
     "nav.partners": "Partnerships",
 
@@ -83,7 +82,7 @@
     "experience.step3": "🔄 Fly a closed loop",
     "experience.step4": "🛬 Land",
     "experience.regTitle": "Book your flight",
-    "experience.regSub": "Every flight is <strong>150K / person flying</strong> · <strong>15 minutes</strong> long. Book <strong>solo</strong> → the system will <strong>pair you with another solo flyer</strong> so you fly together. Book <strong>as 2</strong> (with a friend or family member) → <strong>you'll both fly together</strong>, no pairing needed. Your flight time is set by the system and locked in for the countdown. Please arrive at the booth <strong>at least 5 minutes before your flight time</strong> to get ready — more than 5 minutes after being called, your slot is automatically cancelled and passed to the next person.",
+    "experience.regFacts": "<li><b>Price:</b> 150K / person (flight time: 15 minutes).</li><li><b>Flying solo:</b> we automatically pair you with another passenger.</li><li><b>Flying as 2:</b> you fly together, no pairing needed.</li><li class=\"reg-facts__note\"><b>Please note:</b> arrive 15 minutes before your flight time to check in. If you are more than 5 minutes late once your turn comes up, your booking is automatically released to another guest.</li>",
     "experience.bannerLoading": "⏳ Loading queue status…",
     "experience.demoNote": "⚠️ Test mode: not connected to Google Sheets yet — bookings are only saved on this device (see README).",
     "experience.formName": "Participant's full name *",

@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title data-i18n-title="home.pageTitle">The Flight Deck × Flight to Carrot Day 2026</title>
-  <meta name="description" data-i18n-content="home.desc" content="The Flight Deck × Flight to Carrot Day 2026: quét mã QR tại gian hàng để đăng ký trải nghiệm bay, xem lại workshop đã qua &amp; góp ý workshop tiếp theo, hoặc liên hệ hợp tác doanh nghiệp.">
+  <meta name="description" data-i18n-content="home.desc" content="The Flight Deck × Flight to Carrot Day 2026: quét mã QR tại gian hàng để đăng ký trải nghiệm buồng lái mô phỏng — chọn giờ bay 15 phút, thanh toán và nhận xác nhận qua email.">
   <link rel="icon" type="image/png" href="images/the-flight-deck-logo.png">
   <link rel="stylesheet" href="style.css">
   <!-- Carrot Day / Jun Pham Airways theme — luôn đặt SAU style.css -->
@@ -26,11 +26,12 @@
           <small data-i18n="nav.tagline">Jun Pham Airways · 2026</small>
         </span>
       </a>
+      <!-- Chỉ còn 1 mục: sự kiện này chỉ nhận đăng ký bay.
+           Hai mục "Workshop" và "Hợp tác" (cùng 2 mã QR của chúng) đã bỏ
+           theo yêu cầu; hai trang đó vẫn còn trong dự án, chỉ là không
+           dẫn từ menu nữa. -->
       <div class="nav-links">
-        <a href="index.html" class="active" data-i18n="nav.home">Trang chủ</a>
-        <a href="experience.html" data-i18n="nav.experience">Trải nghiệm bay</a>
-        <a href="courses.html" data-i18n="nav.courses">Workshop</a>
-        <a href="partners.html" data-i18n="nav.partners">Hợp tác</a>
+        <a href="experience.html" data-i18n="nav.experience">Đăng ký bay</a>
       </div>
     </nav>
   </header>
@@ -52,8 +53,6 @@
       <span class="carrot-title__main">CARROT DAY</span>
       <span class="carrot-title__sub" data-i18n="home.titleSub">The Flight Deck × Jun Pham · Chuyến bay đặc biệt 2026</span>
     </h1>
-
-    <p class="lead" data-i18n="home.lead">Quét mã QR để bắt đầu — mỗi mã dẫn đến một trải nghiệm riêng.</p>
 
     <!-- Oversized boarding pass: thông tin sự kiện -->
     <div class="hero-pass orange-burst-bg">
@@ -126,7 +125,6 @@
 
     <div class="btn-row mt-2">
       <a class="btn btn-carrot" href="experience.html#dang-ky" data-i18n="home.ctaBook">Đăng ký lượt bay</a>
-      <a class="btn btn-outline" href="courses.html" data-i18n="home.ctaWorkshop">Xem workshop</a>
     </div>
   </section>
 
@@ -140,21 +138,6 @@
         <p class="qr-scan-hint" data-i18n="home.card1Hint">📱 Quét để đăng ký lượt bay</p>
       </div>
 
-      <div class="card qr-only">
-        <div class="icon">📸</div>
-        <h3 data-i18n="home.card2Title">Workshop đã qua &amp; Khảo sát</h3>
-        <p data-i18n="home.card2Body">Xem lại các workshop The Flight Deck đã tổ chức và cho chúng tôi biết bạn muốn workshop tiếp theo về chủ đề gì.</p>
-        <div class="card-qr" id="qr-home-courses"></div>
-        <p class="qr-scan-hint" data-i18n="home.card2Hint">📱 Quét để xem workshop đã qua &amp; điền khảo sát</p>
-      </div>
-
-      <div class="card qr-only">
-        <div class="icon">🤝</div>
-        <h3 data-i18n="home.card3Title">Hợp tác doanh nghiệp</h3>
-        <p data-i18n="home.card3Body">Team building, booth sự kiện, chương trình STEM cho trường học và hợp tác thương hiệu.</p>
-        <div class="card-qr" id="qr-home-partners"></div>
-        <p class="qr-scan-hint" data-i18n="home.card3Hint">📱 Quét để gửi yêu cầu hợp tác</p>
-      </div>
     </div>
   </section>
 
@@ -184,16 +167,20 @@
         return p.length === 3 ? p[2] + "." + p[1] + "." + p[0] : "";
       }
 
-      var days = (cfg.EVENT_DAYS || []).map(dmy).filter(Boolean);
+      var raw = (cfg.EVENT_DAYS || []).slice().sort();
+      var days = raw.map(dmy).filter(Boolean);
       var dateEl = document.getElementById("bp-date");
       if (dateEl && days.length) {
-        // Nhiều ngày liên tiếp -> "17.07 – 19.07.2026" cho gọn tấm vé
         if (days.length === 1) {
           dateEl.textContent = days[0];
         } else {
-          var first = days[0].slice(0, 5);
-          var last = days[days.length - 1];
-          dateEl.textContent = first + " – " + last;
+          /* Cùng tháng thì bỏ tháng lặp: "03–10.08.2026" thay vì
+             "03.08 – 10.08.2026". Ô trên vé rất hẹp — chuỗi dài làm chữ
+             tràn sang cột "Giờ đặt chỗ" bên cạnh. */
+          var a = raw[0].split("-"), b = raw[raw.length - 1].split("-");
+          dateEl.textContent = (a[1] === b[1] && a[0] === b[0])
+            ? a[2] + "–" + b[2] + "." + b[1] + "." + b[0]
+            : days[0].slice(0, 5) + " – " + days[days.length - 1];
         }
       }
 
@@ -212,10 +199,9 @@
        đổi thành link thật của bạn sau khi đưa trang lên mạng. */
     var QR_FALLBACK_BASE = "https://theflightdeck.tech";
 
+    // Chỉ còn MỘT mã QR: đăng ký lượt bay.
     var homeQRs = [
-      { id: "qr-home-experience", target: "experience.html#dang-ky" },
-      { id: "qr-home-courses",    target: "courses.html" },
-      { id: "qr-home-partners",   target: "partners.html#lien-he" }
+      { id: "qr-home-experience", target: "experience.html#dang-ky" }
     ];
 
     function qrBaseUrl() {

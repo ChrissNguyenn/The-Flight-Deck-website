@@ -317,7 +317,12 @@ a { color: var(--cd-orange-deep); }
   position: relative;
   z-index: 1;
   margin: 0 auto clamp(1.4rem, 4vw, 2.2rem);
-  max-width: 15ch;
+  /* KHÔNG giới hạn max-width ở đây.
+     Trước đây đặt max-width:15ch — hẹp hơn bề ngang thật của dòng
+     "CARROT DAY" (cỡ chữ tới 9rem), nên dòng đó tràn ra NGOÀI khung và
+     chỉ tràn về bên phải, khiến cả cụm chữ trông lệch sang phải ~25px.
+     Hai dòng vốn đã là <span display:block> riêng nên không cần ép
+     xuống dòng bằng max-width. Dòng phụ tự giới hạn ở .carrot-title__sub. */
   line-height: 0.92;
   text-wrap: balance;
 }
@@ -609,6 +614,13 @@ a { color: var(--cd-orange-deep); }
   margin: 0 0 clamp(1rem, 2.5vw, 1.5rem);
 }
 
+/* Ô lưới mặc định có min-width:auto = KHÔNG co nhỏ hơn nội dung, nên giá
+   trị dài (VD "03–10.08.2026") đẩy tràn sang cột bên cạnh và đè lên chữ.
+   min-width:0 cho phép ô co lại đúng phần chia của nó. */
+.bp-field {
+  min-width: 0;
+}
+
 .bp-field dt,
 .bp-field__label {
   font-family: var(--cd-font-ticket);
@@ -627,7 +639,13 @@ a { color: var(--cd-orange-deep); }
   font-weight: 700;
   font-size: clamp(0.95rem, 2.4vw, 1.2rem);
   color: var(--cd-navy);
-  white-space: nowrap;
+  /* KHÔNG dùng white-space:nowrap.
+     Trước đây có nowrap: giá trị dài không được xuống dòng nên tràn đè
+     lên cột kế bên ("Ngày bay" đè lên "Giờ đặt chỗ"). Giờ cho phép xuống
+     dòng, và ngắt cả trong từ nếu ô quá hẹp — thà chữ xuống dòng còn hơn
+     đè lên nhau. */
+  overflow-wrap: anywhere;
+  line-height: 1.25;
 }
 
 /* Location ribbon needs breathing room above the barcode. */
@@ -990,6 +1008,75 @@ a { color: var(--cd-orange-deep); }
 
 #reg-card.is-locked .size-option {
   cursor: not-allowed;
+}
+
+/* ============================================================
+   11e. TÓM TẮT THÔNG TIN ĐĂNG KÝ (thay đoạn văn dài)
+   Bốn gạch đầu dòng thay cho một đoạn 6 dòng — khách đọc lướt trên
+   điện thoại chỉ cần thấy: giá, đi 1, đi 2, và lưu ý.
+   ============================================================ */
+
+.reg-facts {
+  list-style: none;
+  max-width: 560px;
+  margin: 0 auto 1.6rem;
+  padding: 1.1rem 1.3rem;
+  background: var(--cd-white);
+  border-radius: var(--cd-radius);
+  box-shadow: var(--cd-shadow-sm);
+  border-left: 6px solid var(--cd-sky-deep);
+  display: grid;
+  gap: 0.6rem;
+  color: var(--cd-navy);
+  line-height: 1.55;
+}
+
+/* Chấm đầu dòng đặt tuyệt đối, KHÔNG dùng grid cho <li>.
+   Dùng grid ở đây là sai: mỗi <li> có tới 3 thành phần (chấm ::before,
+   thẻ <b> nhãn, và phần chữ còn lại) nhưng lưới chỉ có 2 cột — phần chữ
+   bị đẩy xuống ô rộng 1.4rem nên mỗi từ rơi xuống một dòng.
+   Để chữ chảy inline bình thường thì <b> và phần mô tả mới nằm cùng dòng. */
+.reg-facts li {
+  position: relative;
+  padding-left: 1.35rem;
+}
+
+/* Dấu chấm tròn cam thay cho bullet mặc định */
+.reg-facts li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.55em;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--cd-orange);
+}
+
+.reg-facts b {
+  color: var(--cd-navy);
+  font-weight: 800;
+}
+
+/* Dòng "Lưu ý" tách hẳn ra: nền cam nhạt, không lẫn với 3 dòng trên */
+.reg-facts__note {
+  margin-top: 0.2rem;
+  padding-top: 0.7rem;
+  border-top: 1px dashed #d9e5f3;
+  color: var(--cd-navy-soft);
+  font-size: 0.94rem;
+}
+
+/* Dòng này có padding-top cho đường kẻ ngăn cách, nên chấm đầu dòng
+   (định vị tuyệt đối) phải dịch xuống đúng bằng phần padding đó —
+   nếu không chấm sẽ nổi lên trên chữ một dòng. */
+.reg-facts__note::before {
+  background: var(--cd-orange-deep);
+  top: calc(0.7rem + 0.55em);
+}
+
+@media (max-width: 480px) {
+  .reg-facts { padding: 1rem 1.05rem; font-size: 0.95rem; }
 }
 
 /* ============================================================

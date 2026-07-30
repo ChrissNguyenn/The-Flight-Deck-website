@@ -14,7 +14,21 @@
  * Sheet "Registrations" sẽ tự được tạo khi có đăng ký đầu tiên.
  * ============================================================ */
 
-var SHEET_NAME = 'Registrations';
+/* ============================================================
+   TÊN CÁC TAB (sheet) BÊN TRONG FILE GOOGLE SHEET
+   ------------------------------------------------------------
+   Script này chạy TRONG file Google Sheet mà bạn dán nó vào
+   (SpreadsheetApp.getActiveSpreadsheet). Dán vào file "hobby horizon"
+   thì mọi tab dưới đây sẽ được tạo trong chính file đó.
+
+   Tab nào chưa có sẽ được TỰ TẠO ở lần chạy đầu tiên — không cần tạo tay.
+
+   Tên có tiền tố "Jun Pham" để không đụng các tab sẵn có trong file
+   "hobby horizon" (một file dùng chung rất dễ đã có tab tên "Payments"
+   hay "Log" — trùng tên là ghi đè lên dữ liệu cũ của bạn).
+   ============================================================ */
+var SHEET_NAME = 'Jun Pham flight';        // đăng ký lượt bay (tab chính)
+var LOG_SHEET_NAME = 'Jun Pham log';       // nhật ký lỗi (email hỏng…)
 /* Thứ tự cột trong sheet — các cột đầu là thông tin khách (tiếng Việt),
    các cột sau để hệ thống hàng chờ vận hành. HEADERS là khóa nội bộ
    (khớp JSON trả về website), HEADER_LABELS là tiêu đề hiển thị.
@@ -525,7 +539,7 @@ function computeEta_(items, groupSize) {
  * viên bấm duyệt là một dòng thu tiền, phân biệt rõ CHUYỂN KHOẢN
  * thường và QUÉT QR.
  * ============================================================ */
-var PAY_SHEET_NAME = 'Payments';
+var PAY_SHEET_NAME = 'Jun Pham payments';   // sổ thu tiền riêng
 var PAY_HEADERS = ['paidAt', 'id', 'name', 'phone', 'email', 'groupSize', 'amount', 'payMethod', 'payMethodLabel', 'payRef', 'flightDate', 'seq', 'eta', 'pairState'];
 var PAY_HEADER_LABELS = ['Giờ xác nhận', 'Mã đăng ký', 'Tên khách', 'SĐT', 'Email', 'Số khách', 'Số tiền (VND)', 'Hình thức', 'Hình thức (mô tả)', 'Mã/Ghi chú CK', 'Ngày bay', 'STT trong ngày', 'Giờ bay', 'Ghép đôi'];
 
@@ -596,9 +610,9 @@ function logPayment_(item) {
 function logError_(where, err) {
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var sheet = ss.getSheetByName('Log');
+    var sheet = ss.getSheetByName(LOG_SHEET_NAME);
     if (!sheet) {
-      sheet = ss.insertSheet('Log');
+      sheet = ss.insertSheet(LOG_SHEET_NAME);
       sheet.getRange(1, 1, 1, 3).setValues([['Thời gian', 'Vị trí', 'Lỗi']]);
       sheet.setFrozenRows(1);
     }
@@ -1006,7 +1020,7 @@ function doPost(e) {
  * khảo sát để lên lịch & chọn chủ đề cho workshop tiếp theo.
  * Sheet riêng "CourseRegistrations", không liên quan tới hàng chờ bay.
  * ============================================================ */
-var COURSE_SHEET_NAME = 'CourseRegistrations';
+var COURSE_SHEET_NAME = 'Jun Pham workshop survey';
 var COURSE_HEADER_LABELS = ['Thời gian gửi', 'Họ và tên', 'SĐT', 'Email', 'Bạn là', 'Trong tuần / cuối tuần', 'Khoảng thời gian', 'Khung giờ', 'Chủ đề workshop quan tâm'];
 var COURSE_HEADERS = ['createdAt', 'name', 'phone', 'email', 'audience', 'scheduleType', 'period', 'timeOfDay', 'topics'];
 
