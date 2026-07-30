@@ -60,6 +60,26 @@ var TFD_CONFIG = {
   FLIGHT_SCHEDULE: {
     slotMinutes: 15,
     groups: [
+      /* ============================================================
+         🧪 NGÀY TEST — XOÁ CẢ KHỐI NÀY TRƯỚC KHI SỰ KIỆN BẮT ĐẦU
+         ------------------------------------------------------------
+         Mở nguyên ngày để sếp/nhân viên tự đặt thử bất cứ lúc nào, không
+         phải chờ đúng khung giờ thật.
+
+         test: true  → ngày này KHÔNG hiện trên tấm vé ở trang chủ (khách
+         thật không thấy), nhưng VẪN hiện trong lưới chọn giờ và trang
+         quản lý để test được.
+
+         ⚠️ Khung giờ rộng ở đây cũng nới luôn giờ NHẬN ĐĂNG KÝ chung
+         (BOOKING_HOURS suy ra từ tất cả các khung bên dưới) thành
+         08:00–22:00 mỗi ngày. Xoá khối này là mọi thứ trở lại như cũ.
+         ============================================================ */
+      {
+        label: "Ngày test",
+        test: true,
+        dates: ["2026-07-30"],
+        windows: [{ start: "08:00", end: "22:00" }]
+      },
       {
         label: "Ngày thường",
         dates: ["2026-08-03", "2026-08-04", "2026-08-05", "2026-08-06", "2026-08-07", "2026-08-10"],
