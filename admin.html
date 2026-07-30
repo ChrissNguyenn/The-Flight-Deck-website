@@ -216,6 +216,32 @@
     .day-tab:hover { border-color: var(--sky-400); color: var(--text-main); }
     .day-tab.active { background: var(--sky-400); color: #0a1628; border-color: var(--sky-400); }
     .day-tab.today { box-shadow: 0 0 0 2px rgba(56,168,232,0.3); }
+    /* --- Bảng tự kiểm tra --- */
+    .selftest-controls {
+      display: flex; flex-wrap: wrap; gap: 0.8rem; align-items: center;
+    }
+    .selftest-field { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.82rem; color: var(--text-dim); }
+    .selftest-field select {
+      padding: 0.5rem 0.7rem; border-radius: 8px; border: 1.5px solid var(--card-border);
+      background: var(--navy-800); color: var(--text-main); font-family: inherit; font-size: 16px;
+    }
+    .selftest-check {
+      display: flex; align-items: center; gap: 0.45rem; font-size: 0.85rem;
+      color: var(--text-dim); cursor: pointer;
+    }
+    .selftest-check input { width: 1.05rem; height: 1.05rem; accent-color: var(--amber-500); }
+    .selftest-log {
+      margin-top: 1rem; padding: 0.9rem 1rem; border-radius: 10px;
+      background: #08111f; border: 1px solid var(--card-border);
+      font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+      font-size: 0.82rem; line-height: 1.6; max-height: 320px; overflow-y: auto;
+      white-space: pre-wrap; word-break: break-word;
+    }
+    .selftest-log .ok   { color: #5fe0a1; }
+    .selftest-log .bad  { color: #ff8f8a; }
+    .selftest-log .info { color: var(--text-dim); }
+    .selftest-log .head { color: var(--sky-400); font-weight: 700; }
+
     .past-day-notice {
       background: rgba(255,179,0,0.12); border: 1px solid rgba(255,179,0,0.35);
       border-radius: 10px; padding: 0.7rem 1rem; margin-bottom: 1.2rem;
@@ -374,6 +400,37 @@
       </div>
     </section>
 
+    <!-- ============================================================
+         TỰ KIỂM TRA HỆ THỐNG
+         Chạy thật một vòng đời đăng ký trên chính Google Sheet đang dùng,
+         rồi tự dọn sạch. Dùng trước sự kiện để chắc chắn web → Apps Script
+         → Sheet đang thông suốt, và để thử khi nhiều người đặt cùng lúc.
+         ============================================================ -->
+    <section class="admin-panel" id="selftest-panel">
+      <h2>🧪 Tự kiểm tra hệ thống</h2>
+      <p class="empty" style="margin-bottom:0.8rem;">
+        Tạo đăng ký giả (tên bắt đầu bằng <strong>[TEST]</strong>) trên slot trống gần nhất,
+        kiểm tra dữ liệu đã lên Google Sheet chưa, rồi <strong>tự huỷ để trả lại chỗ</strong>.
+        Không gửi email cho ai trừ khi bạn bật ô bên dưới.
+      </p>
+      <div class="selftest-controls">
+        <label class="selftest-field">
+          <span>Số đăng ký cùng lúc</span>
+          <select id="selftest-count">
+            <option value="1">1 — kiểm tra nhanh</option>
+            <option value="3">3 — chạy song song</option>
+            <option value="8">8 — thử tải nặng</option>
+          </select>
+        </label>
+        <label class="selftest-check">
+          <input type="checkbox" id="selftest-approve">
+          <span>Duyệt luôn (⚠️ <strong>gửi email thật</strong> tới hộp thư test)</span>
+        </label>
+        <button class="btn btn-primary btn-sm" id="selftest-run">▶ Chạy kiểm tra</button>
+      </div>
+      <div id="selftest-log" class="selftest-log hidden"></div>
+    </section>
+
     <section class="admin-panel">
       <h2>➕ Thêm khách đăng ký tại chỗ</h2>
       <p class="walkin-hours" id="walkin-hours" role="status"></p>
@@ -403,13 +460,55 @@
   </main>
 
   <script src="config.js"></script>
+  <script src="slots.js"></script>
+  <script src="toast.js"></script>
   <script src="queue.js"></script>
   <script>
     (function () {
       var CFG = window.TFD_CONFIG || {};
       var lastItems = [];    // items ĐÃ LỌC theo ngày đang xem
-      var allItems = [];     // toàn bộ items từ server (chưa lọc)
-      var selectedDay = TFDQ.todayVN(); // ngày đang xem
+      var allItems = [];     // items của SỰ KIỆN NÀY (đã lọc bỏ dữ liệu cũ)
+
+      /* ============================================================
+         CHỈ HIỆN DỮ LIỆU CỦA SỰ KIỆN "JUN PHAM FLIGHT" (tháng 8)
+         ------------------------------------------------------------
+         Sheet dùng chung với sự kiện cũ "Hobby Horizon" nên còn nhiều
+         dòng của tháng trước. Trước đây tab ngày được dựng từ
+         daysInData(allItems) — tức là MỌI ngày có trong dữ liệu — nên
+         các ngày của sự kiện cũ vẫn hiện ra, rất dễ bấm nhầm khi đang
+         vận hành. Giờ chỉ lấy đúng các ngày khai báo trong
+         FLIGHT_SCHEDULE (config.js).
+         ============================================================ */
+      var EVENT_DAYS = (CFG.EVENT_DAYS && CFG.EVENT_DAYS.length)
+        ? CFG.EVENT_DAYS.slice().sort()
+        : [];
+
+      function isEventDay(d) {
+        return !EVENT_DAYS.length || EVENT_DAYS.indexOf(d) !== -1;
+      }
+
+      /* Bỏ mọi đăng ký không thuộc ngày sự kiện (dữ liệu Hobby Horizon cũ) */
+      function onlyEventItems(items) {
+        if (!EVENT_DAYS.length) return items || [];
+        return (items || []).filter(function (it) {
+          return isEventDay(TFDQ.dateKeyVN(it.createdAt)) ||
+                 (it.flightDate && isEventDay(it.flightDate)) ||
+                 (it.slotKey && isEventDay(String(it.slotKey).slice(0, 10)));
+        });
+      }
+
+      /* Ngày mở mặc định: hôm nay nếu đang trong sự kiện, còn không thì
+         ngày sự kiện gần nhất sắp tới (hết sự kiện thì ngày cuối cùng). */
+      function defaultDay() {
+        var today = TFDQ.todayVN();
+        if (!EVENT_DAYS.length || EVENT_DAYS.indexOf(today) !== -1) return today;
+        for (var i = 0; i < EVENT_DAYS.length; i++) {
+          if (EVENT_DAYS[i] > today) return EVENT_DAYS[i];
+        }
+        return EVENT_DAYS[EVENT_DAYS.length - 1];
+      }
+
+      var selectedDay = defaultDay();   // ngày đang xem
       var inFlight = {};      // chặn gửi trùng lệnh tự động
       var contactOpen = {};   // id các hàng đang mở SĐT (bấm tên để mở/đóng)
       var syncing = {};       // id các lượt có lệnh ĐANG gửi lên server (optimistic UI)
@@ -1062,6 +1161,178 @@
         })).then(refresh);
       });
 
+      /* ============================================================
+         TỰ KIỂM TRA HỆ THỐNG (nút "Chạy kiểm tra")
+         ------------------------------------------------------------
+         Chạy ĐÚNG các hàm mà khách thật dùng (TFDQ.register /
+         confirmPayment / update) chứ không giả lập riêng — có vậy mới
+         phát hiện được lỗi thật của đường đi web → Apps Script → Sheet.
+
+         An toàn:
+           • Tên luôn có tiền tố [TEST] để nhìn là biết trong sheet.
+           • Đặt vào slot còn trống, KHÔNG đụng chỗ của khách thật.
+           • Luôn tự huỷ ở cuối để trả lại chỗ (kể cả khi có bước lỗi).
+           • Chỉ gửi email khi người dùng tự tích ô "Duyệt luôn".
+         ============================================================ */
+      var TEST_PREFIX = "[TEST]";
+      var TEST_EMAIL = "tfd.selftest@example.com";   // hộp thư không có thật
+      var selftestRunning = false;
+
+      var logBox = document.getElementById("selftest-log");
+      function tlog(msg, cls) {
+        logBox.classList.remove("hidden");
+        var line = document.createElement("div");
+        line.className = cls || "info";
+        line.textContent = msg;
+        logBox.appendChild(line);
+        logBox.scrollTop = logBox.scrollHeight;
+      }
+
+      /* Slot còn trống gần nhất trong lịch — dùng đúng luật của slots.js */
+      function freeTestSlots(n) {
+        if (typeof TFD_SLOTS === "undefined") return [];
+        var sch = CFG.FLIGHT_SCHEDULE || { groups: [] };
+        var opts = { minLeadMinutes: CFG.MIN_LEAD_MINUTES || 0 };
+        var now = Date.now();
+        var out = [];
+        var days = TFD_SLOTS.allDates(sch);
+        for (var i = 0; i < days.length && out.length < n; i++) {
+          var day = TFD_SLOTS.buildDay(sch, days[i], allItems, 1, now, opts);
+          for (var j = 0; j < day.length && out.length < n; j++) {
+            // chỉ lấy ô HOÀN TOÀN trống, tránh vô tình ghép vào khách thật
+            if (day[j].selectable && day[j].state === TFD_SLOTS.EMPTY) out.push(day[j].key);
+          }
+        }
+        return out;
+      }
+
+      document.getElementById("selftest-run").addEventListener("click", function () {
+        if (selftestRunning) return;
+        var runBtn = this;
+        var count = parseInt(document.getElementById("selftest-count").value, 10) || 1;
+        var doApprove = document.getElementById("selftest-approve").checked;
+
+        if (doApprove && !confirm(
+          "Bước duyệt sẽ GỬI EMAIL THẬT tới " + TEST_EMAIL + " và ghi một dòng vào sổ thu tiền.\nTiếp tục?")) return;
+
+        selftestRunning = true;
+        logBox.innerHTML = "";
+        var restore = TFD_UI.busy(runBtn, "Đang chạy…");
+        var t0 = Date.now();
+        var created = [];
+        var pass = 0, fail = 0;
+        function ok(m) { pass++; tlog("  ✔ " + m, "ok"); }
+        function bad(m) { fail++; tlog("  ✘ " + m, "bad"); }
+
+        tlog("▶ Bắt đầu tự kiểm tra — " + count + " đăng ký", "head");
+        tlog("  Nguồn dữ liệu: " + (TFDQ.isRemote() ? "Google Sheet (thật)" : "localStorage (chế độ thử nghiệm)"),
+             TFDQ.isRemote() ? "info" : "bad");
+        if (!TFDQ.isRemote()) {
+          bad("Chưa kết nối Google Sheet — SCRIPT_URL trống. Kiểm tra này sẽ không chạm tới sheet thật.");
+        }
+
+        var slots = freeTestSlots(count);
+        tlog("  Slot trống tìm được: " + (slots.length ? slots.join(", ") : "(không có)"));
+        if (slots.length < count) {
+          bad("Chỉ tìm được " + slots.length + "/" + count + " slot trống — giảm số lượng hoặc kiểm tra lịch bay.");
+        }
+        if (!slots.length) {
+          restore(); selftestRunning = false;
+          TFD_UI.toast("Không còn slot trống để chạy kiểm tra.", "error");
+          return;
+        }
+
+        tlog("");
+        tlog("① Gửi " + slots.length + " đăng ký CÙNG LÚC (kiểm tra chống tranh chỗ)…", "head");
+
+        Promise.all(slots.map(function (slot, i) {
+          return TFDQ.register({
+            name: TEST_PREFIX + " Khách thử " + (i + 1),
+            phone: "0900000000",
+            email: TEST_EMAIL,
+            payMethod: "BANK",
+            groupSize: "1",
+            slotKey: slot
+          }).then(function (res) {
+            return { slot: slot, res: res };
+          }).catch(function (e) {
+            return { slot: slot, res: { ok: false, error: String(e && e.message || e) } };
+          });
+        })).then(function (results) {
+          results.forEach(function (r) {
+            if (r.res && r.res.ok && r.res.item && r.res.item.id) {
+              created.push(r.res.item.id);
+              ok("Đăng ký được slot " + r.slot + " → mã " + r.res.item.id);
+            } else {
+              bad("Slot " + r.slot + " bị từ chối: " + ((r.res && r.res.error) || "không rõ"));
+            }
+          });
+
+          tlog("");
+          tlog("② Đọc lại từ server — dữ liệu đã lên sheet chưa?", "head");
+          return TFDQ.list();
+        }).then(function (items) {
+          var byId = {};
+          (items || []).forEach(function (it) { byId[it.id] = it; });
+          created.forEach(function (id) {
+            var it = byId[id];
+            if (!it) return bad("Mã " + id + " KHÔNG thấy trong dữ liệu server");
+            if (it.slotKey) ok("Mã " + id + " đã có trên server — slot " + it.slotKey + ", trạng thái " + it.status);
+            else bad("Mã " + id + " có trên server nhưng THIẾU slotKey");
+          });
+
+          // Đặt trùng slot đã có người → phải bị từ chối
+          tlog("");
+          tlog("③ Thử đặt trùng slot đã đầy — phải bị CHẶN", "head");
+          var taken = created.length ? byId[created[0]] : null;
+          if (!taken || !taken.slotKey) { tlog("  (bỏ qua — không có slot để thử)"); return null; }
+          return TFDQ.register({
+            name: TEST_PREFIX + " Trùng chỗ", phone: "0900000000", email: TEST_EMAIL,
+            payMethod: "BANK", groupSize: "2", slotKey: taken.slotKey
+          }).then(function (res) {
+            if (res && res.ok) {
+              created.push(res.item.id);
+              bad("Server VẪN CHO đặt nhóm 2 người vào slot đã có khách lẻ — luật ghép đôi hỏng!");
+            } else {
+              ok("Bị chặn đúng như mong đợi (" + ((res && res.error) || "?") + ")");
+            }
+          });
+        }).then(function () {
+          if (!doApprove || !created.length) return null;
+          tlog("");
+          tlog("④ Duyệt thanh toán (tính giờ bay, ghi sổ thu, gửi email)…", "head");
+          return TFDQ.confirmPayment(created[0], { payMethod: "BANK" }).then(function (res) {
+            if (res && res.ok) ok("Đã duyệt mã " + created[0] + " — trạng thái " + res.item.status +
+                                  ", giờ bay " + (res.item.eta ? TFDQ.fmtTime(Date.parse(res.item.eta)) : "?"));
+            else bad("Duyệt thất bại: " + ((res && res.error) || "?"));
+          });
+        }).then(function () {
+          tlog("");
+          tlog("⑤ Dọn dẹp — huỷ toàn bộ đăng ký thử", "head");
+          return Promise.all(created.map(function (id) {
+            return TFDQ.update(id, "CANCELLED").then(function (r) {
+              if (r && r.ok) ok("Đã huỷ " + id + " (slot được trả lại)");
+              else bad("Không huỷ được " + id + " — VÀO SHEET XOÁ TAY dòng [TEST]");
+            }).catch(function () {
+              bad("Lỗi mạng khi huỷ " + id + " — VÀO SHEET XOÁ TAY dòng [TEST]");
+            });
+          }));
+        }).catch(function (e) {
+          bad("Lỗi ngoài dự kiến: " + String(e && e.message || e));
+        }).then(function () {
+          var secs = ((Date.now() - t0) / 1000).toFixed(1);
+          tlog("");
+          tlog("■ Xong sau " + secs + "s — " + pass + " đạt, " + fail + " lỗi", fail ? "bad" : "ok");
+          if (fail) tlog("  Còn dòng [TEST] nào trong sheet thì xoá tay giúp mình nhé.", "info");
+          TFD_UI.toast(fail ? ("Kiểm tra xong: " + fail + " lỗi — xem nhật ký") :
+                              ("Hệ thống chạy tốt (" + pass + " mục đạt, " + secs + "s)"),
+                       fail ? "error" : "success", 6000);
+          restore();
+          selftestRunning = false;
+          refresh();
+        });
+      });
+
       document.getElementById("walkin-form").addEventListener("submit", function (e) {
         e.preventDefault();
         var err = document.getElementById("walkin-error");
@@ -1100,17 +1371,12 @@
       function renderDayTabs() {
         var bar = document.getElementById("day-tabs");
         var today = TFDQ.todayVN();
-        var cfgDays = (CFG.EVENT_DAYS && CFG.EVENT_DAYS.length) ? CFG.EVENT_DAYS : [];
-        var dataDays = TFDQ.daysInData(allItems);
-        // Gộp ngày từ config + dữ liệu, loại trùng, sắp xếp
-        var seen = {};
-        var days = [];
-        cfgDays.concat(dataDays).forEach(function (d) {
-          if (!seen[d]) { seen[d] = true; days.push(d); }
-        });
-        days.sort();
-        // Luôn có "hôm nay" dù chưa có đăng ký nào
-        if (!seen[today]) { days.push(today); days.sort(); }
+        /* CHỈ lấy ngày trong FLIGHT_SCHEDULE.
+           Trước đây còn gộp thêm daysInData(allItems) — tức mọi ngày có
+           trong sheet — nên các ngày của sự kiện cũ "Hobby Horizon" cũng
+           hiện thành tab, rất dễ bấm nhầm lúc đang chạy sự kiện. */
+        var days = EVENT_DAYS.slice();
+        if (!days.length) days = [today];   // chưa cấu hình lịch → giữ hành vi cũ
 
         bar.innerHTML = days.map(function (d, i) {
           var cls = "day-tab";
@@ -1144,8 +1410,9 @@
             });
           }
           detectNewRegistrations(items);
-          allItems = items;
-          lastItems = TFDQ.filterByDay(items, selectedDay);
+          // Bỏ dữ liệu ngoài ngày sự kiện (các dòng cũ của Hobby Horizon)
+          allItems = onlyEventItems(items);
+          lastItems = TFDQ.filterByDay(allItems, selectedDay);
           lastSyncAt = Date.now();
           render();
         }).catch(function () {

@@ -121,6 +121,9 @@
     "experience.slotNeedsSolo": "That time is holding a seat for a solo flyer, so a group of 2 can't take it. Please pick an available time.",
     "experience.slotBad": "That flight time isn't valid — please pick again.",
     "experience.slotPast": "That time has already passed — please pick another.",
+    "experience.toastSending": "Sending your booking…",
+    "experience.toastBooked": "Seat held for {time}! Transfer the fee and send the screenshot on Zalo.",
+    "experience.toastBookedNoTime": "Booking received!",
     "experience.slotTooSoon": "That time is too soon. Please pick a time at least 30 minutes from now.",
 
     /* ---------- email / hình thức thanh toán trên form ---------- */

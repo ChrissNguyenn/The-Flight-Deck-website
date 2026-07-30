@@ -1734,3 +1734,96 @@ body > .hero:first-child {
     font-size: 1.05em;
   }
 }
+
+/* ============================================================
+   TOAST + SPINNER (toast.js) — dùng chung mọi trang
+   Đặt trong style.css để cả admin.html (không nạp carrot-day.css)
+   cũng dùng được.
+   ============================================================ */
+
+.tfd-toasts {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  /* Trên điện thoại đặt ở ĐÁY: ngón tay đang ở nửa dưới màn hình, và
+     phía trên đã có thanh nav dính + nút đổi ngôn ngữ. */
+  bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+  z-index: 10000;              /* trên cả nút đổi ngôn ngữ (9998) */
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: min(92vw, 420px);
+  pointer-events: none;        /* không chặn thao tác phía dưới */
+}
+
+.tfd-toast {
+  pointer-events: auto;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.8rem 1rem;
+  border-radius: 12px;
+  background: #12263f;
+  color: #eaf2fa;
+  font-size: 0.95rem;
+  line-height: 1.45;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.32);
+  border-left: 5px solid #5cbcf0;
+  opacity: 0;
+  transform: translateY(12px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.tfd-toast.is-in { opacity: 1; transform: translateY(0); }
+
+.tfd-toast--success { border-left-color: #2fbf71; }
+.tfd-toast--error   { border-left-color: #e0524d; }
+.tfd-toast--loading { border-left-color: #ffc04d; }
+
+.tfd-toast__icon { flex: 0 0 auto; }
+.tfd-toast__text { flex: 1 1 auto; }
+
+/* Spinner dùng trong nút đang chờ mạng */
+.tfd-spinner {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  margin-right: 0.5em;
+  vertical-align: -0.15em;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: tfd-spin 0.7s linear infinite;
+}
+
+@keyframes tfd-spin { to { transform: rotate(360deg); } }
+
+/* Nút đang bận: giữ nguyên kích thước, chỉ mờ đi */
+button[aria-busy="true"] { cursor: progress; opacity: 0.85; }
+
+/* Khung xương (skeleton) lúc đang tải lưới slot — báo cho khách biết
+   "đang tải" thay vì để một khoảng trống trông như lỗi. */
+.tfd-skeleton {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+  gap: 0.5rem;
+}
+
+.tfd-skeleton__cell {
+  height: 52px;
+  border-radius: 10px;
+  background: linear-gradient(90deg, #e8eef6 25%, #f4f8fc 37%, #e8eef6 63%);
+  background-size: 400% 100%;
+  animation: tfd-shimmer 1.3s ease-in-out infinite;
+}
+
+@keyframes tfd-shimmer {
+  from { background-position: 100% 50%; }
+  to   { background-position: 0 50%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tfd-spinner { animation-duration: 2s; }
+  .tfd-skeleton__cell { animation: none; }
+  .tfd-toast { transition: none; }
+}

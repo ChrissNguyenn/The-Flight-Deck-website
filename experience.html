@@ -176,6 +176,7 @@
   <script src="qrcode.min.js"></script>
   <script src="vietqr.js"></script>
   <script src="slots.js"></script>
+  <script src="toast.js"></script>
   <script src="queue.js"></script>
   <script>
     (function () {
@@ -816,6 +817,17 @@
             TFD_T("experience.slotNoSchedule", "Chưa có lịch bay được cấu hình.") + "</p>";
           return;
         }
+
+        /* Chưa lấy được dữ liệu lần nào → hiện khung xương thay vì lưới
+           trống. Lưới trống trông y như "hết chỗ hết rồi", khách sẽ bỏ đi;
+           khung xương nhấp nháy cho biết rõ là ĐANG TẢI. */
+        if (!loadedOnce && !loadFailed) {
+          var cells = "";
+          for (var k = 0; k < 12; k++) cells += "<div class='tfd-skeleton__cell'></div>";
+          var skel = "<div class='tfd-skeleton' aria-hidden='true'>" + cells + "</div>";
+          if (skel !== lastGridHtml) { lastGridHtml = skel; slotGridEl.innerHTML = skel; }
+          return;
+        }
         var size = currentGroupSize();
         var day = TFD_SLOTS.buildDay(SCHEDULE, selectedDate, lastItems, size, Date.now(), SLOT_OPTS);
 
@@ -1022,10 +1034,14 @@
 
         // Xin quyền thông báo + mở khóa âm thanh ngay trong thao tác bấm
         enableAlerts();
+        /* Khoá nút + spinner + toast "đang gửi" ngay lập tức.
+           Gọi Apps Script mất 1–3 giây; không có phản hồi gì thì khách sẽ
+           bấm lại lần nữa và tạo đăng ký trùng. */
         var btn = document.getElementById("reg-submit");
         submitting = true;
-        btn.disabled = true;
-        btn.textContent = TFD_T("experience.registering", "Đang đăng ký…");
+        var restoreBtn = TFD_UI.busy(btn, TFD_T("experience.registering", "Đang đăng ký…"));
+        var pending = TFD_UI.toast(
+          TFD_T("experience.toastSending", "Đang gửi đăng ký của bạn…"), "loading", 0);
 
         var sizeInput = document.querySelector('input[name="group-size"]:checked');
         var payInput = document.querySelector('input[name="pay-method"]:checked');
@@ -1041,6 +1057,10 @@
           if (res.ok) {
             store.set(MY_KEY, res.item.id);
             saveSnapshot(res.item);
+            var t = String(res.item.slotKey || "").slice(11);
+            TFD_UI.toast(t
+              ? fmt("experience.toastBooked", "Đã giữ chỗ lúc {time}! Chuyển khoản rồi gửi ảnh qua Zalo nhé.", { time: t })
+              : TFD_T("experience.toastBookedNoTime", "Đã ghi nhận đăng ký!"), "success", 5000);
             return refresh();
           }
           // Server từ chối vì ngoài khung giờ (đồng hồ máy khách có thể sai)
@@ -1092,7 +1112,12 @@
           regError.textContent = TFD_T("experience.netError", "Lỗi kết nối — vui lòng thử lại hoặc gặp nhân viên gian hàng.");
         }).then(function () {
           submitting = false;
-          btn.textContent = TFD_T("experience.btnSubmit", "Đăng ký lượt bay 🛫");
+          pending.close();
+          restoreBtn();
+          /* Mọi nhánh lỗi phía trên đều ghi vào regError, nên chỉ cần đọc
+             lại một chỗ duy nhất là hiện được toast cho tất cả. */
+          var errMsg = regError.textContent.trim();
+          if (errMsg) TFD_UI.toast(errMsg, "error");
           bookingGate();   // khóa lại ngay nếu vừa hết khung giờ khi đang gửi
         });
       });
