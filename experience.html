@@ -526,7 +526,6 @@
           } else {
             html += "<p class='my-line'>" + TFD_T("experience.flyNow", "📣 <strong>Đã đến giờ bay của bạn — vui lòng có mặt tại gian hàng ngay!</strong>") + "</p>";
           }
-          html += "<p class='my-line'>" + TFDQ.instructorNote(entry.slotPeople) + "</p>";
         } else if (mine.status === "CALLED" && entry) {
           var left = entry.callDeadline - c.now;
           html += "<div class='my-alert'>" + TFD_T("experience.calledAlert", "📣 BẠN ĐÃ ĐƯỢC GỌI!") + "</div>" +

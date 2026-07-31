@@ -36,8 +36,6 @@ Website cho gian hàng **The Flight Deck** tại **Flight to Carrot Day 2026**: 
     mới và chờ — người đăng ký 1 mình tiếp theo sẽ tự động ghép vào đúng slot đó.
   Giờ bay của slot sau = giờ bay slot trước + 15 phút — **không có nghỉ giữa ca**,
   khách bay xong là lượt kế tiếp vào buồng lái luôn.
-  **1 khách bay → instructor ngồi ghế bên cạnh · 2 khách bay → instructor đứng
-  phía sau** — ghi chú này tự hiện trên trang quản lý cho từng slot.
 - Khi một lượt bị **hủy tay / hết hạn thanh toán**, hệ thống tự **dồn các
   lượt WAITING phía sau lên sớm hơn** để không bỏ phí chỗ trống — trừ lượt
   đã **CALLED/PRESENT** (đã gọi/đã có mặt) thì giữ nguyên giờ đã báo.

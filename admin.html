@@ -247,6 +247,12 @@
       border-radius: 10px; padding: 0.7rem 1rem; margin-bottom: 1.2rem;
       color: var(--amber-400); font-size: 0.9rem; font-weight: 600;
     }
+    /* Nhãn nhỏ trong bảng chờ thanh toán: lượt này bay vào ngày KHÁC tab
+       đang xem. Bảng đó cố ý gộp mọi ngày (xem renderPayments), nên phải
+       nói rõ kẻo nhân viên tưởng khách bay hôm đang mở. */
+    .pay-otherday {
+      color: var(--amber-400); font-weight: 700; white-space: nowrap;
+    }
 
     /* ---------- Tablet / cảm ứng ----------
        Nhân viên trực trang này trên tablet cả ngày, thao tác bằng ngón tay
@@ -692,7 +698,9 @@
 
         document.getElementById("stat-waiting").textContent =
           c.waitingCount + " lượt (" + c.waitingPeople + " người)";
-        document.getElementById("stat-payment").textContent = c.pendingPayments.length;
+        // Đếm trên MỌI ngày, khớp với bảng chờ thanh toán bên dưới
+        document.getElementById("stat-payment").textContent =
+          TFDQ.compute(allItems).pendingPayments.length;
         document.getElementById("stat-wait").textContent =
           "1 người ~" + c.soloWaitMin + "p (" + TFDQ.fmtTime(c.soloEta) + (c.soloHasOpenSlot ? ", đang chờ ghép" : "") + ")" +
           " · 2 người ~" + c.duoWaitMin + "p (" + TFDQ.fmtTime(c.duoEta) + ")";
@@ -744,15 +752,24 @@
         // Chỉ chạy luật tự động khi xem ngày hôm nay
         if (isViewingToday()) runAutoRules(c);
 
-        // Ẩn/hiện nút thao tác khi xem ngày cũ
+        /* Báo cho đúng: ngày ĐÃ QUA khác hẳn ngày SẮP TỚI.
+           Trước đây mọi ngày không phải hôm nay đều bị gọi là "ngày cũ" và
+           bảo nhân viên "chuyển về Hôm nay" — trong khi trước sự kiện thì
+           hôm nay KHÔNG CÓ TAB nào, câu đó thành lời khuyên không làm được
+           và làm nhân viên tưởng mình không được thao tác. */
         var pastNotice = document.getElementById("past-day-notice");
         var walkinPanel = document.getElementById("walkin-form").closest(".admin-panel");
+        var today = TFDQ.todayVN();
         if (isViewingToday()) {
           pastNotice.classList.add("hidden");
           walkinPanel.style.display = "";
         } else {
+          pastNotice.innerHTML = selectedDay < today
+            ? '📅 Đang xem <strong>ngày đã qua</strong> — chỉ để tra cứu.'
+            : '📅 Đang xem <strong>ngày sắp tới</strong>. Duyệt thanh toán vẫn ' +
+              'làm bình thường ở bảng bên dưới (bảng đó gộp mọi ngày).';
           pastNotice.classList.remove("hidden");
-          walkinPanel.style.display = "none";
+          walkinPanel.style.display = "none";   // khách vãng lai chỉ bay hôm nay
         }
       }
 
@@ -767,11 +784,18 @@
         el.innerHTML = html;
       }
 
-      /* Bảng "chờ thanh toán": khách vừa đăng ký, đang trên đường tới bàn
-         admin — thu tiền QR/tiền mặt ngoài website. Quá 5 phút tự hủy. */
+      /* Bảng "chờ thanh toán": khách vừa chuyển khoản, đang chờ nhân viên
+         đối chiếu ảnh Zalo rồi bấm duyệt. Quá PAYMENT_MINUTES tự hủy.
+
+         KHÔNG lọc theo tab ngày đang xem — cố ý.
+         Khách đặt hôm nay cho chuyến NGÀY KHÁC vẫn phải chuyển khoản trong
+         45 phút và được duyệt NGAY HÔM NAY. Lọc theo tab thì lượt ấy nằm
+         dưới tab của ngày bay, nhân viên đang đứng ở tab khác sẽ không hề
+         thấy, và 45 phút sau nó tự huỷ dù khách đã trả tiền. Việc thu tiền
+         gấp theo đồng hồ nên phải luôn hiện, tab nào cũng vậy. */
       function renderPayments(c) {
         var box = document.getElementById("payment-list");
-        var rows = c.pendingPayments;
+        var rows = TFDQ.compute(allItems).pendingPayments;
 
         if (!rows.length) {
           setHtml(box, '<p class="empty">Chưa có ai chờ thanh toán.</p>');
@@ -787,9 +811,18 @@
           function opt(v, label) {
             return '<option value="' + v + '"' + (pm === v ? " selected" : "") + ">" + label + "</option>";
           }
+          /* Ghi rõ khách bay NGÀY NÀO, GIỜ NÀO — bảng này gộp mọi ngày nên
+             không nói ra thì nhân viên không biết đang duyệt cho hôm nào. */
+          var day = TFDQ.flightDayOf(it);
+          var slotTxt = it.slotKey ? String(it.slotKey).slice(11, 16)
+            : (it.eta ? TFDQ.fmtTime(Date.parse(it.eta)) : "—");
+          var dayTxt = day ? day.slice(8, 10) + "/" + day.slice(5, 7) : "—";
+          var other = day && day !== selectedDay
+            ? ' <span class="pay-otherday">(khác tab đang xem)</span>' : "";
           return '<div class="person-row ' + (left < 60000 ? "overdue" : "alert") + '">' +
             '<div class="who"><strong>' + esc(it.name) + "</strong> · " + telLink(it.phone) + " · " + sizeTag(it) +
-            '<div class="meta">' + esc(it.email || "⚠️ chưa có email") + " · <strong>" + fmtVnd(amount) + "</strong>" +
+            '<div class="meta">🛫 <strong>' + slotTxt + " ngày " + dayTxt + "</strong>" + other +
+            " · " + esc(it.email || "⚠️ chưa có email") + " · <strong>" + fmtVnd(amount) + "</strong>" +
             " · tự hủy sau <strong>" + TFDQ.fmtCountdown(Math.max(0, left)) + "</strong></div></div>" +
             '<select class="pay-method-select" data-pm="' + it.id + '" title="Hình thức thanh toán">' +
               opt("BANK", "🏦 Chuyển khoản") + opt("QR", "📱 Quét QR") + opt("CASH", "💵 Tiền mặt") +
@@ -819,7 +852,7 @@
 
         var noteBox = document.getElementById("nextup-note");
         noteBox.textContent = c.nextUp.length
-          ? "Phiên kế tiếp: " + c.nextUpPeople + " khách — " + TFDQ.instructorNote(c.nextUpPeople)
+          ? "Phiên kế tiếp: " + c.nextUpPeople + " khách"
           : "";
 
         if (!rows.length) {
@@ -869,7 +902,7 @@
               '<span class="session-count">' + TFDQ.fmtCountdown(s.end - c.now) + "</span>" +
               "</div>";
           }).join(""));
-          sessionNote.textContent = TFDQ.instructorNote(c.sessionPeople);
+          sessionNote.textContent = c.sessionPeople + " khách đang bay";
           endBtn.classList.remove("hidden");
           startBtn.disabled = true;
         } else {
@@ -1099,7 +1132,13 @@
       }
 
       function sendOp(id, run, applyLocal) {
-        lastItems.forEach(function (it) { if (it.id === id) applyLocal(it); });
+        /* Sửa trên allItems — lastItems chỉ là bản lọc CÙNG THAM CHIẾU nên
+           sửa một lần là cả hai cùng đổi (gọi applyLocal hai lần sẽ tính
+           lại eta lần thứ hai, ra số khác). Phải là allItems vì bảng chờ
+           thanh toán gộp MỌI ngày: lượt vừa bấm có thể không nằm trong
+           lastItems khi đang xem tab ngày khác, khi đó nút bấm xong trông
+           như không ăn gì. */
+        allItems.forEach(function (it) { if (it.id === id) applyLocal(it); });
         syncing[id] = true;
         render(); // đổi giao diện ngay, không chờ mạng
         run().then(function (res) {

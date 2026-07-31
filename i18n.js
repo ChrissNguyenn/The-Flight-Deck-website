@@ -208,8 +208,6 @@
     "experience.alertArriveBody": "You fly at {time} — please come to the booth now.",
 
     /* ---------- queue.js (dùng chung experience.html + admin.html) ---------- */
-    "queue.instructor1": "👨‍✈️ 1 flying — instructor sits BESIDE you",
-    "queue.instructor2": "👨‍✈️ 2 flying — instructor stands BEHIND you",
 
     /* ---------- trang workshop / khảo sát (courses.html) ---------- */
     "courses.pageTitle": "Past workshops & next-session survey | The Flight Deck",

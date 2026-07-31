@@ -36,7 +36,16 @@ var TFDQ_SERVER_VERSION;
 var TFDQ = (function () {
   var CFG = window.TFD_CONFIG || {};
   var SESSION_MS = (CFG.SESSION_MINUTES || 15) * 60000;  // mọi slot đều dài như nhau
+  /* PREP_MS và ARRIVE_MS là HAI thứ khác nhau, đừng dùng lẫn:
+       PREP_MS   (5p)  — việc của nhân viên: gọi khách trước giờ bay 5 phút,
+                         gọi rồi quá 5 phút chưa tới thì huỷ lượt.
+       ARRIVE_MS (15p) — lời dặn cho KHÁCH: có mặt trước giờ bay 15 phút để
+                         check-in và làm thủ tục.
+     Trước đây web tính "có mặt trước" bằng PREP_MS nên hiện 17:40, còn
+     email và lời mời lịch ghi 17:30 — cùng một lượt bay mà khách nhận hai
+     mốc giờ khác nhau. */
   var PREP_MS = (CFG.PREP_MINUTES || 5) * 60000;
+  var ARRIVE_MS = (CFG.ARRIVE_EARLY_MINUTES || 15) * 60000;
   var PAYMENT_MS = (CFG.PAYMENT_MINUTES || 5) * 60000;
   var LOCAL_KEY = 'tfd_queue_v1';
   var QUEUE_STATUSES = ['WAITING', 'CALLED', 'PRESENT'];
@@ -264,18 +273,6 @@ var TFDQ = (function () {
     return SESSION_MS;
   }
 
-  /* Instructor ngồi đâu tùy số khách bay trong slot. Dùng TFD_T nếu có
-     (experience.html có nạp i18n.js) — admin.html không nạp i18n.js nên
-     luôn hiện tiếng Việt, đó là chủ đích (trang nội bộ nhân viên). */
-  function instructorNote(people) {
-    var vi = people >= 2
-      ? '👨‍✈️ 2 khách bay — instructor ĐỨNG PHÍA SAU'
-      : '👨‍✈️ 1 khách bay — instructor NGỒI GHẾ BÊN CẠNH';
-    return (typeof TFD_T === 'function')
-      ? TFD_T(people >= 2 ? 'queue.instructor2' : 'queue.instructor1', vi)
-      : vi;
-  }
-
   /* Thời điểm sớm nhất một slot MỚI có thể bắt đầu: ngay khi buồng lái
      rảnh — khách bay xong là lượt kế tiếp vào luôn, không nghỉ giữa ca */
   function boothFree_(items, now) {
@@ -425,7 +422,7 @@ var TFDQ = (function () {
         size: sizeOf(it),
         slotIndex: distinctTimes.indexOf(r.etaMs),
         eta: r.etaMs,
-        mustArriveBy: r.etaMs - PREP_MS,
+        mustArriveBy: r.etaMs - ARRIVE_MS,   // PHẢI khớp email + lời mời lịch
         waitMin: Math.max(0, Math.round((r.etaMs - now) / 60000)),
         // Còn ≤ 5 phút đến giờ bay đã chốt mà chưa gọi → nhắc gọi ngay
         needsCall: it.status === 'WAITING' && (r.etaMs - now) <= PREP_MS,
@@ -756,12 +753,35 @@ var TFDQ = (function () {
     return dateKeyVN(Date.now());
   }
 
-  /** Lọc items theo ngày (mặc định = hôm nay) */
+  /** NGÀY BAY của một lượt đăng ký — KHÔNG phải ngày khách bấm đăng ký.
+      Ưu tiên slot khách tự chọn, rồi giờ bay đã chốt, rồi cột ngày bay;
+      hết cách mới lấy ngày đăng ký (chỉ còn dữ liệu rất cũ mới rơi vào). */
+  function flightDayOf(it) {
+    if (!it) return '';
+    if (it.slotKey) {
+      var s = String(it.slotKey).slice(0, 10);
+      if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+    }
+    if (it.flightDate && /^\d{4}-\d{2}-\d{2}$/.test(String(it.flightDate))) {
+      return String(it.flightDate);
+    }
+    if (it.eta) {
+      var k = dateKeyVN(it.eta);
+      if (k) return k;
+    }
+    return dateKeyVN(it.createdAt);
+  }
+
+  /** Lọc items theo NGÀY BAY (mặc định = hôm nay).
+
+      Trước đây hàm này lọc theo createdAt — ngày khách BẤM ĐĂNG KÝ. Các
+      tab trong trang quản lý lại là NGÀY BAY (03/08…10/08). Khách đặt
+      ngày 31/07 cho chuyến 03/08 có createdAt = 31/07, mà 31/07 không hề
+      có tab nào → lượt đó KHÔNG hiện ở bất kỳ tab nào, nhân viên không
+      thấy để bấm duyệt, 45 phút sau tự huỷ dù khách đã chuyển tiền. */
   function filterByDay(items, dayKey) {
     var key = dayKey || todayVN();
-    return items.filter(function (it) {
-      return dateKeyVN(it.createdAt) === key;
-    });
+    return items.filter(function (it) { return flightDayOf(it) === key; });
   }
 
   /** Trả về danh sách ngày (YYYY-MM-DD) có trong dữ liệu, cũ → mới */
@@ -889,10 +909,10 @@ var TFDQ = (function () {
     fmtCountdown: fmtCountdown,
     sizeOf: sizeOf,
     durMs: durMs,
-    instructorNote: instructorNote,
     dateKeyVN: dateKeyVN,
     todayVN: todayVN,
     filterByDay: filterByDay,
+    flightDayOf: flightDayOf,
     daysInData: daysInData,
     fmtDayLabel: fmtDayLabel,
     bookingWindows: bookingWindows,
@@ -901,6 +921,7 @@ var TFDQ = (function () {
     isBookingOpen: isBookingOpen,
     SESSION_MS: SESSION_MS,
     PREP_MS: PREP_MS,
+    ARRIVE_MS: ARRIVE_MS,
     PAYMENT_MS: PAYMENT_MS
   };
 })();
