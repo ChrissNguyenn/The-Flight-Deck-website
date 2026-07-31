@@ -860,6 +860,15 @@ var TFDQ = (function () {
   function bookingStatus(nowMs) {
     var now = (nowMs == null) ? Date.now() : nowMs;
     var wins = bookingWindows();
+
+    /* CÔNG TẮC TỔNG — REGISTRATION_OPEN: false trong config.js.
+       Đóng ở đây là đóng hẳn, không cần biết mấy giờ, ngày nào. Dùng cho
+       lúc website đã lên nhưng CHƯA tới giờ mở bán. Chốt chặn thật nằm ở
+       máy chủ (google-apps-script.gs) — chỗ này chỉ để khách nhìn thấy. */
+    if (typeof TFD_CONFIG !== 'undefined' && TFD_CONFIG.REGISTRATION_OPEN === false) {
+      return { open: false, windows: wins, locked: true };
+    }
+
     if (!wins.length) return { open: true, windows: wins, always: true };
 
     var mid = vnMidnightMs(now);

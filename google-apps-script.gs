@@ -35,7 +35,7 @@ var LOG_SHEET_NAME = 'Jun Pham log';       // nhật ký lỗi (email hỏng…)
    ⚠️ TĂNG SỐ NÀY mỗi lần sửa file rồi deploy lại — nhờ nó mà lỗi "đã sửa
    code rồi mà chạy vẫn như cũ" (do quên bấm Deploy) hiện ra ngay thay vì
    phải mò. */
-var SCRIPT_VERSION = 4;
+var SCRIPT_VERSION = 5;
 /* Thứ tự cột trong sheet — các cột đầu là thông tin khách (tiếng Việt),
    các cột sau để hệ thống hàng chờ vận hành. HEADERS là khóa nội bộ
    (khớp JSON trả về website), HEADER_LABELS là tiêu đề hiển thị.
@@ -174,6 +174,22 @@ var MAIL_USE_GMAIL_ALIAS = false;
 /* Bật/tắt toàn bộ việc gửi email. Đặt false khi đang thử nghiệm để không
    bắn email thật cho khách trong lúc test luồng duyệt. */
 var MAIL_ENABLED = true;
+
+/* ============================================================
+ * 🔒 CÔNG TẮC TỔNG — CÓ NHẬN ĐĂNG KÝ HAY KHÔNG
+ * ------------------------------------------------------------
+ * false = từ chối MỌI đăng ký mới, bất kể giờ nào ngày nào.
+ * true  = chạy bình thường theo FLIGHT_SCHEDULE + khung giờ.
+ *
+ * ĐÂY MỚI LÀ KHOÁ THẬT. config.js chỉ khoá phần nhìn thấy được; ai mở
+ * DevTools hay gọi thẳng URL Web App vẫn đăng ký được nếu chỗ này còn
+ * true. Đổi ở đây xong PHẢI Deploy lại mới có tác dụng.
+ *
+ * Chỉ chặn ĐĂNG KÝ MỚI. Duyệt thanh toán, huỷ, gửi email cho các lượt
+ * đã có vẫn chạy — nếu không thì khoá cổng sẽ kẹt luôn những khách đã
+ * đặt và đã trả tiền.
+ * ============================================================ */
+var REGISTRATION_OPEN = false;
 
 /* Khung giờ nhận đăng ký mỗi ngày (giờ VN, 24h) — PHẢI KHỚP BOOKING_HOURS
    trong config.js. Website đã khóa nút ngoài giờ; chốt chặn ở đây phòng
@@ -1109,6 +1125,64 @@ function TEST_guiEmailThu() {
 }
 
 /* ============================================================
+ * 🧹 XOÁ SẠCH DỮ LIỆU THỬ — CHẠY THẲNG TRONG APPS SCRIPT EDITOR
+ * ============================================================
+ * Xoá toàn bộ dòng dữ liệu (GIỮ hàng tiêu đề) ở 3 tab:
+ *     Jun Pham · Jun Pham payments · Jun Pham log
+ *
+ * ⚠️ KHÔNG HOÀN TÁC ĐƯỢC. Chạy nhầm trong lúc sự kiện đang diễn ra là
+ * mất sạch khách thật đã đặt và đã trả tiền.
+ *
+ * Vì vậy nó KHÔNG chạy ngay: phải tự tay đổi dòng dưới thành true. Một
+ * bước thừa, nhưng nó đứng giữa "bấm nhầm nút Run" và "mất toàn bộ dữ
+ * liệu khách" — cái giá quá rẻ.
+ *
+ * Cách dùng:
+ *   1. Đổi XOA_XAC_NHAN thành true → Lưu
+ *   2. Chọn hàm XOA_HET_DU_LIEU ở ô cạnh nút ▶ Run → Run
+ *   3. ĐỔI LẠI thành false → Lưu   (để lần sau không xoá nhầm)
+ */
+var XOA_XAC_NHAN = false;
+
+function XOA_HET_DU_LIEU() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var tabs = [SHEET_NAME, PAY_SHEET_NAME, LOG_SHEET_NAME];
+  var out = [];
+
+  // Đếm trước để báo cáo — và để bạn biết mình sắp xoá bao nhiêu
+  var tong = 0;
+  tabs.forEach(function (name) {
+    var sh = ss.getSheetByName(name);
+    var n = sh ? Math.max(0, sh.getLastRow() - 1) : 0;
+    tong += n;
+    out.push(name + ': ' + (sh ? n + ' dòng' : 'chưa có tab này'));
+  });
+  out.forEach(function (l) { try { Logger.log(l); console.log(l); } catch (e) {} });
+
+  if (!XOA_XAC_NHAN) {
+    throw new Error('CHƯA XOÁ GÌ CẢ. Sắp xoá ' + tong + ' dòng (chi tiết ở trên). ' +
+      'Muốn xoá thật thì sửa XOA_XAC_NHAN = true ở đầu hàm, Lưu, rồi Run lại — ' +
+      'và nhớ đổi về false ngay sau đó.');
+  }
+
+  tabs.forEach(function (name) {
+    var sh = ss.getSheetByName(name);
+    if (!sh) return;
+    var last = sh.getLastRow();
+    if (last > 1) sh.deleteRows(2, last - 1);   // giữ nguyên hàng tiêu đề
+  });
+
+  /* Xoá luôn cache danh sách. Không xoá thì trong ~10 giây tiếp theo
+     doGet vẫn trả bản chụp cũ và website hiện lại đúng những lượt vừa
+     xoá — trông như xoá hụt. */
+  try { CacheService.getScriptCache().remove(CACHE_KEY); } catch (err) {}
+
+  var msg = 'ĐÃ XOÁ ' + tong + ' dòng, giữ nguyên tiêu đề. Nhớ đặt XOA_XAC_NHAN về false.';
+  try { Logger.log(msg); console.log(msg); } catch (e) {}
+  return { deleted: tong, tabs: out };
+}
+
+/* ============================================================
  * PHẦN 4 — TRẠNG THÁI GHÉP ĐÔI + KÍCH HOẠT EMAIL
  * ============================================================ */
 
@@ -1346,6 +1420,11 @@ function register_(sheet, p) {
   // Email là kênh gửi giờ bay + lời mời lịch — sai định dạng thì chặn ngay
   // tại đây, đừng để tới lúc duyệt mới phát hiện không gửi được cho ai.
   if (!email || !isEmail_(email)) return json_({ ok: false, error: 'BAD_EMAIL' });
+
+  // Cổng đăng ký đang khoá hẳn (chưa tới ngày mở bán) → từ chối trước tiên
+  if (!REGISTRATION_OPEN) {
+    return json_({ ok: false, error: 'LOCKED' });
+  }
 
   // Ngoài khung giờ nhận đăng ký → từ chối (chốt chặn cuối cùng)
   if (!isBookingOpen_()) {

@@ -17,6 +17,20 @@
 var TFD_CONFIG = {
   SCRIPT_URL: "",              // ← dán URL Web App của bạn vào đây (xem README)
   ADMIN_PIN: "000000",         // ← ĐỔI THÀNH PIN CỦA BẠN (mở admin.html)
+
+  /* ============================================================
+     🔒 CÔNG TẮC TỔNG — CÓ NHẬN ĐĂNG KÝ HAY KHÔNG
+     ------------------------------------------------------------
+     false = website vẫn xem được nhưng KHÔNG ai đăng ký được, bất kể
+             giờ nào ngày nào. Dùng cho giai đoạn "đã lên sóng nhưng
+             chưa tới giờ mở bán".
+     true  = chạy bình thường theo lịch bay + khung giờ bên dưới.
+
+     ⚠️ ĐỔI Ở CẢ HAI NƠI: biến này VÀ REGISTRATION_OPEN trong
+     google-apps-script.gs (rồi Deploy lại). Chỉ sửa file này thì máy
+     chủ vẫn nhận đăng ký qua API — khoá ở giao diện không phải là khoá.
+     ============================================================ */
+  REGISTRATION_OPEN: false,
   SESSION_MINUTES: 15,     // mọi lượt bay đều 15 phút (1 người sẽ được ghép với 1 người khác)
   PRICE_PER_PERSON: 150000, // giá tiền — 150K / 1 người bay
   PREP_MINUTES: 5,         // phải có mặt trước 5 phút; quá 5 phút sau khi gọi sẽ tự hủy

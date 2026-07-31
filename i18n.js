@@ -196,6 +196,8 @@
     "experience.bookingOpen": "🟢 Booking is open — closes at <strong>{close}</strong> · Daily hours: <strong>{hours}</strong>",
     "experience.bookingClosed": "⏰ Booking is closed right now. Opens at <strong>{open}</strong>{day} — in <strong class='countdown'>{countdown}</strong><br>Daily booking hours: <strong>{hours}</strong>",
     "experience.bookingTomorrow": "tomorrow",
+    "experience.bookingLocked": "🔒 <strong>Booking is not open yet.</strong> The booking gate opens soon — keep an eye on this page or The Flight Deck's Zalo so you don't miss it.",
+    "experience.bookingLockedError": "Booking is not open yet. Please come back when the gate opens.",
     "experience.bookingClosedShort": "Outside booking hours",
     "experience.bookingClosedError": "Outside booking hours ({hours}). Booking reopens at {open}.",
     "experience.bookingClosedNow": "Outside booking hours. Daily hours: {hours}.",

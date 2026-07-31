@@ -954,6 +954,27 @@
         var cls, html;
         bookingNote.hidden = false;
 
+        /* Công tắc tổng đang TẮT — chưa tới ngày mở bán. Không hiện đồng
+           hồ đếm ngược: chưa có mốc giờ nào để đếm, đếm về một thời điểm
+           bịa ra còn tệ hơn im lặng. */
+        if (st.locked) {
+          cls = "booking-hours-note is-closed";
+          html = TFD_T("experience.bookingLocked",
+            "🔒 <strong>Chưa mở đăng ký.</strong> Cổng đặt chỗ sẽ mở trong thời gian tới — " +
+            "theo dõi trang này hoặc Zalo của The Flight Deck để không bỏ lỡ nhé.");
+          if (html !== lastGateHtml) {
+            lastGateHtml = html;
+            bookingNote.className = cls;
+            bookingNote.innerHTML = html;
+          }
+          setFormLocked(true);
+          if (btn) {
+            btn.disabled = true;
+            btn.title = "Chưa mở đăng ký";
+          }
+          return st;
+        }
+
         if (st.open) {
           cls = "booking-hours-note is-open";
           html = fmt("experience.bookingOpen",
@@ -1016,6 +1037,11 @@
 
         // Chặn lần 2 ngay lúc bấm: trang có thể đã mở sẵn từ trước khi hết giờ
         var gate = bookingGate();
+        if (gate.locked) {
+          regError.textContent = TFD_T("experience.bookingLockedError",
+            "Chưa mở đăng ký. Vui lòng quay lại khi cổng đặt chỗ mở.");
+          return;
+        }
         if (!gate.open) {
           regError.textContent = fmt("experience.bookingClosedError",
             "Ngoài giờ nhận đăng ký ({hours}). Đăng ký mở lại lúc {open}.",
@@ -1061,6 +1087,13 @@
               ? fmt("experience.toastBooked", "Đã giữ chỗ lúc {time}! Chuyển khoản rồi gửi ảnh qua Zalo nhé.", { time: t })
               : TFD_T("experience.toastBookedNoTime", "Đã ghi nhận đăng ký!"), "success", 5000);
             return refresh();
+          }
+          // Server báo cổng đăng ký đang khoá hẳn
+          if (res.error === "LOCKED") {
+            bookingGate();
+            regError.textContent = TFD_T("experience.bookingLockedError",
+              "Chưa mở đăng ký. Vui lòng quay lại khi cổng đặt chỗ mở.");
+            return;
           }
           // Server từ chối vì ngoài khung giờ (đồng hồ máy khách có thể sai)
           if (res.error === "CLOSED") {

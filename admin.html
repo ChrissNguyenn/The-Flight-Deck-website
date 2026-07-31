@@ -679,6 +679,14 @@
         var st = TFDQ.bookingStatus();
         if (st.always) { el.hidden = true; return; }
         el.hidden = false;
+        /* Cổng đăng ký khoá hẳn — nhân viên phải biết ngay, kẻo tưởng
+           "hôm nay vắng khách" trong khi thực ra website không cho ai đặt. */
+        if (st.locked) {
+          el.className = "walkin-hours is-closed";
+          el.textContent = "🔒 CHƯA MỞ ĐĂNG KÝ — website đang khoá, khách không đặt được. " +
+            "Mở bằng cách đặt REGISTRATION_OPEN = true ở CẢ config.js và google-apps-script.gs.";
+          return;
+        }
         if (st.open) {
           el.className = "walkin-hours is-open";
           el.textContent = "🟢 Đang nhận đăng ký — đóng lúc " + TFDQ.fmtTime(st.closesAt) +
@@ -712,7 +720,7 @@
            tức bản deploy có từ trước khi thêm cột slot. Đây chính là nguyên
            nhân của lỗi "có trên server nhưng thiếu slotKey", nên phải báo
            thật rõ ngay trên thanh trạng thái. */
-        var EXPECTED_SCRIPT_VERSION = 4;
+        var EXPECTED_SCRIPT_VERSION = 5;
         var sv = (typeof TFDQ_SERVER_VERSION === "undefined") ? undefined : TFDQ_SERVER_VERSION;
         var modeEl = document.getElementById("stat-mode");
         if (!TFDQ.isRemote()) {
