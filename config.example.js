@@ -30,7 +30,7 @@ var TFD_CONFIG = {
      google-apps-script.gs (rồi Deploy lại). Chỉ sửa file này thì máy
      chủ vẫn nhận đăng ký qua API — khoá ở giao diện không phải là khoá.
      ============================================================ */
-  REGISTRATION_OPEN: false,
+  REGISTRATION_OPEN: true,
   SESSION_MINUTES: 15,     // mọi lượt bay đều 15 phút (1 người sẽ được ghép với 1 người khác)
   PRICE_PER_PERSON: 150000, // giá tiền — 150K / 1 người bay
   PREP_MINUTES: 5,         // phải có mặt trước 5 phút; quá 5 phút sau khi gọi sẽ tự hủy

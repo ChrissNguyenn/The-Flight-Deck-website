@@ -35,7 +35,7 @@ var LOG_SHEET_NAME = 'Jun Pham log';       // nhật ký lỗi (email hỏng…)
    ⚠️ TĂNG SỐ NÀY mỗi lần sửa file rồi deploy lại — nhờ nó mà lỗi "đã sửa
    code rồi mà chạy vẫn như cũ" (do quên bấm Deploy) hiện ra ngay thay vì
    phải mò. */
-var SCRIPT_VERSION = 6;
+var SCRIPT_VERSION = 7;
 /* Thứ tự cột trong sheet — các cột đầu là thông tin khách (tiếng Việt),
    các cột sau để hệ thống hàng chờ vận hành. HEADERS là khóa nội bộ
    (khớp JSON trả về website), HEADER_LABELS là tiêu đề hiển thị.
@@ -189,7 +189,7 @@ var MAIL_ENABLED = true;
  * đã có vẫn chạy — nếu không thì khoá cổng sẽ kẹt luôn những khách đã
  * đặt và đã trả tiền.
  * ============================================================ */
-var REGISTRATION_OPEN = false;
+var REGISTRATION_OPEN = true;
 
 /* ============================================================
  * GIỜ NHẬN ĐĂNG KÝ MỖI NGÀY (giờ VN, 24h) — KHÁC GIỜ BAY
