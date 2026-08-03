@@ -35,7 +35,7 @@ var LOG_SHEET_NAME = 'Jun Pham log';       // nhật ký lỗi (email hỏng…)
    ⚠️ TĂNG SỐ NÀY mỗi lần sửa file rồi deploy lại — nhờ nó mà lỗi "đã sửa
    code rồi mà chạy vẫn như cũ" (do quên bấm Deploy) hiện ra ngay thay vì
    phải mò. */
-var SCRIPT_VERSION = 5;
+var SCRIPT_VERSION = 6;
 /* Thứ tự cột trong sheet — các cột đầu là thông tin khách (tiếng Việt),
    các cột sau để hệ thống hàng chờ vận hành. HEADERS là khóa nội bộ
    (khớp JSON trả về website), HEADER_LABELS là tiêu đề hiển thị.
@@ -191,17 +191,24 @@ var MAIL_ENABLED = true;
  * ============================================================ */
 var REGISTRATION_OPEN = false;
 
-/* Khung giờ nhận đăng ký mỗi ngày (giờ VN, 24h) — PHẢI KHỚP BOOKING_HOURS
-   trong config.js. Website đã khóa nút ngoài giờ; chốt chặn ở đây phòng
-   trường hợp đồng hồ máy khách sai hoặc có người gọi thẳng vào API.
-   Để trống ([]) = nhận đăng ký cả ngày. */
-/* SUY RA từ FLIGHT_SCHEDULE, không ghi cứng nữa — xem bookingHours_().
-
-   Trước đây đây là một mảng gõ tay và nó ĐÃ LỆCH: thêm ngày test mở
-   08:00–22:00 làm website cho đăng ký lúc 14:00, còn máy chủ vẫn giữ
-   08:00–13:00 + 17:00–21:00 nên từ chối thẳng. Khách/sếp bấm được nút
-   nhưng nhận lỗi "ngoài giờ nhận đăng ký" — kiểu lỗi không ai ngờ tới.
-   Suy ra từ một nguồn duy nhất thì không thể lệch được nữa. */
+/* ============================================================
+ * GIỜ NHẬN ĐĂNG KÝ MỖI NGÀY (giờ VN, 24h) — KHÁC GIỜ BAY
+ * ------------------------------------------------------------
+ * Khung giờ khách được PHÉP BẤM ĐẶT CHỖ, không phải giờ buồng lái chạy:
+ *
+ *   BOOKING_HOURS (đây)  08:00–22:00 — lúc nào đặt được
+ *   FLIGHT_SCHEDULE      10:00–13:00 & 17:00–21:00 — lúc nào bay
+ *
+ * Khách 21h30 vẫn giữ được chỗ cho 10h sáng mai. Nới khung này KHÔNG
+ * sinh thêm giờ bay nào — slot vẫn do FLIGHT_SCHEDULE + MIN_LEAD_MS chốt.
+ *
+ * ⚠️ PHẢI KHỚP BOOKING_HOURS trong config.js. Lệch một bên là khách bấm
+ * được nút rồi nhận lỗi "ngoài giờ nhận đăng ký" — đã dính một lần.
+ * Để trống ([]) = nhận đăng ký cả ngày.
+ * ============================================================ */
+var BOOKING_HOURS = [
+  { start: '08:00', end: '22:00' }
+];
 
 /* ============================================================
  * SLOT ENGINE — PHẢI GIỐNG HỆT slots.js của website
@@ -331,12 +338,16 @@ function validateSlot_(index, key, groupSize, nowMs) {
 }
 
 /** Đang trong khung giờ nhận đăng ký? (tính theo giờ VN của server) */
-/* Khung giờ nhận đăng ký = bao trùm mọi khung bay của mọi nhóm ngày, đã
-   gộp các khoảng chồng nhau. Giống hệt đoạn suy diễn cuối config.js nên
-   hai bên không thể lệch. Tính một lần rồi nhớ luôn. */
+/* Dùng BOOKING_HOURS khai báo ở trên. Chỉ khi bỏ trống mới suy ra vùng
+   bao của mọi khung bay làm mặc định — giống hệt đoạn cuối config.js nên
+   hai bên cho ra cùng kết quả. Tính một lần rồi nhớ luôn. */
 var BOOKING_HOURS_ = null;
 function bookingHours_() {
   if (BOOKING_HOURS_) return BOOKING_HOURS_;
+  if (BOOKING_HOURS && BOOKING_HOURS.length) {
+    BOOKING_HOURS_ = BOOKING_HOURS;
+    return BOOKING_HOURS_;
+  }
   var wins = [];
   (FLIGHT_SCHEDULE.groups || []).forEach(function (g) {
     (g.windows || []).forEach(function (w) {

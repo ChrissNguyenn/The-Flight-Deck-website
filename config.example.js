@@ -103,6 +103,30 @@ var TFD_CONFIG = {
      rồi không kịp chuyển khoản và tới nơi. */
   MIN_LEAD_MINUTES: 30,
 
+  /* ============================================================
+     GIỜ NHẬN ĐĂNG KÝ MỖI NGÀY — KHÁC VỚI GIỜ BAY, ĐỪNG LẪN
+     ------------------------------------------------------------
+     Đây là khung giờ khách được PHÉP BẤM ĐẶT CHỖ, không phải giờ
+     buồng lái hoạt động. Hai thứ khác nhau:
+
+       BOOKING_HOURS (đây)  08:00–22:00 — lúc nào khách đặt được
+       FLIGHT_SCHEDULE      10:00–13:00 & 17:00–21:00 — lúc nào bay
+
+     Khách 21h30 vẫn đặt được chỗ cho 10h sáng mai. Trước đây khung
+     này SUY RA từ giờ bay nên hẹp đúng bằng giờ bay: ai vào web lúc
+     14h hay 21h30 là không đặt được gì cả, dù chỉ muốn giữ chỗ cho
+     hôm sau — mất khách vô lý.
+
+     Slot cụ thể vẫn do FLIGHT_SCHEDULE + MIN_LEAD_MINUTES quyết định,
+     nên nới khung này KHÔNG sinh thêm giờ bay nào.
+
+     ⚠️ PHẢI KHỚP BOOKING_HOURS trong google-apps-script.gs.
+     Để trống [] = nhận đăng ký cả ngày.
+     ============================================================ */
+  BOOKING_HOURS: [
+    { start: "08:00", end: "22:00" }
+  ],
+
   /* Khách cần có mặt trước giờ bay bao nhiêu phút (dùng trong email +
      lời mời lịch). */
   ARRIVE_EARLY_MINUTES: 15
@@ -125,9 +149,11 @@ var TFD_CONFIG = {
   days.sort();
   cfg.EVENT_DAYS = days;
 
-  /* Khung giờ NHẬN ĐĂNG KÝ mỗi ngày = bao trùm mọi khung bay của mọi
-     nhóm (sớm nhất → muộn nhất). Cụ thể ngày nào mở slot nào thì do
-     slots.js quyết định; đây chỉ là cổng chặn thô theo giờ trong ngày. */
+  /* Khung giờ NHẬN ĐĂNG KÝ: nếu đã khai báo tường minh ở trên thì dùng
+     luôn, KHÔNG suy ra từ giờ bay nữa. Chỉ khi bỏ trống mới lấy vùng bao
+     của mọi khung bay làm mặc định (giữ tương thích cấu hình cũ). */
+  if (cfg.BOOKING_HOURS && cfg.BOOKING_HOURS.length) return;
+
   function toMin(hm) { var p = String(hm).split(':'); return (+p[0]) * 60 + (+p[1]); }
   function toHm(m) {
     var h = Math.floor(m / 60), mm = m % 60;
