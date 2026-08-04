@@ -254,6 +254,65 @@
       color: var(--amber-400); font-weight: 700; white-space: nowrap;
     }
 
+    /* ---------- Khoá slot thủ công ---------- */
+    .block-toolbar {
+      display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem;
+      margin-bottom: 0.9rem;
+    }
+    .block-toolbar label { font-size: 0.85rem; color: var(--text-dim); }
+    .block-toolbar input {
+      flex: 1 1 12rem; min-width: 9rem; padding: 0.55rem 0.7rem;
+      border-radius: 8px; border: 1px solid rgba(255,255,255,0.18);
+      background: rgba(255,255,255,0.06); color: inherit;
+      font: inherit; font-size: 16px;   /* 16px: iOS không tự phóng to trang */
+    }
+    .block-legend { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+    .blk-key {
+      font-size: 0.72rem; padding: 0.15rem 0.5rem; border-radius: 999px;
+      border: 1px solid currentColor; white-space: nowrap;
+    }
+    .blk-empty   { color: #8fd6a4; }
+    .blk-pending { color: var(--amber-400); }
+    .blk-full    { color: #9fb3cc; }
+    .blk-locked  { color: #ff8f8a; }
+
+    /* Lưới ô giờ. minmax(7.5rem,1fr): trên tablet dọc vẫn ra 3–4 cột,
+       mỗi ô đủ chỗ cho giờ + nút, không vỡ chữ. */
+    .block-grid {
+      display: grid; gap: 0.5rem;
+      grid-template-columns: repeat(auto-fill, minmax(7.5rem, 1fr));
+    }
+    .blk-cell {
+      border: 1px solid rgba(255,255,255,0.14); border-radius: 10px;
+      padding: 0.5rem; text-align: center;
+      background: rgba(255,255,255,0.04);
+    }
+    .blk-cell.is-locked { border-color: rgba(255,143,138,0.5); background: rgba(255,143,138,0.10); }
+    .blk-cell.is-full   { opacity: 0.55; }
+    .blk-time { font-weight: 800; font-size: 1rem; letter-spacing: 0.02em; }
+    .blk-note {
+      font-size: 0.7rem; color: var(--text-dim); margin-top: 0.15rem;
+      min-height: 1rem; overflow-wrap: anywhere;
+    }
+    .blk-btn {
+      margin-top: 0.4rem; width: 100%; min-height: 40px;
+      border-radius: 8px; border: none; cursor: pointer;
+      font: inherit; font-weight: 700; font-size: 0.8rem;
+      background: rgba(255,255,255,0.12); color: inherit;
+    }
+    .blk-btn.is-lock   { background: rgba(255,143,138,0.22); color: #ffb3af; }
+    .blk-btn.is-unlock { background: rgba(143,214,164,0.22); color: #9fe0b4; }
+    .blk-btn[disabled] { opacity: 0.4; cursor: not-allowed; }
+    /* Tiêu đề buổi là một ô của lưới, nên phải CHIẾM TRỌN HÀNG. Không có
+       dòng này thì "Chiều · Tối" lọt vào giữa một hàng ô giờ như thể nó
+       cũng là một slot. */
+    .blk-group {
+      grid-column: 1 / -1;
+      margin: 0.9rem 0 0.1rem; font-size: 0.8rem;
+      color: var(--text-dim); font-weight: 700;
+    }
+    .blk-group:first-child { margin-top: 0; }
+
     /* ---------- Tablet / cảm ứng ----------
        Nhân viên trực trang này trên tablet cả ngày, thao tác bằng ngón tay
        trong lúc vừa nói chuyện với khách — nút phải đủ to để không bấm trượt
@@ -371,6 +430,28 @@
           </tbody>
         </table>
       </div>
+    </section>
+
+    <section class="admin-panel" id="block-panel">
+      <h2>🔒 Khoá slot thủ công</h2>
+      <p class="empty" style="margin-bottom:0.8rem;">
+        Khách vãng lai tới quán, bảo trì buồng lái, khách VIP… bấm
+        <strong>Khoá</strong> ô giờ đó để khách trên web không đặt trùng vào được.
+        Ô đã khoá hiện ngay là <strong>Kín chỗ</strong> ngoài trang khách.
+        Slot đang có khách thật thì không khoá được — huỷ hoặc đổi giờ cho khách trước.
+      </p>
+      <div class="block-toolbar">
+        <label for="block-reason">Lý do (không bắt buộc)</label>
+        <input type="text" id="block-reason" maxlength="40" placeholder="Khách ngoài"
+               autocomplete="off" inputmode="text">
+        <span class="block-legend">
+          <span class="blk-key blk-empty">Trống</span>
+          <span class="blk-key blk-pending">Chờ ghép</span>
+          <span class="blk-key blk-full">Có khách</span>
+          <span class="blk-key blk-locked">Đã khoá</span>
+        </span>
+      </div>
+      <div id="block-grid"><p class="empty">Đang tải…</p></div>
     </section>
 
     <section class="admin-panel" id="call-panel">
@@ -720,7 +801,7 @@
            tức bản deploy có từ trước khi thêm cột slot. Đây chính là nguyên
            nhân của lỗi "có trên server nhưng thiếu slotKey", nên phải báo
            thật rõ ngay trên thanh trạng thái. */
-        var EXPECTED_SCRIPT_VERSION = 7;
+        var EXPECTED_SCRIPT_VERSION = 8;
         var sv = (typeof TFDQ_SERVER_VERSION === "undefined") ? undefined : TFDQ_SERVER_VERSION;
         var modeEl = document.getElementById("stat-mode");
         if (!TFDQ.isRemote()) {
@@ -756,6 +837,7 @@
         renderSession(c);
         renderQueue(c);
         renderPairing(c);
+        renderBlocks();
         renderHistory(c);
         // Chỉ chạy luật tự động khi xem ngày hôm nay
         if (isViewingToday()) runAutoRules(c);
@@ -978,6 +1060,100 @@
          Slot nào chỉ có 1 người = đang chờ ghép, tô cam để nhân viên
          biết còn trống 1 chỗ.
          ============================================================ */
+      /* ---------- KHOÁ SLOT THỦ CÔNG ----------
+         Vẽ TOÀN BỘ ô 15 phút của ngày đang xem, kèm trạng thái thật, để
+         nhân viên khoá/mở ngay tại chỗ. Trạng thái tính từ cùng một hàm
+         mà trang khách dùng (TFD_SLOTS.buildDay) — không có bản sao luật
+         thứ hai để lệch. */
+      var blockBusy = {};          // slotKey đang gửi lệnh, chặn bấm hai lần
+
+      function renderBlocks() {
+        var box = document.getElementById("block-grid");
+        if (!box) return;
+        var sch = CFG.FLIGHT_SCHEDULE || { groups: [] };
+        /* Dùng allItems, KHÔNG dùng lastItems: lastItems lọc theo tab ngày,
+           mà ta đang vẽ đúng ngày đó nên kết quả như nhau — nhưng đọc từ
+           nguồn đầy đủ thì không phụ thuộc bộ lọc, an toàn hơn về sau. */
+        var day = TFD_SLOTS.buildDay(sch, selectedDay, allItems, 1, Date.now(),
+          { minLeadMinutes: CFG.MIN_LEAD_MINUTES || 0 });
+
+        if (!day.length) {
+          setHtml(box, '<p class="empty">Ngày này không có lịch bay.</p>');
+          return;
+        }
+
+        var html = '';
+        var buoi = '';
+        day.forEach(function (s) {
+          // Tách Sáng/Chiều tối cho dễ nhìn khi một ngày có 2 khung giờ
+          var b = (+s.time.slice(0, 2)) < 13 ? "🌅 Sáng" : "🌆 Chiều · Tối";
+          if (b !== buoi) { buoi = b; html += '<div class="blk-group">' + b + "</div>"; }
+
+          var locked = s.blocked;
+          var coKhach = !locked && s.state !== "EMPTY";
+          var cls = "blk-cell" + (locked ? " is-locked" : (coKhach ? " is-full" : ""));
+
+          var note, btn;
+          if (locked) {
+            note = "🔒 " + esc(s.blockReason || "Khách ngoài");
+            btn = '<button class="blk-btn is-unlock" data-action="unblock" data-slot="' +
+              s.key + '"' + (blockBusy[s.key] ? " disabled" : "") + ">Mở lại</button>";
+          } else if (coKhach) {
+            note = s.state === "FULL" ? "Có khách (kín)" : "Có khách (chờ ghép)";
+            // Không cho khoá đè lên khách thật — server cũng từ chối
+            btn = '<button class="blk-btn" disabled title="Đang có khách đặt">Khoá</button>';
+          } else {
+            note = "Trống";
+            btn = '<button class="blk-btn is-lock" data-action="block" data-slot="' +
+              s.key + '"' + (blockBusy[s.key] ? " disabled" : "") + ">Khoá</button>";
+          }
+          html += '<div class="' + cls + '">' +
+            '<div class="blk-time">' + s.time + "</div>" +
+            '<div class="blk-note">' + note + "</div>" + btn + "</div>";
+        });
+        setHtml(box, '<div class="block-grid">' + html + "</div>");
+      }
+
+      /* Gửi lệnh khoá/mở. Cập nhật ngay trên màn hình rồi mới chờ mạng —
+         nhân viên đang đứng trước mặt khách, không thể đợi một vòng poll. */
+      function toggleBlock(action, slotKey, btn) {
+        if (!slotKey || blockBusy[slotKey]) return;
+        blockBusy[slotKey] = true;
+        var done = TFD_UI.busy(btn, action === "block" ? "Đang khoá…" : "Đang mở…");
+        var reasonEl = document.getElementById("block-reason");
+        var reason = reasonEl ? reasonEl.value.trim() : "";
+        var gio = String(slotKey).slice(11, 16) + " ngày " + slotKey.slice(8, 10) + "/" + slotKey.slice(5, 7);
+
+        var p = action === "block"
+          ? TFDQ.blockSlot(slotKey, reason)
+          : TFDQ.unblockSlot(slotKey);
+
+        p.then(function (res) {
+          if (res && res.ok) {
+            TFD_UI.toast(action === "block"
+              ? "🔒 Đã khoá " + gio + " — khách không đặt được ô này nữa"
+              : "🔓 Đã mở lại " + gio + " — khách đặt được ngay", "success");
+            return refresh();
+          }
+          var vi = {
+            SLOT_TAKEN: "ô này đang có khách đặt — huỷ hoặc đổi giờ cho khách trước",
+            BAD_SLOT: "ô giờ không hợp lệ",
+            NOT_BLOCKED: "ô này vốn không bị khoá",
+            ROW_MOVED: "hàng trong Google Sheet vừa bị dịch — tải lại rồi thử lại",
+            BUSY: "hệ thống đang bận, thử lại sau vài giây"
+          }[res && res.error] || (res && res.error) || "lỗi không rõ";
+          TFD_UI.toast("Không " + (action === "block" ? "khoá" : "mở") + " được " + gio + " — " + vi, "error", 8000);
+          showSyncError(vi);
+          return refresh();
+        }).catch(function () {
+          TFD_UI.toast("Lỗi kết nối — chưa " + (action === "block" ? "khoá" : "mở") + " được " + gio, "error");
+        }).then(function () {
+          delete blockBusy[slotKey];
+          done();
+          render();
+        });
+      }
+
       function renderPairing(c) {
         var body = document.getElementById("pairing-body");
 
@@ -1197,6 +1373,10 @@
         }
         if (action === "enable-notify") {
           try { Notification.requestPermission(function () { render(); }); } catch (e) {}
+          return;
+        }
+        if (action === "block" || action === "unblock") {
+          toggleBlock(action, btn.getAttribute("data-slot"), btn);
           return;
         }
         if (syncing[id]) return; // lệnh trước cho khách này còn đang gửi

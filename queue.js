@@ -674,6 +674,56 @@ var TFDQ = (function () {
     return post({ action: 'repair' });
   }
 
+  /* ---------- KHOÁ / MỞ SLOT THỦ CÔNG (trang quản lý) ----------
+     Khoá một ô 15 phút cho khách vãng lai — ô đó lập tức thành "Kín chỗ"
+     ngoài trang khách. Chỗ khoá được ghi vào CHÍNH sheet đăng ký dưới
+     trạng thái BLOCKED, nên trạng thái slot vẫn chỉ tính từ một nguồn.
+     Chế độ thử nghiệm (chưa nối Google Sheet) làm y hệt trên localStorage
+     để test được luồng mà không cần mạng. */
+  var BLOCK_NAME = '[LOCKED / KHÁCH NGOÀI]';
+
+  function blockSlot(slotKey, reason) {
+    reason = String(reason || '').trim() || 'Khách ngoài';
+    if (!isRemote()) {
+      var items = localRead();
+      for (var i = 0; i < items.length; i++) {
+        if (items[i].status === 'BLOCKED' && items[i].slotKey === slotKey) {
+          return Promise.resolve({ ok: true, item: items[i], already: true });
+        }
+      }
+      var now = new Date().toISOString();
+      var item = {
+        id: 'blk' + Math.random().toString(36).slice(2, 7),
+        createdAt: now, updatedAt: now,
+        name: BLOCK_NAME, phone: '', email: '',
+        status: 'BLOCKED', groupSize: '2',
+        slotKey: slotKey, flightDate: String(slotKey).slice(0, 10),
+        eta: new Date(TFD_SLOTS.slotMs(String(slotKey).slice(0, 10), String(slotKey).slice(11, 16))).toISOString(),
+        amount: '0', payRef: reason
+      };
+      items.push(item);
+      localWrite(items);
+      return Promise.resolve({ ok: true, item: item });
+    }
+    return post({ action: 'blockSlot', slotKey: slotKey, reason: reason });
+  }
+
+  function unblockSlot(slotKey) {
+    if (!isRemote()) {
+      var items = localRead();
+      /* Chỉ xoá hàng BLOCKED — tuyệt đối không đụng booking của khách thật */
+      var left = items.filter(function (it) {
+        return !(it.status === 'BLOCKED' && it.slotKey === slotKey);
+      });
+      if (left.length === items.length) {
+        return Promise.resolve({ ok: false, error: 'NOT_BLOCKED' });
+      }
+      localWrite(left);
+      return Promise.resolve({ ok: true, slotKey: slotKey });
+    }
+    return post({ action: 'unblockSlot', slotKey: slotKey });
+  }
+
   /* Các lượt slot kế tiếp cần TỰ ĐỘNG vào buồng lái: khách đã CÓ MẶT,
      đã tới giờ bay, buồng lái trống, và không còn ai cùng slot đang trong
      thời gian ân hạn (WAITING chưa gọi hoặc CALLED chưa quá 5 phút) —
@@ -912,6 +962,9 @@ var TFDQ = (function () {
     autoStartReady: autoStartReady,
     needsPairing: needsPairing,
     repair: repair,
+    blockSlot: blockSlot,
+    unblockSlot: unblockSlot,
+    BLOCK_NAME: BLOCK_NAME,
     nextEtaFor: nextEtaFor_,
     onExternalChange: onExternalChange,
     fmtTime: fmtTime,

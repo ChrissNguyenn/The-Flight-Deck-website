@@ -26,8 +26,23 @@ var TFD_SLOTS = (function () {
   /* Trạng thái booking vẫn đang GIỮ CHỖ trong slot. PENDING_PAYMENT có
      giữ chỗ: khách đã chọn slot và đang đi chuyển khoản — không thể để
      người khác cướp mất trong lúc đó. Các trạng thái đã kết thúc
-     (huỷ / quá hạn / không đến) thì nhả chỗ ra. */
-  var HOLDING = ['PENDING_PAYMENT', 'WAITING', 'CALLED', 'PRESENT', 'IN_SESSION', 'DONE'];
+     (huỷ / quá hạn / không đến) thì nhả chỗ ra.
+
+     BLOCKED = nhân viên khoá tay ô đó cho khách vãng lai. Ghi ở đây là đủ
+     để ô chuyển sang Kín chỗ ngoài trang khách — trạng thái slot luôn
+     được TÍNH LẠI từ danh sách booking (xem chú thích đầu file), nên
+     không có chỗ thứ hai nào phải sửa theo. */
+  var HOLDING = ['PENDING_PAYMENT', 'WAITING', 'CALLED', 'PRESENT', 'IN_SESSION', 'DONE', 'BLOCKED'];
+
+  /* Ô này đang bị khoá tay? (để trang quản lý vẽ nút Mở lại) */
+  function blockOf(index, key) {
+    var cell = index[key];
+    if (!cell) return null;
+    for (var i = 0; i < cell.items.length; i++) {
+      if (cell.items[i].status === 'BLOCKED') return cell.items[i];
+    }
+    return null;
+  }
 
   var EMPTY = 'EMPTY';
   var PENDING_PAIR = 'PENDING_PAIR';
@@ -189,6 +204,7 @@ var TFD_SLOTS = (function () {
       var st = stateOf(index, s.key);
       var check = canBook(index, s, groupSize, nowMs, opts);
       var cell = index[s.key];
+      var blk = blockOf(index, s.key);
       return {
         key: s.key,
         date: s.date,
@@ -198,7 +214,10 @@ var TFD_SLOTS = (function () {
         state: st,
         seats: cell ? cell.seats : 0,
         selectable: check.ok,
-        reason: check.ok ? '' : check.reason
+        reason: check.ok ? '' : check.reason,
+        // Trang quản lý cần phân biệt "kín vì có khách" với "kín vì bị khoá"
+        blocked: !!blk,
+        blockReason: blk ? (blk.payRef || '') : ''
       };
     });
   }
@@ -220,6 +239,7 @@ var TFD_SLOTS = (function () {
     allDates: allDates,
     indexBookings: indexBookings,
     stateOf: stateOf,
+    blockOf: blockOf,
     canBook: canBook,
     buildDay: buildDay
   };

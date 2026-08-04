@@ -35,7 +35,7 @@ var LOG_SHEET_NAME = 'Jun Pham log';       // nhật ký lỗi (email hỏng…)
    ⚠️ TĂNG SỐ NÀY mỗi lần sửa file rồi deploy lại — nhờ nó mà lỗi "đã sửa
    code rồi mà chạy vẫn như cũ" (do quên bấm Deploy) hiện ra ngay thay vì
    phải mò. */
-var SCRIPT_VERSION = 7;
+var SCRIPT_VERSION = 8;
 /* Thứ tự cột trong sheet — các cột đầu là thông tin khách (tiếng Việt),
    các cột sau để hệ thống hàng chờ vận hành. HEADERS là khóa nội bộ
    (khớp JSON trả về website), HEADER_LABELS là tiêu đề hiển thị.
@@ -243,8 +243,16 @@ var FLIGHT_SCHEDULE = {
 /* Khách phải đặt trước ít nhất bao nhiêu phút — khớp MIN_LEAD_MINUTES */
 var MIN_LEAD_MS = 30 * 60000;
 
-/* Trạng thái còn GIỮ CHỖ trong slot (khớp HOLDING của slots.js) */
-var SLOT_HOLDING_ = ['PENDING_PAYMENT', 'WAITING', 'CALLED', 'PRESENT', 'IN_SESSION', 'DONE'];
+/* Trạng thái còn GIỮ CHỖ trong slot (khớp HOLDING của slots.js).
+   BLOCKED = ô bị nhân viên khoá tay cho khách vãng lai — chiếm chỗ y như
+   một booking thật nên khách trên web không đặt trùng vào được. */
+var SLOT_HOLDING_ = ['PENDING_PAYMENT', 'WAITING', 'CALLED', 'PRESENT', 'IN_SESSION', 'DONE', 'BLOCKED'];
+
+/* Ô khoá tay: tên hiển thị + lý do mặc định.
+   groupSize = 2 để ô chiếm TRỌN slot — để 1 thì slot thành "đang chờ ghép"
+   và một khách lẻ vẫn chen vào được, đúng thứ việc khoá phải ngăn. */
+var BLOCK_NAME = '[LOCKED / KHÁCH NGOÀI]';
+var BLOCK_REASON_DEFAULT = 'Khách ngoài';
 
 var TZ_MS_ = 7 * 3600000;
 
@@ -1350,6 +1358,8 @@ function doPost(e) {
     if (p.action === 'register') return register_(sheet, p);
     if (p.action === 'update') return update_(sheet, p);
     if (p.action === 'confirmPayment') return confirmPayment_(sheet, p);
+    if (p.action === 'blockSlot') return blockSlot_(sheet, p);
+    if (p.action === 'unblockSlot') return unblockSlot_(sheet, p);
     if (p.action === 'repair') return repair_(sheet);
     if (p.action === 'diag') return diag_(sheet);
     return json_({ ok: false, error: 'UNKNOWN_ACTION' });
@@ -1512,6 +1522,105 @@ function register_(sheet, p) {
   cachePut_(items);
   delete item.row;
   return json_({ ok: true, item: item });
+}
+
+/* ============================================================
+ * KHOÁ SLOT THỦ CÔNG — cho khách vãng lai / bảo trì / khách VIP
+ * ============================================================
+ * Quán có khách đi thẳng tới nơi, không qua link sự kiện. Nhân viên khoá
+ * ô 15 phút đó lại để khách trên web không đặt trùng.
+ *
+ * Cách làm: ghi một hàng BLOCKED vào chính sheet đăng ký, chiếm chỗ đúng
+ * như một booking thật. KHÔNG dùng bảng riêng — một nguồn sự thật duy
+ * nhất thì không bao giờ có chuyện "web thấy trống, sổ thấy đầy". Vì
+ * BLOCKED không nằm trong QUEUE_STATUSES_ nên hàng này tự động KHÔNG lọt
+ * vào hàng chờ, ghép đôi, sổ thu tiền hay email.
+ * ============================================================ */
+
+/* Hàng BLOCKED đang giữ ô này (null nếu không có) */
+function findBlock_(items, slotKey) {
+  for (var i = 0; i < items.length; i++) {
+    if (items[i].status === 'BLOCKED' && items[i].slotKey === slotKey) return items[i];
+  }
+  return null;
+}
+
+function blockSlot_(sheet, p) {
+  var slotKey = normSlotKey_(String(p.slotKey || '').trim());
+  if (!isRealSlot_(slotKey)) return json_({ ok: false, error: 'BAD_SLOT', slotKey: slotKey });
+
+  var items = readAll_(sheet);
+
+  // Đã khoá rồi thì coi như xong — bấm hai lần không tạo hai hàng
+  var da = findBlock_(items, slotKey);
+  if (da) { delete da.row; return json_({ ok: true, item: da, already: true }); }
+
+  /* Đang có khách THẬT giữ ô này thì TỪ CHỐI, không khoá đè.
+     Khoá đè lên khách đã đặt (và có thể đã trả tiền) là âm thầm cướp chỗ
+     của họ; nhân viên phải tự quyết huỷ hay đổi giờ cho khách. */
+  var index = indexBookings_(items);
+  if (slotStateOf_(index, slotKey) !== 'EMPTY') {
+    return json_({ ok: false, error: 'SLOT_TAKEN', slotKey: slotKey });
+  }
+
+  var reason = String(p.reason || '').trim() || BLOCK_REASON_DEFAULT;
+  var now = new Date(Math.floor(Date.now() / 1000) * 1000).toISOString();
+  var item = {
+    id: 'blk' + Utilities.getUuid().slice(0, 5),
+    createdAt: now,
+    name: BLOCK_NAME,
+    phone: '',
+    email: '',
+    status: 'BLOCKED',
+    calledAt: '',
+    sessionStart: '',
+    updatedAt: now,
+    groupSize: '2',               // chiếm trọn slot, xem BLOCK_NAME
+    slotKey: slotKey,
+    eta: new Date(slotKeyToMs_(slotKey)).toISOString(),
+    flightDate: slotKey.slice(0, 10),
+    payMethod: '',
+    amount: '0',                  // không phải doanh thu
+    payRef: reason,               // lý do khoá
+    approvedAt: '',
+    seq: '',
+    pairState: '',
+    pairWith: '',
+    emailStage: '',
+    emailedEta: '',
+    mailSeq: '',
+    row: sheet.getLastRow() + 1
+  };
+  writeRow_(sheet, item);
+  items.push(item);
+  cachePut_(items);
+  delete item.row;
+  return json_({ ok: true, item: item });
+}
+
+function unblockSlot_(sheet, p) {
+  var slotKey = normSlotKey_(String(p.slotKey || '').trim());
+  var items = readAll_(sheet);
+  var target = findBlock_(items, slotKey);
+  if (!target) return json_({ ok: false, error: 'NOT_BLOCKED', slotKey: slotKey });
+
+  /* CHỐT AN TOÀN trước khi xoá hàng: đọc lại đúng ô Trạng thái và Slot ở
+     hàng đó. Nếu ai vừa xoá/sắp xếp hàng trực tiếp trong Google Sheet thì
+     số hàng đã dịch, xoá theo số cũ là xoá nhầm một khách thật. */
+  var stCol = HEADERS.indexOf('status') + 1;
+  var skCol = HEADERS.indexOf('slotKey') + 1;
+  var st = String(sheet.getRange(target.row, stCol).getValue() || '');
+  var sk = normSlotKey_(sheet.getRange(target.row, skCol).getValue());
+  if (st !== 'BLOCKED' || sk !== slotKey) {
+    logError_('unblockSlot_', 'hàng ' + target.row + ' không còn là ô khoá (' +
+      st + ' / ' + sk + ') — bỏ qua, không xoá');
+    return json_({ ok: false, error: 'ROW_MOVED' });
+  }
+
+  sheet.deleteRows(target.row, 1);
+  try { CacheService.getScriptCache().remove(CACHE_KEY); } catch (err) {}
+  cachePut_(readAll_(sheet));
+  return json_({ ok: true, slotKey: slotKey });
 }
 
 /* Tự sửa lịch hàng chờ (PHẢI GIỐNG queue.js). Các bước:
