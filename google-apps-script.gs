@@ -35,7 +35,7 @@ var LOG_SHEET_NAME = 'Jun Pham log';       // nhật ký lỗi (email hỏng…)
    ⚠️ TĂNG SỐ NÀY mỗi lần sửa file rồi deploy lại — nhờ nó mà lỗi "đã sửa
    code rồi mà chạy vẫn như cũ" (do quên bấm Deploy) hiện ra ngay thay vì
    phải mò. */
-var SCRIPT_VERSION = 8;
+var SCRIPT_VERSION = 9;
 /* Thứ tự cột trong sheet — các cột đầu là thông tin khách (tiếng Việt),
    các cột sau để hệ thống hàng chờ vận hành. HEADERS là khóa nội bộ
    (khớp JSON trả về website), HEADER_LABELS là tiêu đề hiển thị.
@@ -137,6 +137,18 @@ var PRICE_PER_PERSON = 150000;     // khớp PRICE_PER_PERSON trong config.js
 var ZALO_LINK = 'https://zalo.me/0919686320';
 var SUPPORT_EMAIL = 'theflightdeckcoffee@gmail.com';
 var MAIL_SENDER_NAME = 'The Flight Deck';
+
+/* Hộp thư CHỦ QUÁN — nhận báo mỗi khi có lịch bay được chốt giờ, kèm
+   tệp .ics để lịch của quán tự có cuộc hẹn.
+   Đặt '' để tắt hẳn việc báo cho quán. */
+var OWNER_EMAIL = 'theflightdeckcoffee@gmail.com';
+
+/* ⚠️ Bật lên là MỖI lượt chốt giờ tốn 2 email thay vì 1. Gmail thường
+   chỉ cho ~100 email/ngày, nên ngày đông có thể chạm trần sớm gấp đôi —
+   trang quản lý đã hiện số email còn lại sau mỗi lần duyệt, để ý con số
+   đó. Hết quota thì KHÁCH là bên mất thư, nên nếu phải hy sinh thì tắt
+   cái này trước. */
+var OWNER_NOTIFY = true;
 
 /* ĐỊA CHỈ GỬI EMAIL — đọc kỹ, đây là chỗ dễ hiểu nhầm nhất:
    Apps Script LUÔN gửi bằng tài khoản Google đang SỞ HỮU script này. Không
@@ -780,7 +792,23 @@ function buildIcs_(item) {
     'SUMMARY:' + icsEscape_(title),
     'DESCRIPTION:' + icsEscape_(desc),
     'LOCATION:' + icsEscape_(VENUE_NAME + ', ' + VENUE_ADDRESS),
-    'STATUS:CONFIRMED',
+    'STATUS:CONFIRMED'
+  ];
+
+  /* ORGANIZER + ATTENDEE — quán mời khách.
+     Gmail chỉ hiện thẻ RSVP "Có / Không / Có thể" ngay trong thư khi biết
+     ai mời ai; thiếu hai dòng này thì .ics tụt xuống thành tệp đính kèm
+     thường và lịch quán không tự nhận. Quán để PARTSTAT=ACCEPTED vì quán
+     là chủ cuộc hẹn, không phải người được hỏi ý. */
+  lines.push('ORGANIZER;CN=' + icsEscape_(VENUE_NAME) + ':mailto:' + OWNER_EMAIL);
+  lines.push('ATTENDEE;CN=' + icsEscape_(VENUE_NAME) +
+    ';ROLE=CHAIR;PARTSTAT=ACCEPTED;RSVP=FALSE:mailto:' + OWNER_EMAIL);
+  if (isEmail_(item.email)) {
+    lines.push('ATTENDEE;CN=' + icsEscape_(item.name) +
+      ';ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION;RSVP=TRUE:mailto:' + String(item.email).trim());
+  }
+
+  lines = lines.concat([
     // Cùng UID + SEQUENCE lớn hơn = lịch cũ trong máy khách được CẬP NHẬT,
     // không sinh ra sự kiện thứ hai khi giờ bay bị đổi.
     'SEQUENCE:' + (Number(item.mailSeq) || 0),
@@ -791,7 +819,7 @@ function buildIcs_(item) {
     'END:VALARM',
     'END:VEVENT',
     'END:VCALENDAR'
-  ];
+  ]);
   return lines.join('\r\n');
 }
 
@@ -910,12 +938,107 @@ function sendScheduledEmail_(item, kind) {
 
   // Tăng SEQUENCE trước khi dựng .ics — lịch cũ được ghi đè thay vì nhân đôi
   item.mailSeq = String((Number(item.mailSeq) || 0) + 1);
-  var ics = Utilities.newBlob(buildIcs_(item), 'text/calendar; charset=UTF-8; method=REQUEST', 'the-flight-deck-' + item.id + '.ics');
+  var icsText = buildIcs_(item);
+  var ics = Utilities.newBlob(icsText, 'text/calendar; charset=UTF-8; method=REQUEST', 'the-flight-deck-' + item.id + '.ics');
   var ok = sendMail_(item, subject, mailShell_(isReschedule ? 'Cập nhật giờ bay' : 'Xác nhận giờ bay', body), [ics]);
   // Ghi lại giờ ĐÃ BÁO để lần sau biết giờ có đổi hay không
   if (ok) item.emailedEta = item.eta;
   else item.mailSeq = String(Math.max(0, (Number(item.mailSeq) || 1) - 1));
+
+  /* Báo cho quán — CÙNG tệp .ics (cùng UID + SEQUENCE) để lịch quán và
+     lịch khách luôn là một cuộc hẹn, đổi giờ thì cả hai cùng cập nhật.
+     Gửi kể cả khi thư cho khách hỏng: khách không có email hợp lệ thì
+     quán lại càng cần biết có người sắp tới bay. */
+  notifyOwner_(item, kind, ics);
   return ok;
+}
+
+/* ============================================================
+ * BÁO CHO CHỦ QUÁN — mỗi lượt bay vừa được chốt giờ
+ * ============================================================
+ * Đây là thư nội bộ, viết cho người đứng quán: chỉ những gì cần để đón
+ * khách — tên, số gọi được, mấy người, mấy giờ, đã thu tiền chưa.
+ *
+ * KHÔNG được làm hỏng việc duyệt khách: mọi lỗi ở đây đều nuốt lại và
+ * ghi nhật ký. Khách đã trả tiền rồi, không thể vì thư nội bộ gửi hỏng
+ * mà lượt bay của họ không được xác nhận.
+ */
+var LAST_OWNER_ERROR = '';
+
+function notifyOwner_(item, kind, icsBlob) {
+  LAST_OWNER_ERROR = '';
+  if (!OWNER_NOTIFY || !isEmail_(OWNER_EMAIL)) return false;
+  try {
+    var when = fmtFlightWhen_(item.eta);
+    var size = sizeOf_(item);
+    var isMoved = (kind === 'moved');
+
+    var subject = (isMoved ? '[ĐỔI GIỜ BAY] - ' : '[LỊCH BAY MỚI] - ') +
+      item.name + ' - ' + when.date + ' lúc ' + when.time;
+
+    var soKhach = size === 2
+      ? '<strong>2 khách</strong> (đi cùng nhau, không cần ghép)'
+      : '<strong>1 khách lẻ</strong> — đã ghép đôi' +
+        (item.pairWith ? ' với ' + escHtml_(item.pairWith) : '');
+
+    var thanhToan = item.approvedAt
+      ? '✅ Đã thu ' + fmtVnd_(item.amount) + ' · ' + escHtml_(payMethodLabel_(item.payMethod))
+      : '⚠️ CHƯA rõ — kiểm tra lại trên trang quản lý';
+
+    var lead = isMoved
+      ? '<p>⚠️ <strong>Lượt bay này vừa ĐỔI GIỜ.</strong> Lời mời lịch đính kèm sẽ ' +
+        'tự cập nhật sự kiện cũ trong lịch của quán, không tạo thêm sự kiện mới.</p>'
+      : '<p>Vừa có một lượt bay được chốt giờ. Chi tiết để đón khách:</p>';
+
+    var body = lead +
+      '<table style="border-collapse:collapse;margin:16px 0">' +
+      rowHtml_('Khách', '<span style="font-size:17px">' + escHtml_(item.name) + '</span>') +
+      rowHtml_('Điện thoại', item.phone
+        ? '<a href="tel:' + escHtml_(item.phone) + '" style="color:#f77600">' + escHtml_(item.phone) + '</a>'
+        : '—') +
+      rowHtml_('Số khách', soKhach) +
+      rowHtml_('Ngày bay', escHtml_(when.date)) +
+      rowHtml_('Giờ bay (slot 15p)',
+        '<span style="color:#f77600;font-size:18px">' + escHtml_(when.time) + '</span>' +
+        ' — bay tới ' + escHtml_(fmtFlightWhen_(new Date(Date.parse(item.eta) + SESSION_MS).toISOString()).time)) +
+      rowHtml_('STT trong ngày', escHtml_(String(item.seq || '—'))) +
+      rowHtml_('Thanh toán', thanhToan) +
+      rowHtml_('Mã booking', '<code>' + escHtml_(item.id) + '</code>') +
+      rowHtml_('Email khách', escHtml_(item.email || '(không có)')) +
+      '</table>' +
+      '<p style="background:#eef6ff;border-left:4px solid #00205b;padding:12px 14px;border-radius:6px;font-size:14px">' +
+      '📅 Thư này đính kèm lời mời lịch — bấm <strong>Có</strong> ở thẻ lịch phía trên ' +
+      'là cuộc hẹn vào thẳng Google Calendar của quán.<br>' +
+      'Khách được dặn có mặt trước <strong>' + ARRIVE_EARLY_MIN + ' phút</strong> (khoảng ' +
+      escHtml_(fmtFlightWhen_(new Date(Date.parse(item.eta) - ARRIVE_EARLY_MIN * 60000).toISOString()).time) +
+      ').</p>';
+
+    var html = mailShell_(isMoved ? 'Đổi giờ bay' : 'Lịch bay mới', body);
+    var plain = htmlToText_(html);
+    var opts = {
+      to: OWNER_EMAIL, subject: subject, htmlBody: html, body: plain,
+      name: MAIL_SENDER_NAME, replyTo: item.email && isEmail_(item.email) ? item.email : SUPPORT_EMAIL
+    };
+    if (icsBlob) opts.attachments = [icsBlob];
+
+    /* Cùng đường gửi với thư khách (MailApp trước, xem sendMail_) — nếu
+       quyền hẹp script.send_mail là đủ cho khách thì cũng đủ cho quán. */
+    try {
+      MailApp.sendEmail(opts);
+    } catch (errMail) {
+      logError_('notifyOwner_/MailApp ' + item.id, errMail);
+      LAST_OWNER_ERROR = 'MailApp: ' + (errMail && errMail.message || errMail);
+      var gOpts = { htmlBody: html, name: MAIL_SENDER_NAME, replyTo: opts.replyTo };
+      if (icsBlob) gOpts.attachments = [icsBlob];
+      GmailApp.sendEmail(OWNER_EMAIL, subject, plain, gOpts);
+      LAST_OWNER_ERROR = '';
+    }
+    return true;
+  } catch (err) {
+    logError_('notifyOwner_ ' + item.id, err);
+    LAST_OWNER_ERROR = String(err && err.message || err);
+    return false;
+  }
 }
 
 function escHtml_(s) {
@@ -1059,9 +1182,13 @@ function mailQuotaLeft_() {
  * Đây là cách DUY NHẤT để biết chắc email đi từ địa chỉ nào: máy chủ Gmail
  * quyết định điều đó, không phải đoạn mã này. Nhật ký sẽ in ra địa chỉ thật.
  *
- * Gửi 2 thư — đúng 2 kịch bản khách thật sẽ nhận:
+ * Gửi 3 thư, TẤT CẢ về TEST_EMAIL_TO:
  *   1. Khách lẻ chưa ghép đôi — KHÔNG có giờ bay
  *   2. Khách 2 người — CÓ giờ bay + tệp lịch .ics đính kèm
+ *   3. Bản xem trước thư báo cho quán (kèm cùng tệp .ics)
+ *
+ * Thư số 3 KHÔNG vào hộp thư quán thật: bắn "[LỊCH BAY MỚI] - Khách Gửi
+ * Thử" vào đó là để chị chủ chuẩn bị đón một người không có thật.
  */
 var TEST_EMAIL_TO = 'theduc4a@gmail.com';   // đổi thành email của bạn nếu cần
 
@@ -1079,6 +1206,14 @@ function TEST_guiEmailThu() {
   var owner = '(không đọc được)';
   try { owner = Session.getEffectiveUser().getEmail(); } catch (err) {}
 
+  /* Bản thử cũng gửi thư "báo cho quán", nhưng CHUYỂN HƯỚNG về chính hộp
+     thư đang thử. Bắn một thư "[LỊCH BAY MỚI] - Khách Gửi Thử" vào hộp
+     chị chủ là để chị chuẩn bị đón một người không có thật. Người thử vẫn
+     xem được y nguyên thư mà quán sẽ nhận. */
+  var ownerThat = OWNER_EMAIL;
+  OWNER_EMAIL = TEST_EMAIL_TO;
+  try {
+
   var alias = fromAddress_();
   testLog_(out, '===== GỬI THỬ EMAIL — phiên bản script ' + SCRIPT_VERSION + ' =====');
   testLog_(out, 'Tài khoản đang chạy script  : ' + owner);
@@ -1090,7 +1225,9 @@ function TEST_guiEmailThu() {
   testLog_(out, 'Còn gửi được hôm nay        : ' +
     (quota < 0 ? 'KHÔNG ĐỌC ĐƯỢC — script chưa được cấp quyền gửi email' : quota + ' email'));
   testLog_(out, 'MAIL_ENABLED                : ' + MAIL_ENABLED);
-  testLog_(out, 'Đang gửi 2 thư thử tới      : ' + TEST_EMAIL_TO);
+  testLog_(out, 'Báo cho quán (thật)         : ' + (OWNER_NOTIFY ? ownerThat : 'TẮT'));
+  testLog_(out, 'Đang gửi 3 thư thử tới      : ' + TEST_EMAIL_TO +
+    '  (2 thư khách + 1 bản xem trước thư quán)');
 
   // Giờ bay giả: slot 15 phút gần nhất của ngày mai, cho .ics ra ngày hợp lệ
   var etaMs = Math.ceil((Date.now() + 86400000) / 900000) * 900000;
@@ -1141,6 +1278,10 @@ function TEST_guiEmailThu() {
 
   return { owner: owner, seenAs: alias || owner, held: ok1, scheduled: ok2,
     error: LAST_MAIL_ERROR, quotaLeft: mailQuotaLeft_(), log: out };
+
+  } finally {
+    OWNER_EMAIL = ownerThat;     // trả lại hộp thư quán thật, kể cả khi ném lỗi
+  }
 }
 
 /* ============================================================
@@ -1866,6 +2007,9 @@ function confirmPayment_(sheet, p) {
     item: target,
     emailSent: (target.emailStage === MAIL_HELD || target.emailStage === MAIL_SCHEDULED),
     emailError: LAST_MAIL_ERROR || '',
+    // Thư báo cho quán — báo riêng, vì hỏng cái này không đồng nghĩa
+    // khách không nhận được thư của họ
+    ownerError: LAST_OWNER_ERROR || '',
     mailQuotaLeft: mailQuotaLeft_()
   });
 }

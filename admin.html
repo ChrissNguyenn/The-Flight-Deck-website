@@ -801,7 +801,7 @@
            tức bản deploy có từ trước khi thêm cột slot. Đây chính là nguyên
            nhân của lỗi "có trên server nhưng thiếu slotKey", nên phải báo
            thật rõ ngay trên thanh trạng thái. */
-        var EXPECTED_SCRIPT_VERSION = 8;
+        var EXPECTED_SCRIPT_VERSION = 9;
         var sv = (typeof TFDQ_SERVER_VERSION === "undefined") ? undefined : TFDQ_SERVER_VERSION;
         var modeEl = document.getElementById("stat-mode");
         if (!TFDQ.isRemote()) {
@@ -1345,10 +1345,18 @@
               var q = (typeof res.mailQuotaLeft === "number" && res.mailQuotaLeft >= 0)
                 ? " (còn " + res.mailQuotaLeft + " email hôm nay)" : "";
               TFD_UI.toast("✅ Đã duyệt và gửi email cho khách" + q, "success", 5000);
-              if (typeof res.mailQuotaLeft === "number" && res.mailQuotaLeft >= 0 && res.mailQuotaLeft < 10) {
+              if (typeof res.mailQuotaLeft === "number" && res.mailQuotaLeft >= 0 && res.mailQuotaLeft < 20) {
+                /* Ngưỡng 20 chứ không phải 10: mỗi lượt chốt giờ nay tốn
+                   HAI thư (khách + quán), nên hạn mức tụt nhanh gấp đôi. */
                 TFD_UI.toast("⚠️ Sắp hết hạn mức email trong ngày (còn " + res.mailQuotaLeft +
-                  "). Quá hạn mức thì khách sẽ không nhận được thư.", "error", 12000);
+                  ", mỗi lượt tốn 2 thư). Quá hạn mức thì khách sẽ không nhận được thư.", "error", 12000);
               }
+            }
+            /* Thư báo cho quán hỏng KHÔNG phải lỗi của khách — khách vẫn
+               có thư của họ. Báo nhẹ hơn, và nói rõ phải làm gì. */
+            if (res.ownerError) {
+              TFD_UI.toast("📋 Khách đã nhận email, nhưng thư báo về hộp quán KHÔNG gửi được — " +
+                res.ownerError + ". Tự thêm lịch hẹn này vào Google Calendar của quán.", "error", 12000);
             }
           } else {
             showSyncError("Server không nhận lệnh (" + ((res && res.error) || "lỗi") + ") — đang tải lại…");
