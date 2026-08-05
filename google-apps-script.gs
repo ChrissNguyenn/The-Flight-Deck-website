@@ -35,7 +35,7 @@ var LOG_SHEET_NAME = 'Jun Pham log';       // nhật ký lỗi (email hỏng…)
    ⚠️ TĂNG SỐ NÀY mỗi lần sửa file rồi deploy lại — nhờ nó mà lỗi "đã sửa
    code rồi mà chạy vẫn như cũ" (do quên bấm Deploy) hiện ra ngay thay vì
    phải mò. */
-var SCRIPT_VERSION = 10;
+var SCRIPT_VERSION = 11;
 /* Thứ tự cột trong sheet — các cột đầu là thông tin khách (tiếng Việt),
    các cột sau để hệ thống hàng chờ vận hành. HEADERS là khóa nội bộ
    (khớp JSON trả về website), HEADER_LABELS là tiêu đề hiển thị.
@@ -673,8 +673,21 @@ function computeEta_(items, groupSize) {
  * thường và QUÉT QR.
  * ============================================================ */
 var PAY_SHEET_NAME = 'Jun Pham payments';   // sổ thu tiền riêng
-var PAY_HEADERS = ['paidAt', 'id', 'name', 'phone', 'email', 'groupSize', 'amount', 'payMethod', 'payMethodLabel', 'payRef', 'flightDate', 'seq', 'eta', 'pairState'];
-var PAY_HEADER_LABELS = ['Giờ xác nhận', 'Mã đăng ký', 'Tên khách', 'SĐT', 'Email', 'Số khách', 'Số tiền (VND)', 'Hình thức', 'Hình thức (mô tả)', 'Mã/Ghi chú CK', 'Ngày bay', 'STT trong ngày', 'Giờ bay', 'Ghép đôi'];
+/* payStatus đứng NGAY SAU paidAt để kế toán nhìn phát thấy ngay: đơn đã
+   huỷ mà vẫn nằm im trong sổ thu tiền là cộng khống doanh thu. Ba giá trị:
+     CONFIRMED   — đã thu, còn hiệu lực
+     CANCELLED   — đã huỷ / vắng mặt / quá hạn → KHÔNG tính doanh thu
+     RESCHEDULED — vẫn thu tiền đó, chỉ đổi giờ bay (cột Giờ bay đã cập nhật)
+   Lọc cột này = ra đúng doanh thu thật. */
+var PAY_HEADERS = ['paidAt', 'payStatus', 'id', 'name', 'phone', 'email', 'groupSize', 'amount', 'payMethod', 'payMethodLabel', 'payRef', 'flightDate', 'seq', 'eta', 'pairState'];
+var PAY_HEADER_LABELS = ['Giờ xác nhận', 'Trạng thái', 'Mã đăng ký', 'Tên khách', 'SĐT', 'Email', 'Số khách', 'Số tiền (VND)', 'Hình thức', 'Hình thức (mô tả)', 'Mã/Ghi chú CK', 'Ngày bay', 'STT trong ngày', 'Giờ bay', 'Ghép đôi'];
+
+var PAY_CONFIRMED = 'CONFIRMED';
+var PAY_CANCELLED = 'CANCELLED';
+var PAY_RESCHEDULED = 'RESCHEDULED';
+
+/* Trạng thái booking nào thì coi như tiền KHÔNG còn hiệu lực */
+var DEAD_STATUSES_ = ['CANCELLED', 'NO_SHOW', 'PAYMENT_EXPIRED'];
 
 /* Mã hình thức thanh toán → nhãn tiếng Việt cho sheet/email */
 var PAY_METHOD_LABELS = {
@@ -721,6 +734,7 @@ function logPayment_(item) {
     }
     var row = PAY_HEADERS.map(function (h) {
       if (h === 'paidAt') return toDisplayTime_(item.approvedAt || new Date().toISOString());
+      if (h === 'payStatus') return PAY_CONFIRMED;
       if (h === 'eta') return item.eta ? toDisplayTime_(item.eta) : '(chờ ghép đôi)';
       if (h === 'payMethodLabel') return payMethodLabel_(item.payMethod);
       return item[h] == null ? '' : String(item[h]);
@@ -731,6 +745,35 @@ function logPayment_(item) {
   } catch (err) {
     // Không để lỗi ghi sổ thu tiền làm hỏng việc duyệt khách
     logError_('logPayment_', err);
+  }
+}
+
+/* Đổi trạng thái một dòng trong SỔ THU TIỀN.
+   Đây là chỗ vá lỗi "huỷ đơn rồi mà doanh thu vẫn cộng": sheet chính đã
+   ghi CANCELLED và đã nhả slot từ trước, nhưng sổ thu tiền thì chưa ai
+   đụng tới, nên tổng tiền và tổng khách vẫn đếm cả đơn đã huỷ.
+   newEta (tuỳ chọn): dời lịch thì cập nhật luôn cột Giờ bay / Ngày bay. */
+function setPayStatus_(id, status, newEta) {
+  try {
+    var sheet = getPaySheet_();
+    var last = sheet.getLastRow();
+    if (last < 2) return false;
+    var idCol = PAY_HEADERS.indexOf('id') + 1;
+    var ids = sheet.getRange(2, idCol, last - 1, 1).getValues();
+    for (var i = 0; i < ids.length; i++) {
+      if (String(ids[i][0] || '') !== String(id)) continue;
+      var row = i + 2;
+      sheet.getRange(row, PAY_HEADERS.indexOf('payStatus') + 1).setValue(status);
+      if (newEta) {
+        sheet.getRange(row, PAY_HEADERS.indexOf('eta') + 1).setValue(toDisplayTime_(newEta));
+        sheet.getRange(row, PAY_HEADERS.indexOf('flightDate') + 1).setValue(dayKeyVn_(newEta));
+      }
+      return true;
+    }
+    return false;   // chưa từng thu tiền lượt này (huỷ khi còn chờ thanh toán)
+  } catch (err) {
+    logError_('setPayStatus_ ' + id, err);
+    return false;
   }
 }
 
@@ -762,6 +805,21 @@ function fmtVnd_(n) {
   return s.replace(/\B(?=(\d{3})+(?!\d))/g, '.') + 'đ';
 }
 
+/* ============================================================
+ * TIÊU ĐỀ CHUẨN — dùng chung cho tên sự kiện lịch và tiêu đề email
+ *   [TFD Flight] Nguyễn Văn A - 0901234567 - 2 khách - 300.000đ
+ * ------------------------------------------------------------
+ * Chị chủ mở lịch ra là thấy ngay gọi ai, mấy người, đã thu bao nhiêu —
+ * không phải bấm vào từng sự kiện mới biết. Trong lịch thì ngày giờ đã
+ * nằm sẵn ở vị trí của sự kiện nên không cần nhắc lại trong tên.
+ * ============================================================ */
+function flightTitle_(item) {
+  return '[TFD Flight] ' + item.name +
+    ' - ' + (item.phone || 'chưa có SĐT') +
+    ' - ' + sizeOf_(item) + ' khách' +
+    ' - ' + fmtVnd_(item.amount);
+}
+
 /* "10:00 – thứ Bảy, 15/08/2026" cho email */
 function fmtFlightWhen_(iso) {
   var d = new Date(iso);
@@ -786,7 +844,7 @@ function buildIcs_(item) {
   var startMs = Date.parse(item.eta);
   var endMs = startMs + SESSION_MS;
   var when = fmtFlightWhen_(item.eta);
-  var title = 'Trải nghiệm buồng lái ' + VENUE_NAME + ' — ' + when.time;
+  var title = flightTitle_(item);
   var desc = 'Lượt bay mô phỏng 15 phút tại ' + VENUE_NAME + '.\n' +
     'Mã đăng ký: ' + item.id + '\n' +
     'Số khách: ' + sizeOf_(item) + '\n' +
@@ -844,7 +902,7 @@ function gcalLink_(item) {
   var when = fmtFlightWhen_(item.eta);
   var params = {
     action: 'TEMPLATE',
-    text: 'Trải nghiệm buồng lái ' + VENUE_NAME + ' — ' + when.time,
+    text: flightTitle_(item),
     dates: icsStamp_(startMs) + '/' + icsStamp_(startMs + SESSION_MS),
     details: 'Mã đăng ký: ' + item.id + '\n' + ARRIVE_NOTE + '.',
     location: VENUE_CALENDAR_LOCATION
@@ -916,8 +974,13 @@ function sendScheduledEmail_(item, kind) {
   var size = sizeOf_(item);
   var isPairedFollowUp = (kind === 'paired');
   var isReschedule = (kind === 'moved');
-  var subject = (isReschedule ? '[The Flight Deck] CẬP NHẬT giờ bay — ' : '[The Flight Deck] Xác nhận giờ bay ') +
-    when.time + ' ngày ' + when.date;
+  /* Tiêu đề chuẩn + ngày giờ ở cuối.
+     Giữ ngày giờ là cố ý: bỏ đi thì thư xác nhận và thư đổi giờ của cùng
+     một khách có tiêu đề GIỐNG HỆT nhau, Gmail gộp chung luồng và khách
+     rất dễ không nhận ra giờ bay đã đổi — đúng thứ thư "đổi giờ" sinh ra
+     để tránh. Tiền tố ĐỔI GIỜ cũng vì vậy. */
+  var subject = (isReschedule ? '[ĐỔI GIỜ] ' : '') + flightTitle_(item) +
+    ' - ' + when.date + ' lúc ' + when.time;
 
   var lead;
   if (isReschedule) {
@@ -987,8 +1050,11 @@ function notifyOwner_(item, kind, icsBlob) {
     var size = sizeOf_(item);
     var isMoved = (kind === 'moved');
 
-    var subject = (isMoved ? '[ĐỔI GIỜ BAY] - ' : '[LỊCH BAY MỚI] - ') +
-      item.name + ' - ' + when.date + ' lúc ' + when.time;
+    /* Tiêu đề chuẩn + mốc ngày giờ ở cuối. Trong hộp thư, hai lượt của
+        cùng một khách chỉ khác nhau ở ngày giờ, nên bỏ nó đi là chị chủ
+        không phân biệt được thư nào là thư nào. */
+    var subject = (isMoved ? '[ĐỔI GIỜ] ' : '') + flightTitle_(item) +
+      ' - ' + when.date + ' lúc ' + when.time;
 
     var soKhach = size === 2
       ? '<strong>2 khách</strong> (đi cùng nhau, không cần ghép)'
@@ -1536,6 +1602,8 @@ function doPost(e) {
     if (p.action === 'confirmPayment') return confirmPayment_(sheet, p);
     if (p.action === 'blockSlot') return blockSlot_(sheet, p);
     if (p.action === 'unblockSlot') return unblockSlot_(sheet, p);
+    if (p.action === 'reschedule') return reschedule_(sheet, p);
+    if (p.action === 'manualAdd') return manualAdd_(sheet, p);
     if (p.action === 'repair') return repair_(sheet);
     if (p.action === 'diag') return diag_(sheet);
     return json_({ ok: false, error: 'UNKNOWN_ACTION' });
@@ -1799,6 +1867,176 @@ function unblockSlot_(sheet, p) {
   return json_({ ok: true, slotKey: slotKey });
 }
 
+/* ============================================================
+ * DỜI LỊCH — đổi giờ bay cho một khách đã đặt
+ * ============================================================
+ * Trước đây muốn đổi giờ phải huỷ đơn rồi tự vào web đặt lại như khách
+ * thường: khách mất mã đăng ký, mất STT, và lịch cũ nằm lại trong máy
+ * khách. Ở đây giữ NGUYÊN hàng cũ, chỉ đổi slot — nên mã đăng ký không
+ * đổi, .ics dùng lại đúng UID nên lịch cũ được GHI ĐÈ chứ không nhân đôi.
+ *
+ * Slot cũ tự trống ngay khi eta/slotKey đổi: trạng thái slot luôn được
+ * tính lại từ danh sách booking, không lưu riêng ở đâu cả.
+ * ============================================================ */
+function reschedule_(sheet, p) {
+  var items = readAll_(sheet);
+  var target = null;
+  for (var i = 0; i < items.length; i++) {
+    if (items[i].id === p.id) { target = items[i]; break; }
+  }
+  if (!target) return json_({ ok: false, error: 'NOT_FOUND' });
+  if (DEAD_STATUSES_.indexOf(target.status) !== -1) {
+    return json_({ ok: false, error: 'ALREADY_DEAD', status: target.status });
+  }
+
+  var newKey = normSlotKey_(String(p.slotKey || '').trim());
+  if (!newKey) return json_({ ok: false, error: 'NO_SLOT' });
+  if (newKey === target.slotKey) {
+    delete target.row;
+    return json_({ ok: true, item: target, unchanged: true });
+  }
+
+  /* Nhân viên dời lịch được phép chọn giờ NGOÀI lịch mở bán (khách gọi
+     điện xin giờ riêng, quán mở thêm ca…) — đó là đặc quyền của người
+     đứng quán. Nhưng KHÔNG được dời vào ô đã có người khác giữ. */
+  var free = p.force === '1' || p.force === 'true';
+  if (!free && !isRealSlot_(newKey)) {
+    return json_({ ok: false, error: 'BAD_SLOT', slotKey: newKey });
+  }
+  if (isNaN(slotKeyToMs_(newKey))) return json_({ ok: false, error: 'BAD_SLOT', slotKey: newKey });
+
+  /* Kiểm tra chỗ trống: BỎ QUA chính lượt đang dời, nếu không nó tự thấy
+     mình chiếm chỗ mình. */
+  var others = items.filter(function (it) { return it.id !== target.id; });
+  var st = slotStateOf_(indexBookings_(others), newKey);
+  if (st === 'FULL') return json_({ ok: false, error: 'SLOT_TAKEN', slotKey: newKey });
+  if (st === 'PENDING_PAIR' && sizeOf_(target) === 2) {
+    return json_({ ok: false, error: 'SLOT_NEEDS_SOLO', slotKey: newKey });
+  }
+
+  var now = new Date(Math.floor(Date.now() / 1000) * 1000).toISOString();
+  var cu = target.slotKey;
+  target.slotKey = newKey;
+  target.eta = new Date(slotKeyToMs_(newKey)).toISOString();
+  target.flightDate = newKey.slice(0, 10);
+  target.updatedAt = now;
+  /* STT trong ngày cấp lại nếu đổi sang NGÀY khác — số cũ thuộc về ngày cũ */
+  if (cu.slice(0, 10) !== newKey.slice(0, 10)) {
+    target.seq = String(nextSeqForDay_(others, target.flightDate));
+  }
+  writeRow_(sheet, target);
+
+  // Sổ thu tiền: vẫn thu tiền đó, chỉ đổi giờ — không phải huỷ
+  setPayStatus_(target.id, PAY_RESCHEDULED, target.eta);
+
+  /* Báo giờ mới cho khách + quán. Chỉ gửi khi lượt này ĐÃ có giờ báo cho
+     khách rồi (đã duyệt); khách lẻ còn đang chờ ghép thì chưa từng biết
+     giờ nào cả, gửi "đổi giờ" cho họ là gây hoang mang vô cớ. */
+  var daBaoGio = (target.emailStage === MAIL_SCHEDULED);
+  if (daBaoGio) sendScheduledEmail_(target, 'moved');
+
+  syncPairing_(sheet, items);
+  cachePut_(items);
+  delete target.row;
+  return json_({
+    ok: true, item: target, from: cu, to: newKey,
+    emailSent: daBaoGio, emailError: LAST_MAIL_ERROR || '', ownerError: LAST_OWNER_ERROR || ''
+  });
+}
+
+/* ============================================================
+ * THÊM LƯỢT BAY THỦ CÔNG — nhân viên nhập tay, giờ nào cũng được
+ * ============================================================
+ * Khách gọi điện, khách quen, khách đã trả tiền mặt tại quầy… Nhân viên
+ * nhập thẳng, KHÔNG bị chặn bởi khung giờ nhận đăng ký, không bị chặn bởi
+ * lịch bay, không cần đặt trước 30 phút. Đây là người đứng quán, họ biết
+ * buồng lái đang rảnh hay không rõ hơn mọi luật trong file này.
+ *
+ * Vẫn giữ MỘT chốt chặn: không đặt trùng vào ô đã có người. Cái đó không
+ * phải luật hành chính, đó là thực tế chỉ có một buồng lái.
+ * ============================================================ */
+function manualAdd_(sheet, p) {
+  var name = String(p.name || '').trim();
+  if (!name) return json_({ ok: false, error: 'MISSING_FIELDS' });
+
+  var email = String(p.email || '').trim();
+  if (email && !isEmail_(email)) return json_({ ok: false, error: 'BAD_EMAIL' });
+
+  var slotKey = normSlotKey_(String(p.slotKey || '').trim());
+  if (!slotKey || isNaN(slotKeyToMs_(slotKey))) {
+    return json_({ ok: false, error: 'BAD_SLOT', slotKey: slotKey });
+  }
+
+  var items = readAll_(sheet);
+  var size = String(p.groupSize) === '2' ? 2 : 1;
+
+  // Chốt duy nhất: ô đó phải còn chỗ
+  var st = slotStateOf_(indexBookings_(items), slotKey);
+  if (st === 'FULL') return json_({ ok: false, error: 'SLOT_TAKEN', slotKey: slotKey });
+  if (st === 'PENDING_PAIR' && size === 2) {
+    return json_({ ok: false, error: 'SLOT_NEEDS_SOLO', slotKey: slotKey });
+  }
+
+  var now = new Date(Math.floor(Date.now() / 1000) * 1000).toISOString();
+  var eta = new Date(slotKeyToMs_(slotKey)).toISOString();
+  /* Số tiền nhân viên tự nhập (khách quen giá khác, đã trả một phần…).
+     Bỏ trống thì lấy bảng giá chuẩn. */
+  var amount = String(p.amount || '').replace(/[^\d]/g, '');
+  if (!amount) amount = String(PRICE_PER_PERSON * size);
+
+  var item = {
+    id: 'man' + Utilities.getUuid().slice(0, 5),
+    createdAt: now,
+    name: name,
+    phone: String(p.phone || '').replace(/\s+/g, ''),
+    email: email,
+    status: 'WAITING',            // nhập tay = đã chốt, không qua bước chờ thanh toán
+    calledAt: '',
+    sessionStart: '',
+    updatedAt: now,
+    groupSize: String(size),
+    slotKey: slotKey,
+    eta: eta,
+    flightDate: slotKey.slice(0, 10),
+    payMethod: normPayMethod_(p.payMethod) || 'CASH',
+    amount: amount,
+    payRef: String(p.note || '').trim() || 'Nhập tay tại quán',
+    approvedAt: now,
+    seq: String(nextSeqForDay_(items, slotKey.slice(0, 10))),
+    pairState: '',
+    pairWith: '',
+    emailStage: '',
+    emailedEta: '',
+    mailSeq: '',
+    row: sheet.getLastRow() + 1
+  };
+
+  /* Đủ 2 người trong ô = đã có giờ chắc chắn → gửi thư CÓ giờ bay.
+     Khách lẻ vào ô trống thì vẫn đang chờ ghép, gửi thư giữ chỗ. */
+  var counts = slotHeadcount_(items);
+  var duCap = size === 2 || (counts[Date.parse(eta)] || 0) >= 1;
+  if (size === 2) item.pairState = PAIR_DUO;
+  else item.pairState = duCap ? PAIR_SOLO_PAIRED : PAIR_SOLO_WAITING;
+
+  if (email) {
+    if (duCap) { if (sendScheduledEmail_(item, 'new')) item.emailStage = MAIL_SCHEDULED; }
+    else { if (sendHeldEmail_(item)) item.emailStage = MAIL_HELD; }
+  }
+
+  writeRow_(sheet, item);
+  items.push(item);
+  syncPairing_(sheet, items);
+  logPayment_(item);
+  cachePut_(items);
+  delete item.row;
+  return json_({
+    ok: true, item: item,
+    emailSent: !!item.emailStage,
+    emailError: email ? (LAST_MAIL_ERROR || '') : 'khách không có email',
+    ownerError: LAST_OWNER_ERROR || ''
+  });
+}
+
 /* Tự sửa lịch hàng chờ (PHẢI GIỐNG queue.js). Các bước:
    1) GHÉP CẶP: khách 1-người WAITING đang lẻ ở slot sau được chuyển vào
       slot lẻ SỚM NHẤT còn trống chỗ — chữa cả dữ liệu lệch khi hai khách
@@ -1934,11 +2172,24 @@ function update_(sheet, p) {
   if (!target) return json_({ ok: false, error: 'NOT_FOUND' });
 
   var now = new Date(Math.floor(Date.now() / 1000) * 1000).toISOString();
+  var truoc = target.status;
   target.status = p.status;
   target.updatedAt = now;
   if (p.status === 'CALLED' && !target.calledAt) target.calledAt = now;
   if (p.status === 'IN_SESSION' && !target.sessionStart) target.sessionStart = now;
   writeRow_(sheet, target);
+
+  /* HUỶ / VẮNG MẶT / QUÁ HẠN → đánh dấu luôn trong SỔ THU TIỀN.
+     Sheet chính vốn đã ghi CANCELLED và slot cũng đã tự nhả (CANCELLED
+     không nằm trong SLOT_HOLDING_), nhưng sổ thu tiền thì chưa ai đụng —
+     nên tổng doanh thu và tổng khách vẫn đếm cả những đơn đã huỷ. Đây là
+     chỗ vá.
+     Ngược lại: bỏ huỷ (đưa về WAITING) thì trả lại CONFIRMED. */
+  if (DEAD_STATUSES_.indexOf(p.status) !== -1) {
+    setPayStatus_(target.id, PAY_CANCELLED);
+  } else if (DEAD_STATUSES_.indexOf(truoc) !== -1 && QUEUE_STATUSES_.indexOf(p.status) !== -1) {
+    setPayStatus_(target.id, PAY_CONFIRMED);
+  }
 
   /* KHÔNG xếp lại lịch nữa.
      Trước đây hệ thống là hàng chờ: giờ bay do máy tính ra nên huỷ một

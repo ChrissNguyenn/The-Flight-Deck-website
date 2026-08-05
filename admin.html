@@ -139,6 +139,53 @@
       gap: 0.6rem;
       flex-wrap: wrap;
     }
+    /* Form nhập tay có 9 ô — để mặc định flex thì mỗi ô co lại một kiểu,
+       nhìn lộn xộn. Cho mọi ô cùng cỡ tối thiểu rồi tự giãn đều. */
+    .walkin-form input, .walkin-form select { flex: 1 1 11rem; min-width: 8rem; }
+    .walkin-form select {
+      padding: 0.6rem 0.8rem; border-radius: 10px;
+      border: 1.5px solid var(--card-border); background: var(--navy-800);
+      color: var(--text-main); font-size: 16px; font-family: inherit;
+    }
+    .walkin-form button { flex: 1 1 100%; }
+
+    /* ---------- Modal dời lịch ---------- */
+    .modal-backdrop {
+      position: fixed; inset: 0; z-index: 60;
+      background: rgba(3, 10, 24, 0.72);
+      display: flex; align-items: center; justify-content: center;
+      padding: 1rem;
+      /* Bàn phím ảo trên tablet đẩy modal lên; cho phép cuộn để nút Lưu
+         không bị đẩy ra ngoài màn hình. */
+      overflow-y: auto;
+    }
+    .modal-backdrop[hidden] { display: none !important; }
+    .modal-card {
+      width: min(30rem, 100%);
+      background: var(--navy-900, #0d1b33);
+      border: 1px solid var(--card-border);
+      border-radius: 14px; padding: 1.2rem;
+      box-shadow: 0 18px 60px rgba(0,0,0,0.55);
+    }
+    .modal-card h3 { margin: 0 0 0.3rem; font-size: 1.1rem; }
+    .modal-who { color: var(--text-dim); font-size: 0.88rem; margin: 0 0 1rem; }
+    .modal-row { display: flex; gap: 0.6rem; flex-wrap: wrap; margin-bottom: 0.8rem; }
+    .modal-row label { flex: 1 1 8rem; font-size: 0.82rem; color: var(--text-dim); }
+    .modal-row input, .modal-row select {
+      display: block; width: 100%; margin-top: 0.25rem;
+      padding: 0.6rem 0.7rem; border-radius: 10px;
+      border: 1.5px solid var(--card-border); background: var(--navy-800);
+      color: var(--text-main); font-size: 16px; font-family: inherit;
+    }
+    .modal-note {
+      font-size: 0.8rem; color: var(--text-dim);
+      background: rgba(255,255,255,0.04); border-radius: 8px;
+      padding: 0.6rem 0.7rem; margin: 0 0 0.9rem;
+    }
+    .modal-err { color: #ff8f8a; font-size: 0.85rem; min-height: 1.1rem; margin: 0 0 0.6rem; }
+    .modal-actions { display: flex; gap: 0.6rem; }
+    .modal-actions button { flex: 1; min-height: 46px; }
+    .btn-move { background: rgba(96,165,250,0.20); color: #93c5fd; }
     .walkin-hours {
       margin: 0 0 0.7rem;
       padding: 0.5rem 0.8rem;
@@ -519,16 +566,31 @@
     </section>
 
     <section class="admin-panel">
-      <h2>➕ Thêm khách đăng ký tại chỗ</h2>
+      <h2>➕ Thêm lượt bay thủ công</h2>
       <p class="walkin-hours" id="walkin-hours" role="status"></p>
+      <p class="empty" style="margin-bottom:0.8rem;">
+        Khách gọi điện, khách quen, khách đã trả tiền mặt tại quầy… Nhập thẳng vào đây.
+        <strong>Chọn được bất kỳ ngày giờ nào</strong> — kể cả ngoài khung giờ mở bán trên web.
+        Có điền email thì hệ thống gửi thư xác nhận + lời mời lịch như khách đặt online.
+      </p>
       <form class="walkin-form" id="walkin-form">
         <input type="text" id="w-name" placeholder="Họ và tên *" required>
         <input type="tel" id="w-phone" placeholder="SĐT (để bấm gọi)">
-        <select id="w-size" title="Số người bay" style="flex:1 1 160px;padding:0.6rem 0.8rem;border-radius:10px;border:1.5px solid var(--card-border);background:var(--navy-800);color:var(--text-main);font-size:16px;font-family:inherit;">
-          <option value="1">👤 1 người — 150K, chờ ghép</option>
-          <option value="2">👥 2 người — 300K, đi cùng nhau</option>
+        <input type="email" id="w-email" placeholder="Email (để gửi xác nhận)">
+        <select id="w-size" title="Số người bay">
+          <option value="1">👤 1 người</option>
+          <option value="2">👥 2 người</option>
         </select>
-        <button type="submit" class="btn btn-primary btn-sm">Thêm vào hàng chờ</button>
+        <input type="date" id="w-date" title="Ngày bay" required>
+        <input type="time" id="w-time" title="Giờ bay" step="900" required>
+        <input type="number" id="w-amount" placeholder="Số tiền (đ)" min="0" step="1000" inputmode="numeric">
+        <select id="w-pay" title="Hình thức thanh toán">
+          <option value="CASH">💵 Tiền mặt</option>
+          <option value="BANK">🏦 Chuyển khoản</option>
+          <option value="QR">📱 Quét QR</option>
+        </select>
+        <input type="text" id="w-note" placeholder="Ghi chú (không bắt buộc)" maxlength="60">
+        <button type="submit" class="btn btn-primary btn-sm">Thêm lượt bay</button>
       </form>
       <p class="form-note" id="walkin-error" style="text-align:left;"></p>
     </section>
@@ -545,6 +607,47 @@
       </details>
     </section>
   </main>
+
+  <!-- Modal dời lịch. Ngày + giờ nhập tự do: nhân viên đôi khi phải xếp
+       khách vào giờ ngoài lịch mở bán (khách gọi điện xin giờ riêng). Ô
+       "chỉ hiện giờ còn trống" giúp chọn nhanh trong trường hợp thường. -->
+  <div class="modal-backdrop" id="move-modal" hidden role="dialog" aria-modal="true"
+       aria-labelledby="move-title">
+    <div class="modal-card">
+      <h3 id="move-title">🕑 Dời lịch bay</h3>
+      <p class="modal-who" id="move-who"></p>
+
+      <div class="modal-row">
+        <label for="move-date">Ngày bay mới
+          <input type="date" id="move-date">
+        </label>
+        <label for="move-slot">Giờ còn trống
+          <select id="move-slot"></select>
+        </label>
+      </div>
+
+      <div class="modal-row">
+        <label for="move-free">
+          <input type="checkbox" id="move-free" style="width:auto;display:inline-block;margin-right:0.4rem;vertical-align:middle">
+          Chọn giờ tự do (ngoài lịch mở bán)
+        </label>
+        <label for="move-time" id="move-time-wrap" hidden>Giờ bay
+          <input type="time" id="move-time" step="900">
+        </label>
+      </div>
+
+      <p class="modal-note">
+        Mã đăng ký giữ nguyên. Slot cũ tự trống cho khách khác đặt.
+        Khách đã biết giờ bay sẽ nhận email <strong>ĐỔI GIỜ</strong> kèm lời mời lịch mới —
+        lịch cũ trong máy khách được ghi đè, không nhân đôi. Quán cũng được báo.
+      </p>
+      <p class="modal-err" id="move-err"></p>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost btn-sm" id="move-cancel">Thoát</button>
+        <button type="button" class="btn btn-primary btn-sm" id="move-save">Dời lịch &amp; báo khách</button>
+      </div>
+    </div>
+  </div>
 
   <script src="config.js"></script>
   <script src="slots.js"></script>
@@ -764,19 +867,19 @@
            "hôm nay vắng khách" trong khi thực ra website không cho ai đặt. */
         if (st.locked) {
           el.className = "walkin-hours is-closed";
-          el.textContent = "🔒 CHƯA MỞ ĐĂNG KÝ — website đang khoá, khách không đặt được. " +
+          el.textContent = "🔒 WEBSITE đang khoá — khách không tự đặt được (form dưới đây vẫn thêm tay bình thường). " +
             "Mở bằng cách đặt REGISTRATION_OPEN = true ở CẢ config.js và google-apps-script.gs.";
           return;
         }
         if (st.open) {
           el.className = "walkin-hours is-open";
-          el.textContent = "🟢 Đang nhận đăng ký — đóng lúc " + TFDQ.fmtTime(st.closesAt) +
-            " · Khung giờ: " + TFDQ.bookingHoursText();
+          el.textContent = "🟢 WEBSITE đang nhận đăng ký — đóng lúc " + TFDQ.fmtTime(st.closesAt) +
+            " · Khung giờ: " + TFDQ.bookingHoursText() + " (form dưới đây không bị khung giờ này chặn)";
         } else {
           el.className = "walkin-hours is-closed";
-          el.textContent = "⏰ Ngoài giờ nhận đăng ký — mở lại lúc " + TFDQ.fmtTime(st.opensAt) +
+          el.textContent = "⏰ WEBSITE ngoài giờ nhận đăng ký — mở lại lúc " + TFDQ.fmtTime(st.opensAt) +
             (st.tomorrow ? " ngày mai" : "") + " (còn " + TFDQ.fmtCountdown(st.opensAt - Date.now()) + ")" +
-            " · Khung giờ: " + TFDQ.bookingHoursText();
+            " · form dưới đây vẫn thêm tay được";
         }
       }
 
@@ -801,7 +904,7 @@
            tức bản deploy có từ trước khi thêm cột slot. Đây chính là nguyên
            nhân của lỗi "có trên server nhưng thiếu slotKey", nên phải báo
            thật rõ ngay trên thanh trạng thái. */
-        var EXPECTED_SCRIPT_VERSION = 10;
+        var EXPECTED_SCRIPT_VERSION = 11;
         var sv = (typeof TFDQ_SERVER_VERSION === "undefined") ? undefined : TFDQ_SERVER_VERSION;
         var modeEl = document.getElementById("stat-mode");
         if (!TFDQ.isRemote()) {
@@ -1022,7 +1125,8 @@
           } else if (it.status === "CALLED") {
             actions = '<button class="btn-sm btn-present" data-action="present" data-id="' + it.id + '">✅ Có mặt</button> ';
           }
-          actions += '<button class="btn-sm btn-cancel" data-action="cancel" data-id="' + it.id + '">Hủy</button>';
+          actions += '<button class="btn-sm btn-move" data-action="reschedule" data-id="' + it.id + '">🕑 Dời lịch</button> ' +
+            '<button class="btn-sm btn-cancel" data-action="cancel" data-id="' + it.id + '">Hủy</button>';
           var row = "<tr" + (en.needsCall || en.overdue ? ' style="background:rgba(245,165,36,0.07)"' : "") + ">" +
             "<td>" + en.position + "</td>" +
             '<td class="name-cell"><strong class="name-toggle" data-action="contact" data-id="' + it.id + '" title="Bấm để xem SĐT">' +
@@ -1387,6 +1491,7 @@
           toggleBlock(action, btn.getAttribute("data-slot"), btn);
           return;
         }
+        if (action === "reschedule") { moveOpen(id); return; }
         if (syncing[id]) return; // lệnh trước cho khách này còn đang gửi
         if (action === "cancel" && !confirm("Hủy lượt đăng ký này?")) return;
         if (action === "pay") {
@@ -1623,38 +1728,190 @@
         });
       });
 
+      /* ---------- THÊM LƯỢT BAY THỦ CÔNG ----------
+         Dùng manualAdd chứ KHÔNG dùng register: register bị chặn bởi khung
+         giờ nhận đăng ký, bởi lịch bay và bởi luật đặt trước 30 phút.
+         Người đứng quán biết buồng lái đang rảnh hay không rõ hơn mọi luật
+         đó — họ được nhập bất kỳ ngày giờ nào. Chốt duy nhất còn lại là
+         không đặt trùng ô, vì quán chỉ có MỘT buồng lái. */
       document.getElementById("walkin-form").addEventListener("submit", function (e) {
         e.preventDefault();
         var err = document.getElementById("walkin-error");
         var submitBtn = e.target.querySelector("button[type=submit]");
         err.textContent = "";
-        submitBtn.disabled = true;
-        TFDQ.register({
-          name: document.getElementById("w-name").value,
-          phone: document.getElementById("w-phone").value,
-          groupSize: document.getElementById("w-size").value
+
+        var ngay = document.getElementById("w-date").value;
+        var gio = document.getElementById("w-time").value;
+        if (!ngay || !gio) { err.textContent = "Chọn ngày và giờ bay."; return; }
+        var slotKey = ngay + "T" + gio.slice(0, 5);
+
+        var done = TFD_UI.busy(submitBtn, "Đang thêm…");
+        TFDQ.manualAdd({
+          name: document.getElementById("w-name").value.trim(),
+          phone: document.getElementById("w-phone").value.trim(),
+          email: document.getElementById("w-email").value.trim(),
+          groupSize: document.getElementById("w-size").value,
+          slotKey: slotKey,
+          amount: document.getElementById("w-amount").value,
+          payMethod: document.getElementById("w-pay").value,
+          note: document.getElementById("w-note").value.trim()
         }).then(function (res) {
           if (res.ok) {
-            // Nhân viên vừa tự tay nhập — đánh dấu đã biết TRƯỚC khi
-            // refresh() để không tự báo chuông/thông báo cho chính lượt này
+            /* Nhân viên vừa tự tay nhập — đánh dấu đã biết TRƯỚC khi
+               refresh() để không tự báo chuông cho chính lượt này */
             if (res.item && res.item.id) { knownIds = knownIds || {}; knownIds[res.item.id] = true; }
+            var t = gioNgay(slotKey);
+            TFD_UI.toast(res.emailSent
+              ? "✅ Đã thêm lượt bay " + t + " và gửi email cho khách"
+              : "✅ Đã thêm lượt bay " + t +
+                (res.emailError ? " (chưa gửi email: " + res.emailError + ")" : ""),
+              "success", 6000);
             document.getElementById("walkin-form").reset();
             return refresh();
           }
-          // Server chặn vì ngoài khung giờ nhận đăng ký — báo rõ cho nhân viên
-          // biết lý do và giờ mở lại, thay vì hiện mã lỗi "CLOSED" khó hiểu.
-          if (res.error === "CLOSED") {
-            var st = TFDQ.bookingStatus();
-            err.textContent = "Ngoài giờ nhận đăng ký (" +
-              (res.hours || TFDQ.bookingHoursText()) + ")." +
-              (st.opensAt ? " Mở lại lúc " + TFDQ.fmtTime(st.opensAt) +
-                (st.tomorrow ? " ngày mai" : "") + "." : "");
-            return;
-          }
-          err.textContent = "Không thêm được (" + (res.error || "lỗi") + ").";
+          err.textContent = "Không thêm được — " + loiViet(res.error, slotKey);
+          TFD_UI.toast(err.textContent, "error", 8000);
         }).catch(function () {
           err.textContent = "Lỗi kết nối — thử lại.";
-        }).then(function () { submitBtn.disabled = false; });
+        }).then(function () { done(); });
+      });
+
+      /* "17:45 ngày 05/08" từ slotKey */
+      function gioNgay(k) {
+        k = String(k || "");
+        return k.slice(11, 16) + " ngày " + k.slice(8, 10) + "/" + k.slice(5, 7);
+      }
+
+      /* Mã lỗi của server → câu tiếng Việt nói rõ phải làm gì tiếp */
+      function loiViet(code, slotKey) {
+        var o = slotKey ? " (" + gioNgay(slotKey) + ")" : "";
+        return ({
+          SLOT_TAKEN: "ô giờ này đã có khách" + o + " — chọn giờ khác",
+          SLOT_NEEDS_SOLO: "ô này đang có 1 khách lẻ chờ ghép, chỉ xếp thêm được 1 khách lẻ nữa",
+          BAD_SLOT: "ngày/giờ không hợp lệ" + o,
+          BAD_EMAIL: "email sai định dạng",
+          MISSING_FIELDS: "thiếu họ tên",
+          NOT_FOUND: "không tìm thấy lượt này (có thể vừa bị xoá)",
+          ALREADY_DEAD: "lượt này đã huỷ rồi, không dời được",
+          NO_SLOT: "chưa chọn giờ",
+          BUSY: "hệ thống đang bận, thử lại sau vài giây"
+        })[code] || (code || "lỗi không rõ");
+      }
+
+      /* ---------- MODAL DỜI LỊCH ---------- */
+      var moveId = null;
+      var moveEl = {
+        box: document.getElementById("move-modal"),
+        who: document.getElementById("move-who"),
+        date: document.getElementById("move-date"),
+        slot: document.getElementById("move-slot"),
+        free: document.getElementById("move-free"),
+        timeWrap: document.getElementById("move-time-wrap"),
+        time: document.getElementById("move-time"),
+        err: document.getElementById("move-err"),
+        save: document.getElementById("move-save")
+      };
+
+      function moveFind(id) {
+        var out = null;
+        allItems.forEach(function (x) { if (x.id === id) out = x; });
+        return out;
+      }
+
+      function moveOpen(id) {
+        var it = moveFind(id);
+        if (!it) return;
+        moveId = id;
+        moveEl.err.textContent = "";
+        moveEl.who.textContent = it.name + " · " + TFDQ.sizeOf(it) + " khách" +
+          (it.phone ? " · " + it.phone : "") +
+          " · đang xếp " + (it.slotKey ? gioNgay(it.slotKey) : "chưa có giờ");
+        moveEl.date.value = it.slotKey ? String(it.slotKey).slice(0, 10) : selectedDay;
+        moveEl.free.checked = false;
+        moveEl.timeWrap.hidden = true;
+        moveEl.slot.parentElement.hidden = false;
+        moveFillSlots();
+        moveEl.box.hidden = false;
+        moveEl.date.focus();
+      }
+
+      function moveClose() { moveEl.box.hidden = true; moveId = null; }
+
+      /* Giờ CÒN TRỐNG của ngày đang chọn. Bỏ qua chính lượt đang dời —
+         không bỏ thì nó tự thấy mình chiếm chỗ mình và ô hiện tại biến
+         mất khỏi danh sách. */
+      function moveFillSlots() {
+        var it = moveFind(moveId);
+        var size = it ? TFDQ.sizeOf(it) : 1;
+        var khac = allItems.filter(function (x) { return x.id !== moveId; });
+        var day = TFD_SLOTS.buildDay(CFG.FLIGHT_SCHEDULE || { groups: [] },
+          moveEl.date.value, khac, size, Date.now(), { minLeadMinutes: 0 });
+        var free = day.filter(function (sl) {
+          return sl.state !== "FULL" && !(sl.state === "PENDING_PAIR" && size === 2);
+        });
+        moveEl.slot.innerHTML = free.length
+          ? free.map(function (sl) {
+              return '<option value="' + sl.key + '">' + sl.time +
+                (sl.state === "PENDING_PAIR" ? " — ghép với khách lẻ" : "") +
+                (it && sl.key === it.slotKey ? " — đang xếp" : "") + "</option>";
+            }).join("")
+          : '<option value="">— ngày này không còn ô trống —</option>';
+
+        /* Chọn sẵn ĐÚNG ô khách đang giữ. Không làm thế thì ô đầu danh
+           sách (10:00) được chọn mặc định trong khi modal ghi "đang xếp
+           18:00" — nhân viên mở ra chỉ để đổi ngày, bấm Lưu, và khách bị
+           dời sang giờ không ai định. */
+        if (it && it.slotKey) moveEl.slot.value = it.slotKey;
+      }
+
+      moveEl.date.addEventListener("change", moveFillSlots);
+      moveEl.free.addEventListener("change", function () {
+        moveEl.timeWrap.hidden = !moveEl.free.checked;
+        moveEl.slot.parentElement.hidden = moveEl.free.checked;
+        if (moveEl.free.checked && !moveEl.time.value) {
+          moveEl.time.value = String(moveEl.slot.value || "").slice(11, 16) || "10:00";
+        }
+      });
+      moveEl.box.addEventListener("click", function (e) {
+        if (e.target === moveEl.box) moveClose();     // bấm ra ngoài = thoát
+      });
+      document.addEventListener("keydown", function (e) {
+        if (e.key === "Escape" && !moveEl.box.hidden) moveClose();
+      });
+      document.getElementById("move-cancel").addEventListener("click", moveClose);
+
+      moveEl.save.addEventListener("click", function () {
+        if (!moveId) return;
+        var tuDo = moveEl.free.checked;
+        var key = tuDo
+          ? (moveEl.date.value && moveEl.time.value
+              ? moveEl.date.value + "T" + moveEl.time.value.slice(0, 5) : "")
+          : moveEl.slot.value;
+        if (!key) { moveEl.err.textContent = "Chọn ngày và giờ mới."; return; }
+
+        var id = moveId;
+        var done = TFD_UI.busy(moveEl.save, "Đang dời…");
+        moveEl.err.textContent = "";
+        TFDQ.reschedule(id, key, tuDo).then(function (res) {
+          if (res && res.ok) {
+            TFD_UI.toast(res.unchanged
+              ? "Giờ bay không đổi."
+              : (res.emailSent
+                  ? "🕑 Đã dời sang " + gioNgay(key) + " — đã báo email cho khách và quán"
+                  : "🕑 Đã dời sang " + gioNgay(key) +
+                    " — khách chưa từng biết giờ nên không gửi email"),
+              "success", 7000);
+            if (res.emailError) {
+              TFD_UI.toast("⚠️ Dời được nhưng email không đi — " + res.emailError +
+                ". Báo giờ mới cho khách qua Zalo.", "error", 12000);
+            }
+            moveClose();
+            return refresh();
+          }
+          moveEl.err.textContent = loiViet(res && res.error, key);
+        }).catch(function () {
+          moveEl.err.textContent = "Lỗi kết nối — thử lại.";
+        }).then(function () { done(); });
       });
 
       /* ---------- chọn ngày ---------- */

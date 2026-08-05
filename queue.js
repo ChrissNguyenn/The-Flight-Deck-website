@@ -708,6 +708,52 @@ var TFDQ = (function () {
     return post({ action: 'blockSlot', slotKey: slotKey, reason: reason });
   }
 
+  /* Dời lịch cho một khách đã đặt — giữ nguyên mã đăng ký, chỉ đổi slot.
+     force=true: cho phép chọn giờ NGOÀI lịch mở bán (đặc quyền nhân viên). */
+  function reschedule(id, slotKey, force) {
+    if (!isRemote()) {
+      var items = localRead();
+      var found = null;
+      items.forEach(function (it) { if (it.id === id) found = it; });
+      if (!found) return Promise.resolve({ ok: false, error: 'NOT_FOUND' });
+      var from = found.slotKey;
+      found.slotKey = slotKey;
+      found.flightDate = String(slotKey).slice(0, 10);
+      found.eta = new Date(TFD_SLOTS.slotMs(String(slotKey).slice(0, 10), String(slotKey).slice(11, 16))).toISOString();
+      found.updatedAt = new Date().toISOString();
+      localWrite(items);
+      return Promise.resolve({ ok: true, item: found, from: from, to: slotKey });
+    }
+    return post({ action: 'reschedule', id: id, slotKey: slotKey, force: force ? '1' : '' });
+  }
+
+  /* Thêm lượt bay nhập tay — giờ nào cũng được, không qua khung giờ mở bán */
+  function manualAdd(data) {
+    if (!isRemote()) {
+      var items = localRead();
+      var now = new Date().toISOString();
+      var it = {
+        id: 'man' + Math.random().toString(36).slice(2, 7),
+        createdAt: now, updatedAt: now, approvedAt: now,
+        name: data.name, phone: data.phone || '', email: data.email || '',
+        status: 'WAITING', groupSize: String(data.groupSize === '2' ? 2 : 1),
+        slotKey: data.slotKey, flightDate: String(data.slotKey).slice(0, 10),
+        eta: new Date(TFD_SLOTS.slotMs(String(data.slotKey).slice(0, 10), String(data.slotKey).slice(11, 16))).toISOString(),
+        amount: String(data.amount || ''), payMethod: data.payMethod || 'CASH',
+        payRef: data.note || 'Nhập tay tại quán'
+      };
+      items.push(it);
+      localWrite(items);
+      return Promise.resolve({ ok: true, item: it });
+    }
+    return post({
+      action: 'manualAdd', name: data.name, phone: data.phone || '',
+      email: data.email || '', groupSize: data.groupSize || '1',
+      slotKey: data.slotKey, amount: data.amount || '',
+      payMethod: data.payMethod || 'CASH', note: data.note || ''
+    });
+  }
+
   function unblockSlot(slotKey) {
     if (!isRemote()) {
       var items = localRead();
@@ -964,6 +1010,8 @@ var TFDQ = (function () {
     repair: repair,
     blockSlot: blockSlot,
     unblockSlot: unblockSlot,
+    reschedule: reschedule,
+    manualAdd: manualAdd,
     BLOCK_NAME: BLOCK_NAME,
     nextEtaFor: nextEtaFor_,
     onExternalChange: onExternalChange,
