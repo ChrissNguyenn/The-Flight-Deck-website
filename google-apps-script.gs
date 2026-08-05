@@ -35,7 +35,7 @@ var LOG_SHEET_NAME = 'Jun Pham log';       // nhật ký lỗi (email hỏng…)
    ⚠️ TĂNG SỐ NÀY mỗi lần sửa file rồi deploy lại — nhờ nó mà lỗi "đã sửa
    code rồi mà chạy vẫn như cũ" (do quên bấm Deploy) hiện ra ngay thay vì
    phải mò. */
-var SCRIPT_VERSION = 9;
+var SCRIPT_VERSION = 10;
 /* Thứ tự cột trong sheet — các cột đầu là thông tin khách (tiếng Việt),
    các cột sau để hệ thống hàng chờ vận hành. HEADERS là khóa nội bộ
    (khớp JSON trả về website), HEADER_LABELS là tiêu đề hiển thị.
@@ -126,6 +126,13 @@ var PAYMENT_MS = 45 * 60000;
  * ============================================================ */
 var VENUE_NAME = 'The Flight Deck';
 var VENUE_ADDRESS = '86 Đặng Văn Ngữ, Phú Nhuận, TPHCM';
+
+/* ĐỊA ĐIỂM GHI TRONG LỊCH (ô Location của Google Calendar).
+   Khác VENUE_NAME một chữ "coffee" là có lý do: Google Maps tra ra đúng
+   quán với chuỗi này, còn "The Flight Deck" trơ trọi thì ra hàng loạt chỗ
+   không liên quan. Khách bấm vào địa điểm trong lịch là mở thẳng đường đi,
+   nên chuỗi này phải tìm được trên bản đồ, không chỉ để đọc. */
+var VENUE_CALENDAR_LOCATION = 'The Flight Deck coffee, 86 Đặng Văn Ngữ, Phú Nhuận, TPHCM';
 var ARRIVE_EARLY_MIN = 15;         // khách phải tới trước giờ bay 15 phút
 /* Câu dặn dò BẮT BUỘC xuất hiện trong MỌI email/thông báo có giờ bay.
    Sửa ở đây là đổi ở mọi nơi (email, tệp .ics, link thêm vào lịch). */
@@ -149,6 +156,13 @@ var OWNER_EMAIL = 'theflightdeckcoffee@gmail.com';
    đó. Hết quota thì KHÁCH là bên mất thư, nên nếu phải hy sinh thì tắt
    cái này trước. */
 var OWNER_NOTIFY = true;
+
+/* Gửi cho quán MỘT BẢN SAO của MỌI thư gửi khách (BCC).
+   Chị chủ muốn thấy đúng những gì khách nhận được — kể cả thư "đang chờ
+   ghép đôi" chưa có giờ bay, thứ mà thư tóm tắt ở trên không gửi vì lúc
+   đó chưa có gì để bỏ vào lịch. BCC nên khách KHÔNG nhìn thấy địa chỉ
+   quán trong danh sách người nhận. */
+var OWNER_BCC_ALL = true;
 
 /* ĐỊA CHỈ GỬI EMAIL — đọc kỹ, đây là chỗ dễ hiểu nhầm nhất:
    Apps Script LUÔN gửi bằng tài khoản Google đang SỞ HỮU script này. Không
@@ -791,7 +805,7 @@ function buildIcs_(item) {
     'DTEND:' + icsStamp_(endMs),
     'SUMMARY:' + icsEscape_(title),
     'DESCRIPTION:' + icsEscape_(desc),
-    'LOCATION:' + icsEscape_(VENUE_NAME + ', ' + VENUE_ADDRESS),
+    'LOCATION:' + icsEscape_(VENUE_CALENDAR_LOCATION),
     'STATUS:CONFIRMED'
   ];
 
@@ -833,7 +847,7 @@ function gcalLink_(item) {
     text: 'Trải nghiệm buồng lái ' + VENUE_NAME + ' — ' + when.time,
     dates: icsStamp_(startMs) + '/' + icsStamp_(startMs + SESSION_MS),
     details: 'Mã đăng ký: ' + item.id + '\n' + ARRIVE_NOTE + '.',
-    location: VENUE_NAME + ', ' + VENUE_ADDRESS
+    location: VENUE_CALENDAR_LOCATION
   };
   var q = Object.keys(params).map(function (k) {
     return k + '=' + encodeURIComponent(params[k]);
@@ -1006,9 +1020,23 @@ function notifyOwner_(item, kind, icsBlob) {
       rowHtml_('Mã booking', '<code>' + escHtml_(item.id) + '</code>') +
       rowHtml_('Email khách', escHtml_(item.email || '(không có)')) +
       '</table>' +
+      /* NÚT MỘT CHẠM — đây mới là đường thêm lịch đáng tin.
+         Thẻ RSVP của Gmail KHÔNG hiện khi người nhận chính là ORGANIZER
+         của sự kiện, mà quán đúng là organizer (xem buildIcs_). Nên với
+         hộp thư quán, tệp .ics đính kèm chỉ nằm im dưới dạng tệp —
+         "nhận được email nhưng không có thư để add vô lịch" là vì vậy.
+         Link dưới đây mở thẳng Google Calendar đã điền sẵn mọi thứ, bấm
+         Lưu là xong, không phụ thuộc Gmail có chịu vẽ thẻ hay không. */
+      '<p style="margin:18px 0;text-align:center">' +
+      '<a href="' + gcalLink_(item) + '" ' +
+      'style="background:#f77600;color:#fff;text-decoration:none;padding:14px 26px;' +
+      'border-radius:999px;font-weight:800;font-size:16px;display:inline-block">' +
+      '📅 THÊM VÀO LỊCH CỦA QUÁN</a></p>' +
       '<p style="background:#eef6ff;border-left:4px solid #00205b;padding:12px 14px;border-radius:6px;font-size:14px">' +
-      '📅 Thư này đính kèm lời mời lịch — bấm <strong>Có</strong> ở thẻ lịch phía trên ' +
-      'là cuộc hẹn vào thẳng Google Calendar của quán.<br>' +
+      'Bấm nút cam ở trên là Google Calendar mở ra với đầy đủ giờ và địa chỉ — ' +
+      'chỉ cần bấm <strong>Lưu</strong>.<br>' +
+      'Thư cũng đính kèm tệp <code>.ics</code> cho Apple Calendar / Outlook.<br>' +
+      '📍 Địa điểm ghi trong lịch: <strong>' + escHtml_(VENUE_CALENDAR_LOCATION) + '</strong><br>' +
       'Khách được dặn có mặt trước <strong>' + ARRIVE_EARLY_MIN + ' phút</strong> (khoảng ' +
       escHtml_(fmtFlightWhen_(new Date(Date.parse(item.eta) - ARRIVE_EARLY_MIN * 60000).toISOString()).time) +
       ').</p>';
@@ -1129,15 +1157,22 @@ function sendMail_(item, subject, htmlBody, attachments) {
   var plain = htmlToText_(htmlBody);
   var errs = [];
 
+  /* Bản sao cho quán — BCC chứ không CC, để khách không thấy địa chỉ nội
+     bộ của quán trong danh sách người nhận. */
+  var bcc = (OWNER_BCC_ALL && isEmail_(OWNER_EMAIL) && OWNER_EMAIL.toLowerCase() !== to.toLowerCase())
+    ? OWNER_EMAIL : '';
+
   function viaMailApp() {
     MailApp.sendEmail({
       to: to, subject: subject, htmlBody: htmlBody, body: plain,
       name: MAIL_SENDER_NAME, replyTo: SUPPORT_EMAIL,
+      bcc: bcc || undefined,
       attachments: (attachments && attachments.length) ? attachments : undefined
     });
   }
   function viaGmailApp() {
     var opts = { htmlBody: htmlBody, name: MAIL_SENDER_NAME, replyTo: SUPPORT_EMAIL };
+    if (bcc) opts.bcc = bcc;
     if (attachments && attachments.length) opts.attachments = attachments;
     var from = fromAddress_();
     if (from) opts.from = from;
