@@ -35,7 +35,7 @@ var LOG_SHEET_NAME = 'Jun Pham log';       // nhật ký lỗi (email hỏng…)
    ⚠️ TĂNG SỐ NÀY mỗi lần sửa file rồi deploy lại — nhờ nó mà lỗi "đã sửa
    code rồi mà chạy vẫn như cũ" (do quên bấm Deploy) hiện ra ngay thay vì
    phải mò. */
-var SCRIPT_VERSION = 11;
+var SCRIPT_VERSION = 12;
 /* Thứ tự cột trong sheet — các cột đầu là thông tin khách (tiếng Việt),
    các cột sau để hệ thống hàng chờ vận hành. HEADERS là khóa nội bộ
    (khớp JSON trả về website), HEADER_LABELS là tiêu đề hiển thị.
@@ -673,14 +673,20 @@ function computeEta_(items, groupSize) {
  * thường và QUÉT QR.
  * ============================================================ */
 var PAY_SHEET_NAME = 'Jun Pham payments';   // sổ thu tiền riêng
-/* payStatus đứng NGAY SAU paidAt để kế toán nhìn phát thấy ngay: đơn đã
-   huỷ mà vẫn nằm im trong sổ thu tiền là cộng khống doanh thu. Ba giá trị:
+/* ⚠️ CỘT MỚI PHẢI NỐI VÀO CUỐI, KHÔNG ĐƯỢC CHÈN VÀO GIỮA.
+   Tôi từng chèn 'payStatus' vào vị trí thứ 2 và làm LỆCH TOÀN BỘ sổ thu
+   tiền: hàng tiêu đề trong sheet đã tồn tại thì getPaySheet_ không ghi
+   lại, nên tiêu đề vẫn theo thứ tự cũ trong khi các dòng mới ghi theo
+   thứ tự mới — từ cột 2 trở đi lệch một ô, mã đăng ký nằm dưới tiêu đề
+   "Tên khách". Sheet chính có migrate_ đỡ được chuyện này, sổ thu tiền
+   thì không. Nối vào cuối là các cột cũ giữ nguyên vị trí tuyệt đối.
+
+   payStatus — lọc cột này ra đúng doanh thu thật:
      CONFIRMED   — đã thu, còn hiệu lực
      CANCELLED   — đã huỷ / vắng mặt / quá hạn → KHÔNG tính doanh thu
-     RESCHEDULED — vẫn thu tiền đó, chỉ đổi giờ bay (cột Giờ bay đã cập nhật)
-   Lọc cột này = ra đúng doanh thu thật. */
-var PAY_HEADERS = ['paidAt', 'payStatus', 'id', 'name', 'phone', 'email', 'groupSize', 'amount', 'payMethod', 'payMethodLabel', 'payRef', 'flightDate', 'seq', 'eta', 'pairState'];
-var PAY_HEADER_LABELS = ['Giờ xác nhận', 'Trạng thái', 'Mã đăng ký', 'Tên khách', 'SĐT', 'Email', 'Số khách', 'Số tiền (VND)', 'Hình thức', 'Hình thức (mô tả)', 'Mã/Ghi chú CK', 'Ngày bay', 'STT trong ngày', 'Giờ bay', 'Ghép đôi'];
+     RESCHEDULED — vẫn thu tiền đó, chỉ đổi giờ bay (cột Giờ bay đã cập nhật) */
+var PAY_HEADERS = ['paidAt', 'id', 'name', 'phone', 'email', 'groupSize', 'amount', 'payMethod', 'payMethodLabel', 'payRef', 'flightDate', 'seq', 'eta', 'pairState', 'payStatus'];
+var PAY_HEADER_LABELS = ['Giờ xác nhận', 'Mã đăng ký', 'Tên khách', 'SĐT', 'Email', 'Số khách', 'Số tiền (VND)', 'Hình thức', 'Hình thức (mô tả)', 'Mã/Ghi chú CK', 'Ngày bay', 'STT trong ngày', 'Giờ bay', 'Ghép đôi', 'Trạng thái'];
 
 var PAY_CONFIRMED = 'CONFIRMED';
 var PAY_CANCELLED = 'CANCELLED';
@@ -714,8 +720,78 @@ function getPaySheet_() {
     trySetTextFormat_(sheet.getRange(1, 1, sheet.getMaxRows(), PAY_HEADER_LABELS.length));
     sheet.getRange(1, 1, 1, PAY_HEADER_LABELS.length).setValues([PAY_HEADER_LABELS]);
     sheet.setFrozenRows(1);
+    return sheet;
   }
+  migratePay_(sheet);
   return sheet;
+}
+
+/* Nâng cấp sổ thu tiền đã có sẵn — CHỈ ĐỘNG VÀO ĐÚNG THỨ CẦN.
+   Vì cột mới nối vào CUỐI nên mọi cột cũ giữ nguyên vị trí; việc duy nhất
+   phải làm là ghi thêm nhãn cột cuối vào hàng tiêu đề, và điền CONFIRMED
+   cho những dòng cũ (trước khi có cột này thì mọi dòng đều được tính là
+   doanh thu, nên CONFIRMED mới là giữ nguyên hành vi cũ).
+
+   Kèm theo: DỌN các dòng đã bị ghi LỆCH bởi bản v11 — bản đó chèn cột
+   Trạng thái vào giữa nên từ cột 2 trở đi bị đẩy sang phải một ô. Nhận ra
+   chúng rất chắc chắn: cột 2 (đáng lẽ là Mã đăng ký) lại đang chứa đúng
+   một trong ba giá trị trạng thái. */
+function migratePay_(sheet) {
+  try {
+    var lastRow = sheet.getLastRow();
+    if (lastRow < 1) return;
+    var nCol = PAY_HEADER_LABELS.length;
+    var head = sheet.getRange(1, 1, 1, Math.max(sheet.getLastColumn(), nCol))
+      .getValues()[0].map(String);
+
+    var khop = PAY_HEADER_LABELS.every(function (l, i) { return head[i] === l; });
+    if (khop) return;
+
+    /* --- Dọn dòng lệch do v11 --- */
+    var TRANG_THAI = [PAY_CONFIRMED, PAY_CANCELLED, PAY_RESCHEDULED];
+    if (lastRow >= 2) {
+      var rows = sheet.getRange(2, 1, lastRow - 1, Math.max(sheet.getLastColumn(), nCol)).getValues();
+      var sua = 0;
+      for (var i = 0; i < rows.length; i++) {
+        if (TRANG_THAI.indexOf(String(rows[i][1] || '')) === -1) continue;
+        /* Dòng này bị đẩy: [paidAt, TRẠNG THÁI, id, name, …]
+           → trả về [paidAt, id, name, …] rồi đặt trạng thái vào cột cuối. */
+        var tt = String(rows[i][1]);
+        var lai = [rows[i][0]].concat(rows[i].slice(2));
+        while (lai.length < nCol) lai.push('');
+        lai[nCol - 1] = tt;
+        rows[i] = lai.slice(0, nCol);
+        sua++;
+      }
+      if (sua) {
+        var vung = sheet.getRange(2, 1, rows.length, nCol);
+        trySetTextFormat_(vung);
+        vung.setValues(rows.map(function (r) { return r.slice(0, nCol); }));
+        logError_('migratePay_', 'đã dồn lại ' + sua + ' dòng bị lệch cột do bản v11');
+      }
+    }
+
+    // Ghi lại hàng tiêu đề cho đủ nhãn (thứ tự các cột cũ không đổi)
+    var hVung = sheet.getRange(1, 1, 1, nCol);
+    trySetTextFormat_(hVung);
+    hVung.setValues([PAY_HEADER_LABELS]);
+    sheet.setFrozenRows(1);
+
+    /* Dòng cũ chưa có trạng thái → CONFIRMED. Trước khi có cột này mọi
+       dòng đều được tính doanh thu, nên đây mới là "giữ nguyên như cũ". */
+    var last2 = sheet.getLastRow();
+    if (last2 >= 2) {
+      var col = sheet.getRange(2, nCol, last2 - 1, 1);
+      var vals = col.getValues();
+      var doi = false;
+      for (var j = 0; j < vals.length; j++) {
+        if (!String(vals[j][0] || '').trim()) { vals[j][0] = PAY_CONFIRMED; doi = true; }
+      }
+      if (doi) { trySetTextFormat_(col); col.setValues(vals); }
+    }
+  } catch (err) {
+    logError_('migratePay_', err);
+  }
 }
 
 /* Ghi một dòng thu tiền. CHỐNG TRÙNG: nhân viên bấm duyệt hai lần (mạng
