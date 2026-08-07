@@ -186,6 +186,44 @@
     .modal-actions { display: flex; gap: 0.6rem; }
     .modal-actions button { flex: 1; min-height: 46px; }
     .btn-move { background: rgba(96,165,250,0.20); color: #93c5fd; }
+    .btn-mail { background: rgba(167,139,250,0.20); color: #c4b5fd; }
+
+    /* ---------- Hai khu vực chính: Điều hành / Tra cứu ---------- */
+    .main-tabs {
+      display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap;
+    }
+    .main-tab {
+      flex: 1 1 12rem; min-height: 48px;      /* 48px: bấm bằng ngón trên tablet */
+      border-radius: 12px; cursor: pointer;
+      border: 1.5px solid var(--card-border);
+      background: var(--navy-800); color: var(--text-dim);
+      font: inherit; font-weight: 700; font-size: 0.95rem;
+    }
+    .main-tab.is-active {
+      background: rgba(96,165,250,0.18); color: #cfe4ff;
+      border-color: rgba(96,165,250,0.55);
+    }
+
+    /* ---------- Tra cứu ---------- */
+    .find-bar { display: flex; gap: 0.6rem; flex-wrap: wrap; margin-bottom: 0.7rem; }
+    .find-bar input {
+      flex: 1 1 14rem; min-width: 9rem; padding: 0.7rem 0.9rem;
+      border-radius: 10px; border: 1.5px solid var(--card-border);
+      background: var(--navy-800); color: var(--text-main);
+      font: inherit; font-size: 16px;        /* 16px: iOS không tự phóng trang */
+    }
+    .find-bar input[type="date"] { flex: 0 1 11rem; }
+    .find-count { color: var(--text-dim); font-size: 0.85rem; margin: 0 0 0.6rem; }
+    .find-acts { display: flex; gap: 0.35rem; flex-wrap: wrap; }
+    #find-table td { vertical-align: middle; }
+    .find-dead { opacity: 0.5; }
+    .st-pill {
+      font-size: 0.72rem; padding: 0.12rem 0.5rem; border-radius: 999px;
+      border: 1px solid currentColor; white-space: nowrap;
+    }
+    .st-ok { color: #8fd6a4; }
+    .st-wait { color: var(--amber-400); }
+    .st-dead { color: #ff8f8a; }
     .walkin-hours {
       margin: 0 0 0.7rem;
       padding: 0.5rem 0.8rem;
@@ -432,9 +470,46 @@
       <span class="pill" id="stat-mode">☁️ Google Sheet</span>
       <span class="pill" id="stat-notify"></span>
     </div>
+    <!-- Hai khu vực chính. Tra cứu tách hẳn ra vì lúc khách đứng ở quầy
+         hỏi, nhân viên cần một màn hình sạch chỉ có ô tìm + kết quả, không
+         phải cuộn qua hàng chờ và các bảng điều hành. -->
+    <nav class="main-tabs" id="main-tabs" role="tablist">
+      <button type="button" class="main-tab is-active" data-view="ops" role="tab">🛫 Điều hành</button>
+      <button type="button" class="main-tab" data-view="find" role="tab">🔍 Tra cứu lịch bay</button>
+    </nav>
+
     <div class="day-tabs" id="day-tabs"></div>
     <div class="past-day-notice hidden" id="past-day-notice">⚠️ Đang xem ngày cũ — chuyển về <strong>Hôm nay</strong> để thao tác.</div>
     <div class="past-day-notice hidden" id="sync-error"></div>
+
+    <!-- ============ TAB TRA CỨU ============ -->
+    <section class="admin-panel" id="find-panel" hidden>
+      <h2>🔍 Tra cứu lịch bay</h2>
+      <p class="empty" style="margin-bottom:0.8rem;">
+        Gõ <strong>số điện thoại</strong>, <strong>tên khách</strong>, <strong>mã booking</strong> hoặc email —
+        kết quả lọc ngay khi gõ. Có thể lọc thêm theo ngày bay.
+      </p>
+      <div class="find-bar">
+        <input type="search" id="find-q" placeholder="🔎 SĐT / tên / mã booking…"
+               autocomplete="off" inputmode="search">
+        <input type="date" id="find-day" title="Lọc theo ngày bay">
+        <button type="button" class="btn btn-ghost btn-sm" id="find-clear">Xoá lọc</button>
+      </div>
+      <p class="find-count" id="find-count"></p>
+      <div class="table-wrap">
+        <table class="queue-table" id="find-table">
+          <thead>
+            <tr>
+              <th>Khách</th><th>SĐT</th><th>Email</th>
+              <th>Số khách</th><th>Số tiền</th><th>Thanh toán</th>
+              <th>Ngày / Giờ bay</th><th>Ghép đôi</th><th>Trạng thái</th>
+              <th>Thao tác</th>
+            </tr>
+          </thead>
+          <tbody id="find-body"></tbody>
+        </table>
+      </div>
+    </section>
 
     <section class="admin-panel" id="payment-panel">
       <!-- Thời hạn lấy từ config.js (PAYMENT_MINUTES), không ghi cứng nữa -->
@@ -904,7 +979,7 @@
            tức bản deploy có từ trước khi thêm cột slot. Đây chính là nguyên
            nhân của lỗi "có trên server nhưng thiếu slotKey", nên phải báo
            thật rõ ngay trên thanh trạng thái. */
-        var EXPECTED_SCRIPT_VERSION = 12;
+        var EXPECTED_SCRIPT_VERSION = 14;
         var sv = (typeof TFDQ_SERVER_VERSION === "undefined") ? undefined : TFDQ_SERVER_VERSION;
         var modeEl = document.getElementById("stat-mode");
         if (!TFDQ.isRemote()) {
@@ -941,6 +1016,7 @@
         renderQueue(c);
         renderPairing(c);
         renderBlocks();
+        renderFind();
         renderHistory(c);
         // Chỉ chạy luật tự động khi xem ngày hôm nay
         if (isViewingToday()) runAutoRules(c);
@@ -1492,6 +1568,7 @@
           return;
         }
         if (action === "reschedule") { moveOpen(id); return; }
+        if (action === "resend") { resendMail(id, btn); return; }
         if (syncing[id]) return; // lệnh trước cho khách này còn đang gửi
         if (action === "cancel" && !confirm("Hủy lượt đăng ký này?")) return;
         if (action === "pay") {
@@ -1796,6 +1873,149 @@
           NO_SLOT: "chưa chọn giờ",
           BUSY: "hệ thống đang bận, thử lại sau vài giây"
         })[code] || (code || "lỗi không rõ");
+      }
+
+      /* ============================================================
+         HAI KHU VỰC: ĐIỀU HÀNH / TRA CỨU
+         ------------------------------------------------------------
+         Lúc khách đứng ở quầy hỏi "giờ bay của em mấy giờ", nhân viên cần
+         một màn hình chỉ có ô tìm và kết quả. Trộn chung với hàng chờ,
+         phiên bay, khoá slot… là phải cuộn tìm giữa lúc khách đang đợi.
+         ============================================================ */
+      var currentView = "ops";
+
+      function setView(v) {
+        currentView = v;
+        Array.prototype.forEach.call(document.querySelectorAll(".main-tab"), function (b) {
+          b.classList.toggle("is-active", b.getAttribute("data-view") === v);
+          b.setAttribute("aria-selected", b.getAttribute("data-view") === v ? "true" : "false");
+        });
+        var find = v === "find";
+        document.getElementById("find-panel").hidden = !find;
+        document.getElementById("day-tabs").hidden = find;
+        /* Mọi bảng điều hành ẩn khi đang tra cứu. Trừ chính bảng tra cứu
+           và khối đăng nhập PIN. */
+        Array.prototype.forEach.call(document.querySelectorAll(".admin-main > .admin-panel"), function (p) {
+          if (p.id === "find-panel") return;
+          p.hidden = find;
+        });
+        if (find) {
+          document.getElementById("past-day-notice").classList.add("hidden");
+          document.getElementById("find-q").focus();
+        }
+        render();
+      }
+
+      document.getElementById("main-tabs").addEventListener("click", function (e) {
+        var b = e.target.closest("[data-view]");
+        if (b) setView(b.getAttribute("data-view"));
+      });
+
+      /* ---------- BẢNG TRA CỨU ----------
+         Lọc ngay trên danh sách đã tải, không gọi mạng — gõ tới đâu thấy
+         tới đó. Dùng allItems (mọi ngày), KHÔNG dùng lastItems: khách hỏi
+         "lịch của em ngày mai" mà nhân viên đang mở tab hôm nay thì vẫn
+         phải tìm ra. */
+      function renderFind() {
+        var box = document.getElementById("find-body");
+        var dem = document.getElementById("find-count");
+        if (!box) return;
+        var q = document.getElementById("find-q").value.trim();
+        var day = document.getElementById("find-day").value;
+
+        if (!q && !day) {
+          setHtml(box, '<tr><td colspan="10" class="empty">Gõ số điện thoại, tên khách hoặc mã booking để tìm.</td></tr>');
+          dem.textContent = "";
+          return;
+        }
+
+        var rows = TFDQ.lookup(allItems, q, day, false);
+        rows.sort(function (a, b) {
+          return String(a.slotKey || "").localeCompare(String(b.slotKey || ""));
+        });
+        dem.textContent = rows.length
+          ? "Tìm thấy " + rows.length + " lượt" + (day ? " trong ngày " + day.slice(8, 10) + "/" + day.slice(5, 7) : "")
+          : "";
+
+        if (!rows.length) {
+          setHtml(box, '<tr><td colspan="10" class="empty">Không tìm thấy lượt nào khớp.</td></tr>');
+          return;
+        }
+
+        setHtml(box, rows.map(function (it) {
+          var chet = ["CANCELLED", "NO_SHOW", "PAYMENT_EXPIRED"].indexOf(it.status) !== -1;
+          var cho = it.status === "PENDING_PAYMENT";
+          var st = { WAITING: "Đã xác nhận", CALLED: "Đã gọi", PRESENT: "Đã có mặt",
+            IN_SESSION: "Đang bay", DONE: "Đã bay xong", CANCELLED: "ĐÃ HỦY",
+            NO_SHOW: "Vắng mặt", PAYMENT_EXPIRED: "Quá hạn thanh toán",
+            PENDING_PAYMENT: "Chờ thanh toán" }[it.status] || it.status;
+          var ghep = { DUO: "2 người đi cùng", SOLO_PAIRED: "Đã ghép đôi",
+            SOLO_WAITING: "Chờ ghép (vẫn bay đúng giờ)" }[it.pairState] || "—";
+          var gio = it.slotKey
+            ? String(it.slotKey).slice(8, 10) + "/" + String(it.slotKey).slice(5, 7) +
+              " · <strong>" + String(it.slotKey).slice(11, 16) + "</strong>"
+            : "— chưa có giờ";
+
+          /* Thao tác nhanh ngay tại dòng — khách còn đang đứng đó.
+             Lượt đã huỷ/vắng thì không dời, không gửi lại: gửi thư "xác
+             nhận giờ bay" cho một đơn đã huỷ là làm khách hiểu nhầm. */
+          var acts = chet ? '<span class="empty">—</span>'
+            : '<button class="btn-sm btn-move" data-action="reschedule" data-id="' + it.id + '">🕑 Dời</button> ' +
+              '<button class="btn-sm btn-mail" data-action="resend" data-id="' + it.id + '"' +
+                (it.email ? "" : ' disabled title="Khách không có email"') + '>✉️ Gửi lại</button> ' +
+              '<button class="btn-sm btn-cancel" data-action="cancel" data-id="' + it.id + '">Hủy</button>';
+
+          return '<tr class="' + (chet ? "find-dead" : "") + '">' +
+            "<td><strong>" + esc(it.name) + "</strong></td>" +
+            "<td>" + telLink(it.phone) + "</td>" +
+            "<td>" + esc(it.email || "—") + "</td>" +
+            "<td>" + TFDQ.sizeOf(it) + " khách</td>" +
+            "<td>" + (it.amount ? fmtVnd(+it.amount) : "—") + "</td>" +
+            "<td>" + esc({ BANK: "Chuyển khoản", QR: "Quét QR", CASH: "Tiền mặt" }[it.payMethod] || "—") + "</td>" +
+            "<td>" + gio + "</td>" +
+            "<td>" + esc(ghep) + "</td>" +
+            '<td><span class="st-pill ' + (chet ? "st-dead" : (cho ? "st-wait" : "st-ok")) + '">' +
+              esc(st) + "</span></td>" +
+            '<td><div class="find-acts">' + acts + "</div></td></tr>";
+        }).join(""));
+      }
+
+      ["input", "change"].forEach(function (ev) {
+        document.getElementById("find-q").addEventListener(ev, renderFind);
+        document.getElementById("find-day").addEventListener(ev, renderFind);
+      });
+      document.getElementById("find-clear").addEventListener("click", function () {
+        document.getElementById("find-q").value = "";
+        document.getElementById("find-day").value = "";
+        renderFind();
+        document.getElementById("find-q").focus();
+      });
+
+      /* Gửi lại thư xác nhận. Email trống thì hỏi luôn địa chỉ — khách
+         đứng ngay đó, sửa được ngay còn hơn bảo họ chờ. */
+      function resendMail(id, btn) {
+        var it = null;
+        allItems.forEach(function (x) { if (x.id === id) it = x; });
+        if (!it) return;
+        var email = it.email || "";
+        if (!email) {
+          email = (prompt("Khách chưa có email. Nhập email để gửi xác nhận:", "") || "").trim();
+          if (!email) return;
+        }
+        var done = TFD_UI.busy(btn, "Đang gửi…");
+        TFDQ.resendEmail(id, it.email ? "" : email).then(function (res) {
+          if (res && res.ok && res.emailSent) {
+            var q = (typeof res.mailQuotaLeft === "number" && res.mailQuotaLeft >= 0)
+              ? " (còn " + res.mailQuotaLeft + " email hôm nay)" : "";
+            TFD_UI.toast("✉️ Đã gửi lại email cho " + it.name + q, "success", 6000);
+            return refresh();
+          }
+          var vi = (res && res.error === "NO_EMAIL") ? "khách không có email"
+            : (res && (res.emailError || res.error)) || "lỗi không rõ";
+          TFD_UI.toast("Không gửi lại được — " + vi, "error", 9000);
+        }).catch(function () {
+          TFD_UI.toast("Lỗi kết nối — chưa gửi lại được", "error");
+        }).then(function () { done(); });
       }
 
       /* ---------- MODAL DỜI LỊCH ---------- */

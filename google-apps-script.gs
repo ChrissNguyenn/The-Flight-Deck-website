@@ -35,7 +35,7 @@ var LOG_SHEET_NAME = 'Jun Pham log';       // nhật ký lỗi (email hỏng…)
    ⚠️ TĂNG SỐ NÀY mỗi lần sửa file rồi deploy lại — nhờ nó mà lỗi "đã sửa
    code rồi mà chạy vẫn như cũ" (do quên bấm Deploy) hiện ra ngay thay vì
    phải mò. */
-var SCRIPT_VERSION = 12;
+var SCRIPT_VERSION = 14;
 /* Thứ tự cột trong sheet — các cột đầu là thông tin khách (tiếng Việt),
    các cột sau để hệ thống hàng chờ vận hành. HEADERS là khóa nội bộ
    (khớp JSON trả về website), HEADER_LABELS là tiêu đề hiển thị.
@@ -1058,6 +1058,9 @@ function sendScheduledEmail_(item, kind) {
   var subject = (isReschedule ? '[ĐỔI GIỜ] ' : '') + flightTitle_(item) +
     ' - ' + when.date + ' lúc ' + when.time;
 
+  /* Khách lẻ CHƯA ghép được ai — nhưng vẫn bay đúng khung giờ đã chọn */
+  var leDangCho = (size === 1 && item.pairState !== PAIR_SOLO_PAIRED);
+
   var lead;
   if (isReschedule) {
     lead = '<p>Xin chào <strong>' + escHtml_(item.name) + '</strong>,</p>' +
@@ -1066,7 +1069,9 @@ function sendScheduledEmail_(item, kind) {
       'lời mời lịch đính kèm sẽ tự cập nhật sự kiện cũ trong lịch của bạn.</p>';
   } else if (isPairedFollowUp) {
     lead = '<p>Xin chào <strong>' + escHtml_(item.name) + '</strong>,</p>' +
-      '<p>🎉 <strong>Đã ghép đôi thành công!</strong> Lượt bay của bạn đã có giờ cụ thể như bên dưới.</p>';
+      '<p>🎉 <strong>Đã có khách bay cùng chuyến với bạn!</strong> ' +
+      '<strong>Giờ bay giữ nguyên</strong> như email trước, không có gì thay đổi — ' +
+      'đây chỉ là email cập nhật như chúng tôi đã hẹn.</p>';
   } else {
     lead = '<p>Xin chào <strong>' + escHtml_(item.name) + '</strong>,</p>' +
       '<p>The Flight Deck đã <strong>nhận được thanh toán</strong> và xác nhận lượt bay của bạn. Cảm ơn bạn rất nhiều!</p>';
@@ -1079,10 +1084,19 @@ function sendScheduledEmail_(item, kind) {
     rowHtml_('Giờ bay', '<span style="color:#f77600;font-size:18px">' + escHtml_(when.time) + '</span>') +
     rowHtml_('STT trong ngày', escHtml_(String(item.seq || '—'))) +
     rowHtml_('Thời lượng', '15 phút') +
-    rowHtml_('Số khách', size === 2 ? '2 người (bay cùng nhau)' : '1 người (đã ghép đôi)') +
+    rowHtml_('Số khách', size === 2 ? '2 người (bay cùng nhau)'
+      : (leDangCho ? '1 người (đăng ký lẻ)' : '1 người (đã ghép đôi)')) +
     rowHtml_('Số tiền đã nhận', fmtVnd_(item.amount)) +
     rowHtml_('Địa điểm', escHtml_(VENUE_NAME + ' — ' + VENUE_ADDRESS)) +
     '</table>' +
+    /* Khách lẻ hay hỏi "chưa ghép được thì có bay không?" — trả lời ngay
+       trong thư đầu, đúng câu quán muốn nói. */
+    (leDangCho
+      ? '<p style="background:#eef6ff;border-left:4px solid #00205b;padding:12px 14px;margin:18px 0;border-radius:6px">' +
+        '<strong>Lưu ý:</strong> Bạn vẫn sẽ trải nghiệm bay đúng khung giờ đã chọn. ' +
+        'Nếu có khách ghép đôi cùng chuyến bay, chúng tôi sẽ gửi thêm một email xác nhận cập nhật cho bạn.' +
+        '</p>'
+      : '') +
     arriveNoteHtml_() +
     '<p style="margin:18px 0">' +
     '<a href="' + gcalLink_(item) + '" style="background:#f77600;color:#fff;text-decoration:none;padding:12px 22px;border-radius:999px;font-weight:700;display:inline-block">📅 Thêm vào Google Calendar</a>' +
@@ -1573,9 +1587,18 @@ function syncPairing_(sheet, items) {
       it.pairWith = full ? partnerOf_(items, it) : '';
     }
 
-    // Khách lẻ vừa ghép xong mà mới chỉ nhận Email 1 → gửi Email 2 (có giờ)
+    /* VỪA GHÉP ĐƯỢC ĐÔI → gửi thư cập nhật.
+       Hai đường vào:
+         - emailStage HELD  : dữ liệu cũ, thư đầu chưa có giờ bay
+         - đổi từ trạng thái khác sang SOLO_PAIRED: khách đã biết giờ rồi,
+           đây là thư "đã có người bay cùng" như đã hứa trong thư đầu.
+       So sánh với before.pairState ĐỌC TỪ SHEET nên chỉ gửi đúng MỘT lần:
+       lần chạy sau before đã là SOLO_PAIRED, điều kiện không còn đúng. */
+    var vuaGhep = it.pairState === PAIR_SOLO_PAIRED && before.pairState !== PAIR_SOLO_PAIRED;
     if (it.pairState === PAIR_SOLO_PAIRED && it.emailStage === MAIL_HELD) {
       if (sendScheduledEmail_(it, 'paired')) it.emailStage = MAIL_SCHEDULED;
+    } else if (vuaGhep && it.emailStage === MAIL_SCHEDULED) {
+      sendScheduledEmail_(it, 'paired');
     } else if (it.emailStage === MAIL_SCHEDULED && it.eta && it.emailedEta && it.eta !== it.emailedEta) {
       /* Đã báo giờ cho khách rồi mà giờ đó NAY ĐÃ ĐỔI (bạn bay chung hủy →
          xếp lại lịch). Im lặng là để khách tới sai giờ và giữ một sự kiện
@@ -1680,6 +1703,7 @@ function doPost(e) {
     if (p.action === 'unblockSlot') return unblockSlot_(sheet, p);
     if (p.action === 'reschedule') return reschedule_(sheet, p);
     if (p.action === 'manualAdd') return manualAdd_(sheet, p);
+    if (p.action === 'resendEmail') return resendEmail_(sheet, p);
     if (p.action === 'repair') return repair_(sheet);
     if (p.action === 'diag') return diag_(sheet);
     return json_({ ok: false, error: 'UNKNOWN_ACTION' });
@@ -2113,6 +2137,56 @@ function manualAdd_(sheet, p) {
   });
 }
 
+/* ============================================================
+ * GỬI LẠI EMAIL — khách bảo "em không nhận được thư"
+ * ============================================================
+ * Rất hay gặp ở quầy: khách gõ nhầm email, thư rơi vào Spam, hoặc quota
+ * Gmail hết đúng lúc đó. Nhân viên bấm một nút là gửi lại đúng thư khách
+ * đáng lẽ phải nhận, kèm lời mời lịch.
+ *
+ * Cho phép SỬA EMAIL luôn (p.email): gõ sai địa chỉ mà không sửa được thì
+ * bấm gửi lại bao nhiêu lần cũng vô ích.
+ *
+ * KHÔNG tăng mailSeq quá tay: dùng lại đúng UID nên lịch của khách được
+ * ghi đè, không sinh sự kiện thứ hai.
+ * ============================================================ */
+function resendEmail_(sheet, p) {
+  var items = readAll_(sheet);
+  var target = null;
+  for (var i = 0; i < items.length; i++) {
+    if (items[i].id === p.id) { target = items[i]; break; }
+  }
+  if (!target) return json_({ ok: false, error: 'NOT_FOUND' });
+  if (target.status === 'BLOCKED') return json_({ ok: false, error: 'IS_BLOCK' });
+
+  // Nhân viên sửa lại email ngay lúc gửi lại
+  var moi = String(p.email || '').trim();
+  if (moi) {
+    if (!isEmail_(moi)) return json_({ ok: false, error: 'BAD_EMAIL' });
+    target.email = moi;
+  }
+  if (!isEmail_(target.email)) return json_({ ok: false, error: 'NO_EMAIL' });
+
+  var ok;
+  if (target.eta) {
+    ok = sendScheduledEmail_(target, 'new');
+    if (ok) target.emailStage = MAIL_SCHEDULED;
+  } else {
+    ok = sendHeldEmail_(target);
+    if (ok) target.emailStage = MAIL_HELD;
+  }
+
+  target.updatedAt = new Date(Math.floor(Date.now() / 1000) * 1000).toISOString();
+  writeRow_(sheet, target);
+  cachePut_(items);
+  delete target.row;
+  return json_({
+    ok: true, item: target, emailSent: ok,
+    emailError: LAST_MAIL_ERROR || '', ownerError: LAST_OWNER_ERROR || '',
+    mailQuotaLeft: mailQuotaLeft_()
+  });
+}
+
 /* Tự sửa lịch hàng chờ (PHẢI GIỐNG queue.js). Các bước:
    1) GHÉP CẶP: khách 1-người WAITING đang lẻ ở slot sau được chuyển vào
       slot lẻ SỚM NHẤT còn trống chỗ — chữa cả dữ liệu lệch khi hai khách
@@ -2345,8 +2419,18 @@ function confirmPayment_(sheet, p) {
     target.pairWith = partnerOf_(items, target);
     if (sendScheduledEmail_(target, 'new')) target.emailStage = MAIL_SCHEDULED;
   } else {
+    /* KHÁCH LẺ CHƯA GHÉP — vẫn báo GIỜ BAY CỤ THỂ ngay từ thư đầu tiên.
+       Nghiệp vụ đã đổi: quán cho khách lẻ bay đúng khung giờ họ chọn, có
+       người ghép hay không cũng vậy. Nên giờ bay là chắc chắn, không còn
+       lý do gì giấu nó — giấu chỉ làm khách không biết đường sắp lịch.
+       Ghép được người sau đó thì gửi THÊM một thư cập nhật (syncPairing_).
+       sendHeldEmail_ chỉ còn dùng cho dữ liệu cũ không có eta. */
     target.pairState = PAIR_SOLO_WAITING;
-    if (sendHeldEmail_(target)) target.emailStage = MAIL_HELD;
+    if (target.eta) {
+      if (sendScheduledEmail_(target, 'new')) target.emailStage = MAIL_SCHEDULED;
+    } else if (sendHeldEmail_(target)) {
+      target.emailStage = MAIL_HELD;
+    }
   }
 
   writeRow_(sheet, target);

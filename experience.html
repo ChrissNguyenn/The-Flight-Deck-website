@@ -69,6 +69,11 @@
     </ul>
 
     <div class="queue-banner" id="queue-banner" data-i18n="experience.bannerLoading">⏳ Đang tải tình trạng hàng chờ…</div>
+    <p style="text-align:center;margin:0 0 1rem;">
+      <button type="button" class="btn btn-ghost btn-sm" id="lookup-open">
+        🔎 Tra cứu lịch bay của tôi
+      </button>
+    </p>
     <div class="booking-hours-note" id="booking-hours" role="status" hidden></div>
     <p class="form-note demo-note hidden" id="demo-note" data-i18n="experience.demoNote">
       ⚠️ Chế độ thử nghiệm: chưa kết nối Google Sheet — đăng ký chỉ lưu trên thiết bị này (xem README).
@@ -167,6 +172,21 @@
     <p class="brand-line">The Flight Deck × Flight to Carrot Day 2026</p>
     <p data-i18n="footer.tagline">Đưa giấc mơ bay đến gần bạn hơn. © 2026 The Flight Deck.</p>
   </footer>
+
+  <div class="lk-backdrop" id="lookup-modal" hidden role="dialog" aria-modal="true"
+       aria-labelledby="lookup-title">
+    <div class="lk-card-wrap">
+      <h3 id="lookup-title">🔎 Tra cứu lịch bay</h3>
+      <p class="lk-hint">Nhập <strong>mã đăng ký</strong> hoặc <strong>số điện thoại</strong>
+        bạn đã dùng khi đặt chỗ.</p>
+      <form id="lookup-form" autocomplete="off">
+        <input type="search" id="lookup-q" placeholder="VD: 0912345678 hoặc a1b2c3d4"
+               inputmode="search" autocomplete="off">
+      </form>
+      <div id="lookup-result"></div>
+      <button type="button" class="btn btn-ghost btn-sm" id="lookup-close">Đóng</button>
+    </div>
+  </div>
 
   <script src="i18n.js"></script>
   <script src="effects.js"></script>
@@ -1195,8 +1215,74 @@
       refresh();
       startTimers();
       TFDQ.onExternalChange(refresh);
+
+      /* ============================================================
+         TRA CỨU LỊCH BAY — cho khách tự xem lại giờ của mình
+         ------------------------------------------------------------
+         Chỉ khớp TUYỆT ĐỐI mã đăng ký hoặc trọn số điện thoại. Gõ vài chữ
+         rồi duyệt qua danh sách khách của quán là chuyện không được xảy
+         ra, nên không có tìm gần đúng ở đây. Cũng KHÔNG hiện email hay
+         tên người bay cùng — khách chỉ cần biết giờ bay của chính mình.
+         ============================================================ */
+      var lkBox = document.getElementById("lookup-modal");
+      var lkInput = document.getElementById("lookup-q");
+      var lkOut = document.getElementById("lookup-result");
+
+      function lkClose() { lkBox.hidden = true; }
+      function lkOpen() {
+        lkBox.hidden = false;
+        lkOut.innerHTML = "";
+        lkInput.value = "";
+        lkInput.focus();
+      }
+      document.getElementById("lookup-open").addEventListener("click", lkOpen);
+      document.getElementById("lookup-close").addEventListener("click", lkClose);
+      lkBox.addEventListener("click", function (e) { if (e.target === lkBox) lkClose(); });
+      document.addEventListener("keydown", function (e) {
+        if (e.key === "Escape" && !lkBox.hidden) lkClose();
+      });
+
+      function lkFind() {
+        var q = lkInput.value.trim();
+        if (!q) { lkOut.innerHTML = ""; return; }
+        var found = TFDQ.lookup(itemsForRender(), q, "", true);
+        if (!found.length) {
+          lkOut.innerHTML = '<p class="lk-none">Không tìm thấy lượt bay nào. ' +
+            'Kiểm tra lại <strong>mã đăng ký</strong> hoặc nhập <strong>đầy đủ số điện thoại</strong> ' +
+            'đã dùng khi đặt. Nếu vẫn không thấy, nhắn Zalo giúp bạn nhé.</p>';
+          return;
+        }
+        lkOut.innerHTML = found.map(function (it) {
+          var chet = ["CANCELLED", "NO_SHOW", "PAYMENT_EXPIRED"].indexOf(it.status) !== -1;
+          var cho = it.status === "PENDING_PAYMENT";
+          var gio = it.slotKey
+            ? String(it.slotKey).slice(11, 16) + " · ngày " +
+              String(it.slotKey).slice(8, 10) + "/" + String(it.slotKey).slice(5, 7) + "/" +
+              String(it.slotKey).slice(0, 4)
+            : "chưa có giờ";
+          var tt = chet
+            ? '<span class="lk-bad">Lượt này đã hủy — vui lòng đặt lại hoặc nhắn Zalo.</span>'
+            : (cho
+              ? '<span class="lk-wait">Đang chờ xác nhận thanh toán. Gửi ảnh chuyển khoản qua Zalo để quán duyệt nhé.</span>'
+              : '<span class="lk-ok">✅ Đã xác nhận — hẹn gặp bạn!</span>');
+          return '<div class="lk-card' + (chet ? " is-dead" : "") + '">' +
+            '<div class="lk-name">' + esc(it.name) + "</div>" +
+            '<div class="lk-time">🛫 ' + esc(gio) + "</div>" +
+            '<div class="lk-meta">Mã đăng ký <code>' + esc(it.id) + "</code> · " +
+              TFDQ.sizeOf(it) + " khách</div>" +
+            '<div class="lk-state">' + tt + "</div>" +
+            (chet ? "" : '<div class="lk-note">Nhớ có mặt trước giờ bay <strong>15 phút</strong> tại ' +
+              "The Flight Deck — 86 Đặng Văn Ngữ, Phú Nhuận, TPHCM.</div>") +
+            "</div>";
+        }).join("");
+      }
+      lkInput.addEventListener("input", lkFind);
+      document.getElementById("lookup-form").addEventListener("submit", function (e) {
+        e.preventDefault(); lkFind();
+      });
     })();
   </script>
+
 
 </body>
 </html>

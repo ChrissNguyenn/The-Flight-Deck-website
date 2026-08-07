@@ -754,6 +754,46 @@ var TFDQ = (function () {
     });
   }
 
+  /* Gửi lại thư xác nhận cho một khách (khách bảo không nhận được).
+     email: tuỳ chọn — sửa luôn địa chỉ nếu khách gõ sai lúc đăng ký. */
+  function resendEmail(id, email) {
+    if (!isRemote()) return Promise.resolve({ ok: true, emailSent: false, emailError: 'chế độ thử nghiệm' });
+    return post({ action: 'resendEmail', id: id, email: email || '' });
+  }
+
+  /* ---------- TRA CỨU ----------
+     Lọc ngay trên danh sách đã tải về, không gọi thêm mạng — nhân viên gõ
+     tới đâu thấy tới đó, và khách tra cứu không phải chờ vòng nào.
+     q: chuỗi tìm (SĐT / tên / mã), day: 'YYYY-MM-DD' (tuỳ chọn).
+     exact=true: chỉ khớp TUYỆT ĐỐI mã hoặc SĐT — dùng cho trang công khai
+     để không ai gõ vài chữ rồi duyệt qua danh sách khách của quán. */
+  function lookup(items, q, day, exact) {
+    var s = String(q || '').trim().toLowerCase();
+
+    /* Chỉ coi là ĐANG GÕ SỐ ĐIỆN THOẠI khi cả chuỗi là chữ số và dấu phân
+       cách. Trước đây tôi bóc số ra khỏi mọi chuỗi rồi đem khớp vào SĐT —
+       gõ mã booking "mno345" thì "345" trúng số 0934567890 và ra nhầm
+       khách khác. Mã đăng ký có lẫn chữ số nên cái bẫy này chắc chắn xảy
+       ra chứ không phải hiếm. */
+    var laSo = /^[\d\s.+()-]+$/.test(s) && s.replace(/\D/g, '').length >= 3;
+    var soChiSo = laSo ? s.replace(/\D/g, '') : '';
+
+    return (items || []).filter(function (it) {
+      if (!it || it.status === 'BLOCKED') return false;
+      if (day && flightDayOf(it) !== day) return false;
+      if (!s) return !!day;                 // chỉ lọc ngày, không gõ gì
+      var phone = String(it.phone || '').replace(/\D/g, '');
+      if (exact) {
+        return String(it.id || '').toLowerCase() === s ||
+               (soChiSo.length >= 8 && phone === soChiSo);
+      }
+      return String(it.id || '').toLowerCase().indexOf(s) !== -1 ||
+             String(it.name || '').toLowerCase().indexOf(s) !== -1 ||
+             String(it.email || '').toLowerCase().indexOf(s) !== -1 ||
+             (soChiSo !== '' && phone.indexOf(soChiSo) !== -1);
+    });
+  }
+
   function unblockSlot(slotKey) {
     if (!isRemote()) {
       var items = localRead();
@@ -1012,6 +1052,8 @@ var TFDQ = (function () {
     unblockSlot: unblockSlot,
     reschedule: reschedule,
     manualAdd: manualAdd,
+    resendEmail: resendEmail,
+    lookup: lookup,
     BLOCK_NAME: BLOCK_NAME,
     nextEtaFor: nextEtaFor_,
     onExternalChange: onExternalChange,

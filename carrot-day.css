@@ -1542,3 +1542,47 @@ a { color: var(--cd-orange-deep); }
   .orange-burst-bg::after { display: none; }
   .boarding-pass-card { box-shadow: none; border: 2px solid #000; }
 }
+
+/* ============================================================
+   TRA CỨU LỊCH BAY — modal trên trang khách
+   ============================================================ */
+.lk-backdrop {
+  position: fixed; inset: 0; z-index: 70;
+  background: rgba(3, 10, 24, 0.75);
+  display: flex; align-items: flex-start; justify-content: center;
+  padding: 1.2rem; overflow-y: auto;
+}
+.lk-backdrop[hidden] { display: none !important; }
+.lk-card-wrap {
+  width: min(30rem, 100%); margin: auto;
+  background: var(--cd-navy, #0d1b33); color: #eaf1fb;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 16px; padding: 1.3rem;
+  box-shadow: 0 20px 64px rgba(0, 0, 0, 0.55);
+}
+.lk-card-wrap h3 { margin: 0 0 0.4rem; font-size: 1.15rem; }
+.lk-hint { margin: 0 0 0.9rem; font-size: 0.88rem; opacity: 0.75; }
+#lookup-q {
+  width: 100%; padding: 0.8rem 1rem; border-radius: 12px;
+  border: 1.5px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.07); color: inherit;
+  font: inherit; font-size: 16px;   /* 16px: iOS không tự phóng to trang */
+}
+#lookup-result { margin: 0.9rem 0 0; }
+.lk-card {
+  border: 1px solid rgba(255, 255, 255, 0.16); border-radius: 12px;
+  padding: 0.9rem 1rem; margin-bottom: 0.7rem;
+  background: rgba(255, 255, 255, 0.05);
+}
+.lk-card.is-dead { opacity: 0.65; }
+.lk-name { font-weight: 800; font-size: 1.02rem; }
+.lk-time { font-size: 1.35rem; font-weight: 800; color: #ffb066; margin: 0.25rem 0; }
+.lk-meta { font-size: 0.82rem; opacity: 0.75; }
+.lk-meta code { background: rgba(255, 255, 255, 0.12); padding: 0.05rem 0.35rem; border-radius: 5px; }
+.lk-state { margin-top: 0.5rem; font-size: 0.88rem; }
+.lk-ok { color: #8fd6a4; font-weight: 700; }
+.lk-wait { color: #ffc66b; font-weight: 700; }
+.lk-bad { color: #ff8f8a; font-weight: 700; }
+.lk-note { margin-top: 0.5rem; font-size: 0.8rem; opacity: 0.7; line-height: 1.5; }
+.lk-none { font-size: 0.9rem; line-height: 1.6; opacity: 0.85; }
+#lookup-close { width: 100%; min-height: 46px; margin-top: 0.4rem; }
