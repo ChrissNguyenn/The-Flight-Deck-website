@@ -19,7 +19,7 @@
    báo lỗi thiếu tham số `e` chứ không phải script hỏng.
    ============================================================ */
 
-var SCRIPT_VERSION = 3;
+var SCRIPT_VERSION = 4;
 
 /* File Sheet đích. Để trống thì dùng Sheet đang gắn với script này —
    nhưng ghi rõ ID an toàn hơn: script vẫn ghi đúng chỗ kể cả khi bạn
@@ -39,6 +39,27 @@ var MAX_DAYS_AHEAD = 60;    // không nhận đặt xa hơn 60 ngày
 var TZ = 'Asia/Ho_Chi_Minh';
 
 /* ============================================================
+   GIÁ & THANH TOÁN
+   ------------------------------------------------------------
+   500.000đ / 1 người / 1 tiếng
+   700.000đ / 2 người / 1 tiếng
+
+   Buồng lái có hai ghế, nên NHÓM TỪ 2 NGƯỜI TRỞ LÊN đều tính giá 2
+   người (700.000đ/giờ) — người thứ ba trở đi ngồi ngoài xem và thay
+   phiên. Nếu quán muốn tính khác (ví dụ cộng thêm cho người thứ 3), sửa
+   priceOf_ bên dưới.
+
+   ⚠️ PHẢI KHỚP với PRICING trong config.js — lệch nhau thì khách nhìn
+   thấy một giá còn máy chủ ghi vào Sheet một giá khác.
+   ============================================================ */
+var PRICE_1P = 500000;      // 1 người / 1 tiếng
+var PRICE_2P = 700000;      // từ 2 người / 1 tiếng
+
+/* Khách có bằng này phút để chuyển khoản và gửi ảnh qua Zalo. Quá hạn
+   thì lượt đó NHẢ CHỖ cho người khác đặt (xem holdsSlot_). */
+var PAYMENT_MIN = 45;
+
+/* ============================================================
    MÃ QUẢN LÝ — cho trang lịch (lich.html)
    ------------------------------------------------------------
    ⚠️ ĐỔI CHUỖI NÀY trước khi dùng thật.
@@ -54,8 +75,19 @@ var TZ = 'Asia/Ho_Chi_Minh';
    trong mã nguồn trang. Đây vẫn không phải đăng nhập thật — ai biết mã
    là vào được, và mã đi kèm mỗi lần gọi — nhưng nó chặn được người tình
    cờ tìm thấy URL. Muốn chắc chắn thì phải dùng tài khoản Google thật.
+
+   ⛔ ĐỪNG ĐIỀN MÃ THẬT VÀO ĐÂY RỒI ĐẨY LÊN GITHUB.
+   Kho này là kho công khai; đẩy lên một lần là chuỗi đó nằm vĩnh viễn
+   trong lịch sử git, xoá đi cũng vẫn tra lại được. Cách làm đúng: dán
+   file này vào trình soạn thảo Apps Script rồi sửa dòng dưới NGAY TRÊN
+   ĐÓ. Apps Script không nằm trong kho, nên mã thật không đi đâu cả.
+
+   ⛔ VÀ ĐỪNG DÙNG LẠI ADMIN_PIN trong config.js. config.js được gửi
+   thẳng tới trình duyệt của mọi khách, nên PIN đó ai xem mã nguồn trang
+   cũng đọc được. Dùng lại nó ở đây là vứt bỏ toàn bộ ý nghĩa của việc
+   giấu mã ở phía máy chủ. Hãy đặt một chuỗi KHÁC HẲN, dài, khó đoán.
    ============================================================ */
-var ADMIN_KEY = 'tfd-doi-ma-nay-di';
+var ADMIN_KEY = 'DAT-MA-RIENG-CUA-BAN-O-DAY';
 
 /* ---------- Cột trong bảng ----------
    Sửa ở đây là sửa cả tiêu đề lẫn thứ tự ghi. KHÔNG chèn cột vào GIỮA
@@ -74,23 +106,32 @@ var COLS = [
   { key: 'guests',   label: 'Số khách',        width: 84 },
   { key: 'event',    label: 'Sự kiện',         width: 180 },
   { key: 'note',     label: 'Ghi chú',         width: 260 },
-  { key: 'status',   label: 'Trạng thái',      width: 128 },
+  { key: 'status',   label: 'Trạng thái',      width: 138 },
   { key: 'source',   label: 'Nguồn',           width: 96 },
-  { key: 'sentAt',   label: 'Thời gian gửi',   width: 152 }
+  { key: 'sentAt',   label: 'Thời gian gửi',   width: 152 },
+  /* Thêm vào CUỐI mảng, không chèn vào giữa — xem chú thích ở trên.
+     Các tab đã tạo từ trước sẽ được ensureCols_ nới thêm cột này. */
+  { key: 'amount',   label: 'Số tiền (VND)',   width: 118 }
 ];
 
 var TYPE_BOOK = 'Đặt lịch bay';
 var TYPE_EVENT = 'Đăng ký sự kiện';
 
-var ST_NEW = 'Mới';
+/* ---------- Trạng thái ----------
+   Khách đặt xong là "Chờ thanh toán": lượt đó ĐANG GIỮ CHỖ nhưng chưa
+   chắc chắn. Nhân viên đối chiếu ảnh chuyển khoản trên Zalo rồi bấm xác
+   nhận trên trang lịch. Quá PAYMENT_MIN phút mà chưa xác nhận thì lượt
+   tự nhả chỗ. */
+var ST_PENDING = 'Chờ thanh toán';
 var ST_OK = 'Đã xác nhận';
 var ST_DONE = 'Đã bay';
 var ST_CANCEL = 'Đã hủy';
-var STATUSES = [ST_NEW, ST_OK, ST_DONE, ST_CANCEL];
+var ST_EXPIRED = 'Quá hạn TT';
+var STATUSES = [ST_PENDING, ST_OK, ST_DONE, ST_CANCEL, ST_EXPIRED];
 
-/* Trạng thái vẫn CHIẾM CHỖ trong buồng lái. "Đã hủy" thì nhả giờ ra cho
-   người khác đặt. */
-var HOLDING = [ST_NEW, ST_OK, ST_DONE];
+/* Giữ lại tên cũ để các dòng đã ghi bằng bản trước vẫn được hiểu là
+   "đang giữ chỗ" thay vì bị coi như đã huỷ. */
+var ST_OLD_NEW = 'Mới';
 
 /* ---------- Màu bảng (đồng bộ với giao diện web) ---------- */
 var C_HEADER_BG = '#0D2440';   // navy
@@ -117,7 +158,8 @@ function doGet(e) {
       version: SCRIPT_VERSION,
       openStart: OPEN_START, openEnd: OPEN_END,
       stepMinutes: STEP_MIN, minHours: MIN_HOURS, maxHours: MAX_HOURS,
-      leadMinutes: LEAD_MIN
+      leadMinutes: LEAD_MIN,
+      price1: PRICE_1P, price2: PRICE_2P, payMinutes: PAYMENT_MIN
     });
   } catch (err) {
     return json_({ ok: false, error: 'SERVER', message: String(err && err.message || err) });
@@ -314,7 +356,7 @@ function DINH_DANG_LAI_TAT_CA() {
   ss.getSheets().forEach(function (sh) {
     if (!/^\d{1,2}[\/\-]\d{2}$/.test(sh.getName())) return;
     var last = sh.getLastRow();
-    var data = last > 1 ? sh.getRange(2, 1, last - 1, COLS.length).getValues() : [];
+    var data = readRows_(sh);
 
     /* Chuẩn hoá lại các dòng cũ: những dòng ghi trước khi sửa lỗi đang
        giữ ô "Ngày bay" dưới dạng Date. Ghi thẳng chúng trở lại vào ô đã
@@ -334,6 +376,46 @@ function DINH_DANG_LAI_TAT_CA() {
 /* ============================================================
    ĐỌC LỊCH ĐÃ ĐẶT
    ============================================================ */
+
+/* Đọc các dòng dữ liệu, chịu được tab tạo bằng bản Code.gs CŨ.
+   setupSheet_ xoá sạch cột thừa khi tạo tab, nên tab cũ có đúng 14 cột
+   thật. Gọi getRange(..., 15) trên đó là ném lỗi và cả trang lịch trắng
+   xoá. Đọc theo số cột đang có rồi đệm cho đủ thì tab cũ vẫn dùng được
+   ngay, không phải chạy lệnh sửa nào trước. */
+function readRows_(sh) {
+  var last = sh.getLastRow();
+  if (last < 2) return [];
+  var w = Math.min(COLS.length, sh.getMaxColumns());
+  var rows = sh.getRange(2, 1, last - 1, w).getValues();
+  if (w < COLS.length) {
+    rows.forEach(function (r) { while (r.length < COLS.length) r.push(''); });
+  }
+  return rows;
+}
+
+/* Nới tab cũ cho đủ số cột hiện tại. Chỉ ghi lại HÀNG TIÊU ĐỀ và định
+   dạng phần cột mới — không đụng tới dữ liệu đã có. */
+function ensureCols_(sh) {
+  var n = COLS.length;
+  if (sh.getMaxColumns() < n) sh.insertColumnsAfter(sh.getMaxColumns(), n - sh.getMaxColumns());
+
+  var head = sh.getRange(1, 1, 1, n).getValues()[0];
+  var thieu = false;
+  for (var i = 0; i < n; i++) {
+    if (String(head[i]).trim() !== COLS[i].label) { thieu = true; break; }
+  }
+  if (!thieu) return sh;
+
+  sh.getRange(1, 1, 1, n).setValues([COLS.map(function (c) { return c.label; })])
+    .setBackground(C_HEADER_BG).setFontColor(C_HEADER_FG)
+    .setFontFamily('Arial').setFontSize(11).setFontWeight('bold')
+    .setVerticalAlignment('middle').setHorizontalAlignment('center').setWrap(true);
+  COLS.forEach(function (c, i) { sh.setColumnWidth(i + 1, c.width); });
+  textCols_().forEach(function (c) {
+    sh.getRange(2, c.n, Math.max(1, sh.getMaxRows() - 1), 1).setNumberFormat('@');
+  });
+  return sh;
+}
 
 function pad2_(n) { return (n < 10 ? '0' : '') + n; }
 
@@ -388,6 +470,52 @@ function todayKey_() {
   return Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd');
 }
 
+/* ---------- GIÁ ----------
+   Một buồng lái, hai ghế: từ 2 khách trở lên tính chung giá 2 người. */
+function priceOf_(guests, hours) {
+  var g = Math.max(1, Number(guests) || 1);
+  var h = Math.max(0, Number(hours) || 0);
+  return Math.round((g <= 1 ? PRICE_1P : PRICE_2P) * h);
+}
+
+/* Đọc ô "Thời gian gửi" (dd/MM/yyyy HH:mm:ss, giờ Việt Nam) ra mốc ms.
+   Ô này có thể là chuỗi hoặc — với dòng ghi bằng bản cũ — là Date. */
+function sentAtMs_(v) {
+  if (v instanceof Date) return v.getTime();
+  var m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})[ T](\d{1,2}):(\d{2})(?::(\d{2}))?/.exec(String(v || '').trim());
+  if (!m) return NaN;
+  return Date.UTC(+m[3], +m[2] - 1, +m[1], +m[4], +m[5], +(m[6] || 0)) - 7 * 3600000;
+}
+
+/* Dòng này còn GIỮ CHỖ trong buồng lái không?
+   ------------------------------------------------------------
+   "Chờ thanh toán" có giữ chỗ — khách đang đi chuyển khoản, không thể
+   để người khác cướp mất trong lúc đó. Nhưng chỉ giữ trong PAYMENT_MIN
+   phút: không có hạn thì một người bấm đặt rồi biến mất sẽ khoá khung
+   giờ đó vĩnh viễn.
+
+   Hạn được TÍNH LẠI mỗi lần đọc chứ không ghi vào Sheet. Ghi vào thì
+   phải có trigger chạy nền để dọn, mà trigger hỏng lặng lẽ là chuyện
+   thường — lúc đó lịch nói một đằng, thực tế một nẻo. */
+function holdsSlot_(r, cIdx, nowMs) {
+  var st = String(r[cIdx.status - 1]).trim();
+  if (st === ST_OK || st === ST_DONE) return true;
+  if (st !== ST_PENDING && st !== ST_OLD_NEW) return false;   // đã huỷ / quá hạn
+
+  var t = sentAtMs_(r[cIdx.sentAt - 1]);
+  if (!isFinite(t)) return true;        // không đọc được giờ gửi thì cứ giữ, an toàn hơn
+  return (nowMs - t) < PAYMENT_MIN * 60000;
+}
+
+/* Trạng thái để HIỂN THỊ: giống trong Sheet, nhưng "Chờ thanh toán" đã
+   quá hạn thì hiện là quá hạn cho khớp với việc nó đã nhả chỗ. */
+function shownStatus_(r, cIdx, nowMs) {
+  var st = String(r[cIdx.status - 1]).trim();
+  if (st === ST_OLD_NEW) st = ST_PENDING;
+  if (st === ST_PENDING && !holdsSlot_(r, cIdx, nowMs)) return ST_EXPIRED;
+  return st;
+}
+
 function nowMinutes_() {
   var d = nowVn_();
   return d.getHours() * 60 + d.getMinutes();
@@ -404,12 +532,13 @@ function bookingsOn_(dateKey) {
   if (last < 2) return [];
 
   var cIdx = colIndex_();
-  var rows = sh.getRange(2, 1, last - 1, COLS.length).getValues();
+  var rows = readRows_(sh);
+  var nowMs = Date.now();
   var out = [];
   rows.forEach(function (r) {
     if (String(r[cIdx.type - 1]).trim() !== TYPE_BOOK) return;
     if (dateKeyOf_(r[cIdx.date - 1]) !== dateKey) return;
-    if (HOLDING.indexOf(String(r[cIdx.status - 1]).trim()) === -1) return;
+    if (!holdsSlot_(r, cIdx, nowMs)) return;
     var rg = rangeOf_(r[cIdx.timeText - 1]);
     if (rg) out.push(rg);
   });
@@ -427,7 +556,8 @@ function slotsFor_(dateKey) {
     busy: bookingsOn_(dateKey),
     openStart: OPEN_START, openEnd: OPEN_END,
     stepMinutes: STEP_MIN, minHours: MIN_HOURS, maxHours: MAX_HOURS,
-    leadMinutes: LEAD_MIN
+    leadMinutes: LEAD_MIN,
+    price1: PRICE_1P, price2: PRICE_2P, payMinutes: PAYMENT_MIN
   };
 }
 
@@ -479,6 +609,7 @@ function forceText_(sh, row) {
 }
 
 function appendRow_(sh, values) {
+  ensureCols_(sh);
   var r = sh.getLastRow() + 1;
   forceText_(sh, r);
   sh.getRange(r, 1, 1, COLS.length).setValues([values]);
@@ -539,6 +670,7 @@ function saveBooking_(p) {
     }
 
     var code = newCode_();
+    var tien = priceOf_(guests, hours);
     var sh = sheetFor_(date);
     appendRow_(sh, rowFrom_({
       code: code,
@@ -552,15 +684,23 @@ function saveBooking_(p) {
       guests: guests,
       event: '',
       note: safeCell_(p.note),
-      status: ST_NEW,
+      status: ST_PENDING,
       source: clean_(p.source, 40) || 'website',
-      sentAt: Utilities.formatDate(new Date(), TZ, 'dd/MM/yyyy HH:mm:ss')
+      sentAt: Utilities.formatDate(new Date(), TZ, 'dd/MM/yyyy HH:mm:ss'),
+      amount: tien
     }));
 
+    /* Trả luôn số tiền và nội dung chuyển khoản để trang khách khỏi phải
+       tự tính lại. Máy khách tính lại = hai công thức giá ở hai nơi, và
+       sớm muộn chúng lệch nhau. */
     return {
       ok: true, code: code, date: date,
       timeText: minToHhmm_(s) + ' - ' + minToHhmm_(e),
-      hours: hours, tab: sh.getName()
+      hours: hours, guests: guests, tab: sh.getName(),
+      amount: tien,
+      status: ST_PENDING,
+      payMinutes: PAYMENT_MIN,
+      transferNote: 'TFD ' + code
     };
   } finally {
     lock.releaseLock();
@@ -596,7 +736,7 @@ function saveEvent_(p) {
     guests: guests,
     event: safeCell_(p.event),
     note: safeCell_(p.note),
-    status: ST_NEW,
+    status: ST_PENDING,
     source: clean_(p.source, 40) || 'website',
     sentAt: Utilities.formatDate(new Date(), TZ, 'dd/MM/yyyy HH:mm:ss')
   }));
@@ -643,6 +783,7 @@ function bookingsBetween_(from, to) {
 
   var ss = book_();
   var cIdx = colIndex_();
+  var nowMs = Date.now();
   var items = [];
 
   tabNamesBetween_(from, to).forEach(function (name) {
@@ -651,7 +792,7 @@ function bookingsBetween_(from, to) {
     var last = sh.getLastRow();
     if (last < 2) return;
 
-    sh.getRange(2, 1, last - 1, COLS.length).getValues().forEach(function (r, i) {
+    readRows_(sh).forEach(function (r, i) {
       var date = dateKeyOf_(r[cIdx.date - 1]);
       if (!date || date < from || date > to) return;
       var rg = rangeOf_(r[cIdx.timeText - 1]);
@@ -671,7 +812,10 @@ function bookingsBetween_(from, to) {
         guests: r[cIdx.guests - 1],
         event: String(r[cIdx.event - 1] || ''),
         note: String(r[cIdx.note - 1] || ''),
-        status: String(r[cIdx.status - 1] || '').trim(),
+        status: shownStatus_(r, cIdx, nowMs),
+        rawStatus: String(r[cIdx.status - 1] || '').trim(),
+        holds: holdsSlot_(r, cIdx, nowMs),
+        amount: Number(r[cIdx.amount - 1]) || 0,
         source: String(r[cIdx.source - 1] || ''),
         sentAt: String(r[cIdx.sentAt - 1] || '')
       });
@@ -731,12 +875,13 @@ function lookup_(q) {
   var laSo = /^[\d\s.+()-]+$/.test(s) && digits.length >= 9;
 
   var cIdx = colIndex_();
+  var nowMs = Date.now();
   var found = [];
   book_().getSheets().forEach(function (sh) {
     if (!/^\d{1,2}[\/\-]\d{2}$/.test(sh.getName())) return;
     var last = sh.getLastRow();
     if (last < 2) return;
-    sh.getRange(2, 1, last - 1, COLS.length).getValues().forEach(function (r) {
+    readRows_(sh).forEach(function (r) {
       var code = String(r[cIdx.code - 1]).trim().toLowerCase();
       var ph = String(r[cIdx.phone - 1]).replace(/\D/g, '');
       var hit = laSo ? (ph === digits) : (code === s);
@@ -750,7 +895,8 @@ function lookup_(q) {
         name: String(r[cIdx.name - 1]),
         guests: r[cIdx.guests - 1],
         event: String(r[cIdx.event - 1]),
-        status: String(r[cIdx.status - 1]).trim()
+        amount: Number(r[cIdx.amount - 1]) || 0,
+        status: shownStatus_(r, cIdx, nowMs)
       });
     });
   });

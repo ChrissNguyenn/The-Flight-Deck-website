@@ -231,10 +231,19 @@
   }
 
   /* --- bảng tóm tắt --- */
+  function guests() { return Number(($('bk-sokhach') || {}).value || 2); }
+
   function renderSummary() {
     var box = $('sum-time'), range = $('sum-range'), sub = $('sum-date');
     $('sum-dur').textContent = state.hours + ' tiếng';
     $('sum-day').textContent = state.date ? TFD_BOOK.prettyDate(state.date) : '—';
+
+    /* Giá hiện ngay khi khách đổi số người hoặc số giờ. Con số ghi vào
+       Sheet vẫn do máy chủ tự tính lại — đây chỉ để khách biết trước. */
+    var P = CFG.PRICING || TFD_BOOK.PRICE;
+    var rate = guests() <= 1 ? (P.perHour1 || P.perHour1) : P.perHour2;
+    $('sum-rate').textContent = TFD_BOOK.vnd(rate) + ' / giờ';
+    $('sum-total').textContent = TFD_BOOK.vnd(TFD_BOOK.priceOf(guests(), state.hours, CFG));
 
     if (state.date && state.start) {
       box.classList.remove('is-empty');
@@ -279,8 +288,161 @@
     });
   }
 
+  var soKhach = $('bk-sokhach');
+  if (soKhach) soKhach.addEventListener('change', renderSummary);
+
   renderSummary();
   renderSlots();
+
+  /* ============================================================
+     BƯỚC THANH TOÁN
+     ============================================================ */
+  function showPay(d) {
+    var bank = CFG.BANK || {};
+    var note = d.transferNote || ('TFD ' + d.code);
+
+    $('pay-amount').textContent = TFD_BOOK.vnd(d.amount);
+    $('pay-bank').textContent = bank.bankName || '—';
+    $('pay-acc').textContent = bank.accountNumber || '—';
+    $('pay-owner').textContent = bank.accountName || '—';
+    $('pay-note').textContent = note;
+    $('pay-code').textContent = d.code;
+    $('pay-when').textContent = d.timeText + ' · ngày ' + TFD_BOOK.prettyDate(d.date);
+
+    var phut = d.payMinutes || (CFG.PRICING && CFG.PRICING.payMinutes) || 45;
+    $('pay-deadline').innerHTML =
+      '⏳ Chúng tôi giữ chỗ cho bạn trong <b>' + phut + ' phút</b>. ' +
+      'Quá hạn mà chưa nhận được chuyển khoản, khung giờ sẽ mở lại cho khách khác.';
+
+    var zalo = CFG.ZALO_LINK || '';
+    var btn = $('pay-zalo');
+    if (zalo) { btn.href = zalo; btn.classList.remove('hidden'); }
+    else btn.classList.add('hidden');
+
+    /* Mã VietQR: điền sẵn số tiền và nội dung nên khách không gõ nhầm,
+       và nhân viên đối chiếu ảnh Zalo với đúng mã đặt chỗ. Thiếu thư
+       viện hay thiếu thông tin ngân hàng thì bỏ hẳn ô QR đi — hiện một
+       ô trống không giải thích gì còn khó hiểu hơn. */
+    var box = $('pay-qr');
+    var qrWrap = box.parentElement;
+    box.innerHTML = '';
+    if (typeof TFD_VIETQR === 'undefined' || typeof QRCode === 'undefined' ||
+        !bank.bin || !bank.accountNumber) {
+      qrWrap.classList.add('hidden');
+    } else {
+      try {
+        new QRCode(box, {
+          text: TFD_VIETQR.payload({
+            bin: bank.bin, accountNumber: bank.accountNumber,
+            amount: d.amount, addInfo: note
+          }),
+          width: 200, height: 200, correctLevel: QRCode.CorrectLevel.M
+        });
+        qrWrap.classList.remove('hidden');
+      } catch (e) { qrWrap.classList.add('hidden'); }
+    }
+
+    bookForm.classList.add('hidden');
+    $('pay-panel').classList.remove('hidden');
+    $('pay-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  var payAgain = $('pay-again');
+  if (payAgain) {
+    payAgain.addEventListener('click', function () {
+      $('pay-panel').classList.add('hidden');
+      bookForm.classList.remove('hidden');
+      $('bk-result').className = 'form-result';
+      state.start = '';
+      loadBusy(state.date);
+      renderSummary();
+      document.getElementById('dat-lich').scrollIntoView({ behavior: 'smooth' });
+    });
+  }
+
+  /* Nút "Chép" cạnh số tài khoản và nội dung chuyển khoản */
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('.copy');
+    if (!b) return;
+    var el = $(b.getAttribute('data-copy'));
+    if (!el) return;
+    var txt = el.textContent.trim();
+    var done = function () {
+      var old = b.textContent;
+      b.textContent = 'Đã chép';
+      b.classList.add('is-done');
+      setTimeout(function () { b.textContent = old; b.classList.remove('is-done'); }, 1800);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(txt).then(done).catch(function () {});
+    } else {
+      /* Trình duyệt cũ / trang không chạy https vẫn phải chép được */
+      var t = document.createElement('textarea');
+      t.value = txt; t.style.position = 'fixed'; t.style.opacity = '0';
+      document.body.appendChild(t); t.select();
+      try { document.execCommand('copy'); done(); } catch (err) {}
+      t.remove();
+    }
+  });
+
+  /* ============================================================
+     TRA CỨU ĐẶT CHỖ
+     ============================================================ */
+  var ST_LOOK = {
+    'Chờ thanh toán': { cls: '', txt: 'Chờ thanh toán' },
+    'Đã xác nhận':    { cls: 'is-ok', txt: 'Đã xác nhận' },
+    'Đã bay':         { cls: 'is-ok', txt: 'Đã bay xong' },
+    'Đã hủy':         { cls: 'is-dead', txt: 'Đã hủy' },
+    'Quá hạn TT':     { cls: 'is-dead', txt: 'Quá hạn thanh toán' }
+  };
+
+  var lkForm = $('lk-form');
+  if (lkForm) {
+    lkForm.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var q = $('lk-q').value.trim();
+      var box = $('lk-result');
+      if (q.length < 6) {
+        box.innerHTML = '<p class="lk-none">Nhập đủ mã đặt chỗ hoặc trọn số điện thoại giúp bạn nhé.</p>';
+        return;
+      }
+      if (!LIVE) { box.innerHTML = '<p class="lk-none">Trang đang ở chế độ thử nghiệm — chưa tra cứu được.</p>'; return; }
+
+      var done = busyBtn($('lk-go'), 'Đang tìm…');
+      box.innerHTML = '<p class="lk-none">Đang tìm…</p>';
+      fetch(API + '?action=lookup&q=' + encodeURIComponent(q) + '&t=' + Date.now())
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          if (!d || !d.ok || !d.items || !d.items.length) {
+            box.innerHTML = '<p class="lk-none">Không tìm thấy lượt nào. ' +
+              'Bạn kiểm tra lại mã hoặc số điện thoại, hoặc gọi ' +
+              '<a href="tel:0919686320">0919 686 320</a>.</p>';
+            return;
+          }
+          box.innerHTML = d.items.map(function (it) {
+            var st = ST_LOOK[it.status] || { cls: '', txt: it.status };
+            var chet = st.cls === 'is-dead';
+            return '<div class="lk-card ' + esc(st.cls === 'is-ok' ? 'is-ok' : st.cls) + '">' +
+              '<div class="lk-card__top">' +
+                '<span class="lk-card__name">' + esc(it.name) + '</span>' +
+                '<span class="lk-card__st ' + esc(st.cls) + '">' + esc(st.txt) + '</span>' +
+              '</div>' +
+              '<p class="lk-card__time">' + esc(it.timeText || '—') + '</p>' +
+              '<p class="lk-card__meta">' +
+                (it.date ? 'Ngày ' + esc(TFD_BOOK.prettyDate(it.date)) : 'Chưa xếp ngày') +
+                ' · ' + esc(it.guests || 1) + ' khách' +
+                (it.amount ? ' · ' + esc(TFD_BOOK.vnd(it.amount)) : '') +
+                ' · mã <code>' + esc(it.code) + '</code>' +
+                (chet ? '' : '<br>Vui lòng có mặt trước giờ bay 10 phút.') +
+              '</p></div>';
+          }).join('');
+        })
+        .catch(function () {
+          box.innerHTML = '<p class="lk-none">Không kết nối được. Bạn thử lại giúp nhé.</p>';
+        })
+        .then(done);
+    });
+  }
 
   /* ============================================================
      GỬI FORM
@@ -392,16 +554,12 @@
         source: 'website'
       }).then(function (d) {
         if (d && d.ok) {
-          result('bk-result', 'ok',
-            '<strong>Đã nhận yêu cầu đặt lịch!</strong>' +
-            'Chuyến bay <b>' + esc(d.timeText) + '</b> ngày <b>' +
-            esc(TFD_BOOK.prettyDate(d.date)) + '</b>.<br>' +
-            'Mã đặt chỗ của bạn: <code>' + esc(d.code) + '</code><br>' +
-            'Chúng tôi sẽ gọi lại để xác nhận trong thời gian sớm nhất.');
+          /* Chuyển sang bước chuyển khoản thay vì chỉ báo "đã nhận".
+             Lượt này mới chỉ GIỮ CHỖ — nói "đặt thành công" rồi để khách
+             đi mất là đúng cách để có một khung giờ trống mà không ai đến. */
+          showPay(d);
           bookForm.querySelectorAll('input, textarea').forEach(function (i) { i.value = ''; });
-          state.start = '';
-          loadBusy(state.date);          // giờ vừa đặt phải chuyển sang kín ngay
-          renderSummary();
+          loadBusy(state.date);          // giờ vừa giữ phải chuyển sang kín ngay
         } else {
           result('bk-result', 'bad', '<strong>Chưa đặt được</strong>' + serverMsg(d));
           if (d && d.error === 'SLOT_TAKEN') { state.start = ''; loadBusy(state.date); renderSummary(); }

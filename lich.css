@@ -445,3 +445,12 @@ button { font-family: inherit; cursor: pointer; }
   .topbar, .pop, .pop-back { display: none !important; }
   body, .cal { overflow: visible; height: auto; }
 }
+
+/* Chờ thanh toán — cam, vì đây là lượt CẦN NHÂN VIÊN LÀM GÌ ĐÓ.
+   Để chung màu xanh với "đã xác nhận" thì nhìn lướt qua tưởng xong rồi,
+   và tiền không bao giờ được đối chiếu. */
+.ev--wait { background: #e8710a; }
+.st-wait { background: #feefe3; color: #b06000; }
+
+/* Khối cao mới đủ chỗ cho dòng thứ ba (số tiền + số khách) */
+.ev small + small { opacity: .85; }

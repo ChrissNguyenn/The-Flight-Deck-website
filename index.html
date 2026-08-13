@@ -270,12 +270,18 @@
               <ul class="summary-list">
                 <li><span class="k">Ngày bay</span><span class="v" id="sum-day">—</span></li>
                 <li><span class="k">Thời lượng</span><span class="v" id="sum-dur">1 tiếng</span></li>
+                <li><span class="k">Đơn giá</span><span class="v" id="sum-rate">500.000đ / giờ</span></li>
                 <li><span class="k">Có mặt trước</span><span class="v">10 phút</span></li>
               </ul>
 
+              <div class="total">
+                <span class="total__k">Tổng cộng</span>
+                <span class="total__v" id="sum-total">500.000đ</span>
+              </div>
+
               <p class="note">
-                Bạn vui lòng có mặt trước giờ bay 10 phút để nghe hướng dẫn an toàn
-                và làm quen buồng lái.
+                Buồng lái có 2 ghế: <b>1 người 500.000đ/giờ</b>, <b>từ 2 người 700.000đ/giờ</b>.
+                Bạn vui lòng có mặt trước giờ bay 10 phút để nghe hướng dẫn an toàn.
               </p>
 
               <div class="field">
@@ -314,12 +320,74 @@
                 <textarea id="bk-ghichu" name="note" placeholder="Lần đầu bay, đi cùng trẻ nhỏ, muốn bay chặng nào…"></textarea>
               </div>
 
-              <button type="submit" class="btn btn-primary btn-block btn-lg" id="bk-submit">Gửi yêu cầu đặt lịch</button>
+              <button type="submit" class="btn btn-primary btn-block btn-lg" id="bk-submit">Giữ chỗ &amp; thanh toán</button>
               <div class="form-result" id="bk-result" role="status" aria-live="polite"></div>
             </div>
 
           </div>
         </form>
+
+        <!-- ============================================================
+             BƯỚC THANH TOÁN
+             ------------------------------------------------------------
+             Hiện ra sau khi giữ chỗ thành công, thay cho form. Mã VietQR
+             được sinh ngay trên máy khách (vietqr.js) với SỐ TIỀN và NỘI
+             DUNG chuyển khoản điền sẵn — khách không gõ nhầm số tiền, và
+             nhân viên đối chiếu ảnh Zalo với đúng mã trong vài giây.
+             ============================================================ -->
+        <div class="pay hidden" id="pay-panel">
+          <div class="pay__head">
+            <p class="eyebrow" style="margin-bottom:8px">Bước cuối</p>
+            <h3 id="pay-title">Chuyển khoản để xác nhận chỗ</h3>
+            <p id="pay-sub">Chúng tôi đang giữ chỗ cho bạn.</p>
+          </div>
+
+          <div class="pay__grid">
+            <div class="pay__qr">
+              <div id="pay-qr" class="pay__qrbox"></div>
+              <p class="pay__qrhint">Mở app ngân hàng &rarr; Quét mã &rarr; số tiền và nội dung đã điền sẵn</p>
+            </div>
+
+            <div class="pay__info">
+              <dl class="pay__rows">
+                <div><dt>Số tiền</dt><dd class="pay__amount" id="pay-amount">—</dd></div>
+                <div><dt>Ngân hàng</dt><dd id="pay-bank">—</dd></div>
+                <div><dt>Số tài khoản</dt><dd><b id="pay-acc">—</b>
+                  <button type="button" class="copy" data-copy="pay-acc">Chép</button></dd></div>
+                <div><dt>Chủ tài khoản</dt><dd id="pay-owner">—</dd></div>
+                <div><dt>Nội dung CK</dt><dd><b id="pay-note">—</b>
+                  <button type="button" class="copy" data-copy="pay-note">Chép</button></dd></div>
+                <div><dt>Chuyến bay</dt><dd id="pay-when">—</dd></div>
+                <div><dt>Mã đặt chỗ</dt><dd><code id="pay-code">—</code></dd></div>
+              </dl>
+
+              <p class="pay__warn" id="pay-deadline"></p>
+
+              <a class="btn btn-gold btn-block" id="pay-zalo" href="#" target="_blank" rel="noopener">
+                Gửi ảnh chuyển khoản qua Zalo
+              </a>
+              <p class="pay__last">
+                Sau khi nhận được ảnh, chúng tôi xác nhận và gọi lại cho bạn.
+                Cần hỗ trợ: <a href="tel:0919686320">0919 686 320</a>.
+              </p>
+              <button type="button" class="btn btn-ghost btn-block" id="pay-again" style="margin-top:10px">Đặt thêm lượt khác</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ---------- Tra cứu đặt chỗ ---------- -->
+      <div class="lookup reveal" id="tra-cuu">
+        <div class="lookup__head">
+          <h3>Đã đặt rồi? Tra cứu chuyến bay của bạn</h3>
+          <p>Nhập <b>mã đặt chỗ</b> hoặc <b>số điện thoại</b> đã dùng khi đặt.</p>
+        </div>
+        <form class="lookup__form" id="lk-form" novalidate>
+          <input type="text" id="lk-q" placeholder="TFD2608130042 hoặc 09xx xxx xxx"
+                 aria-label="Mã đặt chỗ hoặc số điện thoại" autocomplete="off">
+          <button type="submit" class="btn btn-primary" id="lk-go">Tra cứu</button>
+        </form>
+        <div id="lk-result" class="lookup__result" role="status" aria-live="polite"></div>
       </div>
 
     </div>
@@ -427,6 +495,10 @@
 </footer>
 
 <script src="config.js"></script>
+<!-- Sinh mã VietQR ngay trên máy khách, không gọi dịch vụ ngoài: mạng
+     chập chờn vẫn hiện được mã để khách chuyển khoản. -->
+<script src="qrcode.min.js"></script>
+<script src="vietqr.js"></script>
 <script src="booking.js"></script>
 <script src="home.js"></script>
 </body>

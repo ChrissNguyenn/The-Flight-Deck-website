@@ -33,6 +33,16 @@ var TFD_CONFIG = {
      gửi đi đâu cả, và nói thẳng điều đó cho khách. */
   BOOKING_SCRIPT_URL: "",
 
+  /* Bảng giá — PHẢI KHỚP với PRICE_1P / PRICE_2P trong Code.gs.
+     Buồng lái hai ghế, nên nhóm từ 2 người trở lên tính chung giá 2
+     người; người thứ ba trở đi ngồi ngoài xem và thay phiên. */
+  PRICING: {
+    perHour1: 500000,   // 1 người / 1 tiếng
+    perHour2: 700000,   // từ 2 người / 1 tiếng
+    payMinutes: 45      // hạn chuyển khoản, khớp PAYMENT_MIN trong Code.gs
+  },
+
+
   /* Khung giờ mở cửa & luật đặt lịch.
      ⚠️ PHẢI KHỚP với các hằng số đầu file Code.gs. Lệch nhau thì khách
      chọn được một giờ mà server từ chối — hoặc tệ hơn, ngược lại. */

@@ -301,7 +301,7 @@ mới → Triển khai.** URL giữ nguyên, không cần sửa lại `config.js
 Sửa code mà quên bước này thì máy chủ vẫn chạy code cũ — đây là chỗ hay quên nhất.
 
 Kiểm tra bản đang chạy: mở URL Web App trên trình duyệt, JSON trả về có
-`"version": 3`. Số nhỏ hơn nghĩa là bản deploy còn cũ.
+`"version": 4`. Số nhỏ hơn nghĩa là bản deploy còn cũ.
 
 ### Bảng dữ liệu trong Sheet
 
@@ -319,8 +319,9 @@ nào là thấy đủ lịch tháng đó.
 | Tên khách book / SĐT / Email / Số khách | thông tin khách |
 | Sự kiện | tên sự kiện (nếu là đăng ký sự kiện) |
 | Ghi chú | lời nhắn của khách |
-| Trạng thái | ô chọn: Mới / Đã xác nhận / Đã bay / Đã hủy |
-| Nguồn / Thời gian gửi | `website` + giờ nhận |
+| Trạng thái | ô chọn: Chờ thanh toán / Đã xác nhận / Đã bay / Đã hủy / Quá hạn TT |
+| Nguồn / Thời gian gửi | `website` + giờ khách bấm đặt |
+| Số tiền (VND) | máy chủ tự tính, không lấy theo số máy khách gửi lên |
 
 Đổi **Trạng thái** sang **Đã hủy** là khung giờ đó **tự trống trở lại** trên
 website, không phải xoá dòng. Dòng đã huỷ được tô mờ và gạch ngang.
@@ -336,6 +337,51 @@ còn chuẩn hoá lại cột "Ngày bay" của các dòng ghi bằng bản `Cod
 > giờ**. Cùng cơ chế đó ăn mất số 0 đầu số điện thoại và biến `=...` ở ô ghi chú
 > thành công thức chạy được. Vì vậy script đặt định dạng chữ **trước khi** ghi,
 > và khi đọc thì chấp nhận cả ba dạng (chuỗi chuẩn, `16/08/2026`, giá trị ngày).
+
+### Giá & thanh toán
+
+| | 1 tiếng | 2 tiếng | 3 tiếng | 4 tiếng |
+|---|---|---|---|---|
+| **1 người** | 500.000đ | 1.000.000đ | 1.500.000đ | 2.000.000đ |
+| **Từ 2 người** | 700.000đ | 1.400.000đ | 2.100.000đ | 2.800.000đ |
+
+Buồng lái có **hai ghế**, nên nhóm từ 2 người trở lên đều tính giá 2 người —
+người thứ ba trở đi ngồi ngoài xem và thay phiên. Muốn tính khác (ví dụ cộng
+thêm cho người thứ 3) thì sửa hàm `priceOf_` trong `Code.gs`.
+
+**Đổi giá phải sửa cả hai nơi:** `PRICE_1P` / `PRICE_2P` trong `Code.gs` và
+`PRICING` trong `config.js`. Lệch nhau thì khách nhìn thấy một giá còn Sheet ghi
+một giá khác.
+
+> Số tiền ghi vào Sheet luôn do **máy chủ tự tính lại**, không lấy theo con số
+> máy khách gửi lên — nếu tin vào máy khách thì ai cũng sửa được thành 1đ.
+
+**Luồng đặt chỗ:**
+
+1. Khách chọn ngày / số giờ / giờ bắt đầu → giá hiện ngay bên phải.
+2. Bấm **Giữ chỗ & thanh toán** → dòng vào Sheet với trạng thái **Chờ thanh
+   toán**, khung giờ bị khoá lại.
+3. Trang hiện mã **VietQR** (đã điền sẵn số tiền và nội dung `TFD <mã>`), số tài
+   khoản, và nút **gửi ảnh chuyển khoản qua Zalo**.
+4. Nhân viên đối chiếu ảnh trên Zalo với mã đặt chỗ, vào `lich.html`, bấm
+   **Đã nhận tiền** → trạng thái thành **Đã xác nhận**.
+
+**Quá hạn:** khách có **45 phút** để chuyển khoản. Quá hạn mà chưa xác nhận,
+khung giờ **tự mở lại** cho người khác đặt và trang lịch hiện lượt đó là
+*Quá hạn TT*. Hạn này được **tính lại mỗi lần đọc**, không ghi vào Sheet — ghi
+vào thì phải có trigger chạy nền để dọn, mà trigger hỏng lặng lẽ là chuyện
+thường, lúc đó lịch nói một đằng thực tế một nẻo.
+
+Đổi hạn: `PAYMENT_MIN` trong `Code.gs` và `PRICING.payMinutes` trong `config.js`.
+
+### Khách tự tra cứu
+
+Ngay dưới khối đặt lịch trên trang chủ có ô **"Đã đặt rồi? Tra cứu chuyến bay
+của bạn"** — nhập **mã đặt chỗ** hoặc **trọn số điện thoại**.
+
+Khớp **tuyệt đối**, không khớp một phần: gõ `09` mà ra danh sách thì bất kỳ ai
+cũng duyệt được toàn bộ khách. Kết quả không hiện email và không hiện số điện
+thoại của ai.
 
 ### Trang lịch của quản lý (`lich.html`)
 
@@ -361,9 +407,14 @@ phiên bản mới**.
 > mỗi lần gọi. Nó chặn người tình cờ tìm ra URL, không chặn được người cố tình.
 > Muốn chắc chắn thì phải chuyển sang xác thực bằng tài khoản Google.
 
-**Màu khối theo trạng thái:** xanh dương = Mới · xanh lá = Đã xác nhận ·
-xám = Đã bay · mờ gạch ngang = Đã hủy · tím = đăng ký sự kiện (chưa có giờ bay,
-nằm ở dải "Cả ngày").
+**Màu khối theo trạng thái:** **cam = Chờ thanh toán** (lượt cần nhân viên làm
+gì đó) · xanh lá = Đã xác nhận · xám = Đã bay · mờ gạch ngang = Đã hủy / Quá hạn
+· tím = đăng ký sự kiện (chưa có giờ bay, nằm ở dải "Cả ngày").
+
+Khối trên lịch hiện **tên khách + giờ bay**; khối đủ cao hiện thêm **số điện
+thoại**, và cao hơn nữa thì thêm **số tiền + số khách**. Bấm vào khối ra thẻ chi
+tiết có đủ: số điện thoại bấm gọi được, email, số khách, **số tiền**, ghi chú,
+**giờ khách bấm đặt** (khác giờ bay) và mã đặt chỗ.
 
 **Phím tắt** (giống Google Calendar): `D` Ngày · `W` Tuần · `M` Tháng ·
 `T` về hôm nay · `←` `→` lùi/tiến · `Esc` đóng thẻ chi tiết.

@@ -85,12 +85,23 @@
   };
 
   var ST = {
-    'Mới':         { cls: 'ev--new',    chip: 'st-new',    dot: '#1a73e8' },
-    'Đã xác nhận': { cls: 'ev--ok',     chip: 'st-ok',     dot: '#188038' },
-    'Đã bay':      { cls: 'ev--done',   chip: 'st-done',   dot: '#5f6368' },
-    'Đã hủy':      { cls: 'ev--cancel', chip: 'st-cancel', dot: '#9aa0a6' }
+    'Chờ thanh toán': { cls: 'ev--wait',   chip: 'st-wait',   dot: '#e8710a' },
+    'Mới':            { cls: 'ev--wait',   chip: 'st-wait',   dot: '#e8710a' },
+    'Đã xác nhận':    { cls: 'ev--ok',     chip: 'st-ok',     dot: '#188038' },
+    'Đã bay':         { cls: 'ev--done',   chip: 'st-done',   dot: '#5f6368' },
+    'Đã hủy':         { cls: 'ev--cancel', chip: 'st-cancel', dot: '#9aa0a6' },
+    'Quá hạn TT':     { cls: 'ev--cancel', chip: 'st-cancel', dot: '#9aa0a6' }
   };
-  function stOf(it) { return ST[it.status] || ST['Mới']; }
+  function stOf(it) { return ST[it.status] || ST['Chờ thanh toán']; }
+
+  /* Lượt không còn giữ chỗ (đã huỷ / quá hạn thanh toán) */
+  function chetRoi(it) { return it.status === 'Đã hủy' || it.status === 'Quá hạn TT'; }
+
+  function vnd(n) {
+    n = Number(n) || 0;
+    if (!n) return '—';
+    return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + 'đ';
+  }
 
   /* ============================================================
      KHOẢNG NGÀY CỦA TỪNG CHẾ ĐỘ XEM
@@ -229,9 +240,11 @@
 
     var r = rangeOf();
     var shown = S.items.filter(function (it) { return it.date >= r.from && it.date <= r.to; });
-    var song = shown.filter(function (it) { return it.status !== 'Đã hủy'; });
+    var song = shown.filter(function (it) { return !chetRoi(it); });
+    var cho = song.filter(function (it) { return it.status === 'Chờ thanh toán' || it.status === 'Mới'; });
     $('chip-count').innerHTML = '<b>' + song.length + '</b> lượt' +
-      (shown.length > song.length ? ' · ' + (shown.length - song.length) + ' đã hủy' : '');
+      (cho.length ? ' · ' + cho.length + ' chờ TT' : '') +
+      (shown.length > song.length ? ' · ' + (shown.length - song.length) + ' bỏ' : '');
 
     var cal = $('cal');
     var keepTop = cal.scrollTop;
@@ -281,7 +294,7 @@
     head.style.gridTemplateColumns = cols;
     var html = '<div class="gh-corner"></div>';
     r.days.forEach(function (d) {
-      var n = map[d].filter(function (x) { return x.status !== 'Đã hủy'; }).length;
+      var n = map[d].filter(function (x) { return !chetRoi(x); }).length;
       html += '<div class="gh-day' + (d === todayKey() ? ' is-today' : '') + '">' +
         '<div class="gh-dow">' + DOW_VN[dow(d)] + '</div>' +
         '<div class="gh-num">' + dayNum(d) + '</div>' +
@@ -386,7 +399,11 @@
           'title="' + esc(x.it.start + ' - ' + x.it.end + ' · ' + x.it.name +
             ' · ' + x.it.phone + ' · ' + x.it.status) + '">' +
           '<b>' + esc(x.it.name) + '</b>' +
-          '<small>' + esc(x.it.start + ' – ' + x.it.end) + '</small>' +
+          '<small>' + esc(x.it.start + ' – ' + x.it.end) +
+            (x.it.phone && hgt >= 52 ? ' · ' + esc(x.it.phone) : '') + '</small>' +
+          (hgt >= 74 && x.it.amount
+            ? '<small>' + esc(vnd(x.it.amount)) + ' · ' + esc(x.it.guests || 1) + ' khách</small>'
+            : '') +
           '</button>';
       });
       i = j;
@@ -417,7 +434,7 @@
         '<div class="mcell__num">' + dayNum(d) + '</div>' +
         show.map(function (it) {
           var st = stOf(it);
-          return '<button class="mchip' + (it.status === 'Đã hủy' ? ' is-cancel' : '') + '" ' +
+          return '<button class="mchip' + (chetRoi(it) ? ' is-cancel' : '') + '" ' +
             'data-code="' + esc(it.code) + '" title="' + esc(it.name + ' · ' + it.phone) + '">' +
             '<i style="background:' + st.dot + '"></i>' +
             '<time>' + esc(it.start || '—') + '</time>' +
@@ -456,17 +473,25 @@
       ? DOW_FULL[dow(it.date)] + ', ' + prettyDate(it.date) + ' · ' + it.start + ' – ' + it.end +
         (it.hours ? ' (' + it.hours + ' tiếng)' : '')
       : (it.date ? prettyDate(it.date) : 'Chưa có ngày giờ')]);
+    /* Số điện thoại để ngay dưới giờ bay: đây là thứ nhân viên cần nhất
+       khi khách chưa tới hoặc cần đổi giờ. */
     if (it.phone) rows.push(['📞', '<a href="tel:' + esc(it.phone) + '">' + esc(it.phone) + '</a>']);
     if (it.email) rows.push(['✉️', '<a href="mailto:' + esc(it.email) + '">' + esc(it.email) + '</a>']);
     rows.push(['👥', esc(it.guests || 1) + ' khách']);
+    if (it.amount) rows.push(['💰', '<b>' + esc(vnd(it.amount)) + '</b>']);
     if (it.event) rows.push(['🎟️', esc(it.event)]);
     if (it.note) rows.push(['📝', esc(it.note)]);
-    rows.push(['🔖', '<code>' + esc(it.code) + '</code> · ' + esc(it.source || '—') +
-      (it.sentAt ? ' · ' + esc(it.sentAt) : '')]);
-    rows.push(['✔️', '<span class="pop__state ' + st.chip + '">' + esc(it.status) + '</span>']);
+    /* Giờ KHÁCH BẤM ĐẶT — khác giờ bay. Cần để biết ai đặt trước, và để
+       đối chiếu với ảnh chuyển khoản gửi qua Zalo. */
+    if (it.sentAt) rows.push(['🗓️', 'Đặt lúc ' + esc(it.sentAt)]);
+    rows.push(['🔖', '<code>' + esc(it.code) + '</code> · ' + esc(it.source || '—')]);
+    rows.push(['✔️', '<span class="pop__state ' + st.chip + '">' + esc(it.status) + '</span>' +
+      (it.status === 'Quá hạn TT'
+        ? ' <small style="color:var(--g-grey-2)">đã nhả chỗ</small>' : '')]);
 
+    var choTT = it.status === 'Chờ thanh toán' || it.status === 'Mới' || it.status === 'Quá hạn TT';
     var acts = [
-      { s: 'Đã xác nhận', t: 'Xác nhận' },
+      { s: 'Đã xác nhận', t: choTT ? 'Đã nhận tiền' : 'Xác nhận' },
       { s: 'Đã bay', t: 'Đã bay' },
       { s: 'Đã hủy', t: 'Hủy lượt', danger: true }
     ].filter(function (a) { return a.s !== it.status; });

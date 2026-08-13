@@ -189,6 +189,28 @@ var TFD_BOOK = (function () {
     }).filter(function (p) { return p.slots.length; });
   }
 
+  /* ---------- giá ----------
+     500.000đ / 1 người / giờ · 700.000đ / từ 2 người / giờ.
+     Buồng lái hai ghế nên nhóm đông hơn vẫn tính giá 2 người.
+
+     Máy khách tính để HIỆN cho khách xem trong lúc chọn; con số ghi vào
+     Sheet là con số MÁY CHỦ tự tính lại (xem priceOf_ trong Code.gs).
+     Tin vào số máy khách gửi lên thì ai cũng sửa được thành 1đ. */
+  var PRICE = { perHour1: 500000, perHour2: 700000 };
+
+  function priceOf(guests, hours, cfg) {
+    var p = (cfg && cfg.PRICING) || (cfg && cfg.perHour1 ? cfg : PRICE);
+    var g = Math.max(1, Number(guests) || 1);
+    var h = Math.max(0, Number(hours) || 0);
+    var rate = (g <= 1) ? (p.perHour1 || PRICE.perHour1) : (p.perHour2 || PRICE.perHour2);
+    return Math.round(rate * h);
+  }
+
+  /* "700000" -> "700.000đ" */
+  function vnd(n) {
+    return String(Math.round(Number(n) || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + 'đ';
+  }
+
   /* ---------- kiểm tra trước khi gửi ---------- */
 
   function validPhone(v) {
@@ -249,7 +271,10 @@ var TFD_BOOK = (function () {
     groupByPart: groupByPart,
     validPhone: validPhone,
     validEmail: validEmail,
-    checkBooking: checkBooking
+    checkBooking: checkBooking,
+    PRICE: PRICE,
+    priceOf: priceOf,
+    vnd: vnd
   };
 })();
 
