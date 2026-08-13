@@ -298,6 +298,9 @@ mới → Triển khai.** URL giữ nguyên, không cần sửa lại `config.js
 
 Sửa code mà quên bước này thì máy chủ vẫn chạy code cũ — đây là chỗ hay quên nhất.
 
+Kiểm tra bản đang chạy: mở URL Web App trên trình duyệt, JSON trả về có
+`"version": 2`. Số nhỏ hơn nghĩa là bản deploy còn cũ.
+
 ### Bảng dữ liệu trong Sheet
 
 Mỗi tháng một tab, đặt tên theo **ngày bay**: `8/26`, `9/26`, `10/26`…
@@ -321,7 +324,16 @@ nào là thấy đủ lịch tháng đó.
 website, không phải xoá dòng. Dòng đã huỷ được tô mờ và gạch ngang.
 
 Muốn áp lại màu cho các tab cũ (lỡ xoá định dạng): chạy hàm
-**`DINH_DANG_LAI_TAT_CA`** trong trình soạn thảo. Hàm này không xoá dữ liệu.
+**`DINH_DANG_LAI_TAT_CA`** trong trình soạn thảo. Hàm này không xoá dữ liệu — nó
+còn chuẩn hoá lại cột "Ngày bay" của các dòng ghi bằng bản `Code.gs` cũ.
+
+> **Vì sao mọi cột đều để kiểu chữ:** Google Sheets tự nhận dạng chuỗi trông
+> giống ngày/giờ/số và đổi kiểu luôn. `"2026-08-16"` ghi vào rồi đọc ra thành
+> giá trị ngày, so sánh với chuỗi là trượt — hậu quả là bộ lọc "lượt trong ngày
+> này" không khớp dòng nào và **hệ thống nhận hai khách cho cùng một khung
+> giờ**. Cùng cơ chế đó ăn mất số 0 đầu số điện thoại và biến `=...` ở ô ghi chú
+> thành công thức chạy được. Vì vậy script đặt định dạng chữ **trước khi** ghi,
+> và khi đọc thì chấp nhận cả ba dạng (chuỗi chuẩn, `16/08/2026`, giá trị ngày).
 
 ### Đổi giờ mở cửa / thời lượng bay
 

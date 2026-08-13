@@ -19,7 +19,7 @@
    báo lỗi thiếu tham số `e` chứ không phải script hỏng.
    ============================================================ */
 
-var SCRIPT_VERSION = 1;
+var SCRIPT_VERSION = 2;
 
 /* File Sheet đích. Để trống thì dùng Sheet đang gắn với script này —
    nhưng ghi rõ ID an toàn hơn: script vẫn ghi đúng chỗ kể cả khi bạn
@@ -227,11 +227,14 @@ function setupSheet_(sh) {
   sh.getRange(2, cIdx.hours, sh.getMaxRows() - 1, 1).setHorizontalAlignment('center');
   sh.getRange(2, cIdx.guests, sh.getMaxRows() - 1, 1).setHorizontalAlignment('center');
   sh.getRange(2, cIdx.status, sh.getMaxRows() - 1, 1).setHorizontalAlignment('center');
+  sh.getRange(2, cIdx.phone, sh.getMaxRows() - 1, 1).setHorizontalAlignment('center');
 
-  /* Số điện thoại phải là CHỮ, không phải số: để kiểu số thì Sheets ăn
-     mất số 0 đứng đầu và "0901234567" thành "901234567". */
-  sh.getRange(2, cIdx.phone, sh.getMaxRows() - 1, 1)
-    .setNumberFormat('@').setHorizontalAlignment('center');
+  /* Mọi cột chữ đặt kiểu CHỮ THUẦN ngay từ khi tạo tab — xem forceText_
+     để biết vì sao. Cột "Số giờ bay" và "Số khách" giữ kiểu số để còn
+     cộng/lọc được. */
+  textCols_().forEach(function (c) {
+    sh.getRange(2, c.n, sh.getMaxRows() - 1, 1).setNumberFormat('@');
+  });
 
   sh.getRange(1, 1, sh.getMaxRows(), n)
     .setBorder(true, true, true, true, true, true, C_BORDER, SpreadsheetApp.BorderStyle.SOLID);
@@ -284,11 +287,18 @@ function DINH_DANG_LAI_TAT_CA() {
     if (!/^\d{1,2}[\/\-]\d{2}$/.test(sh.getName())) return;
     var last = sh.getLastRow();
     var data = last > 1 ? sh.getRange(2, 1, last - 1, COLS.length).getValues() : [];
+
+    /* Chuẩn hoá lại các dòng cũ: những dòng ghi trước khi sửa lỗi đang
+       giữ ô "Ngày bay" dưới dạng Date. Ghi thẳng chúng trở lại vào ô đã
+       đặt kiểu chữ sẽ ra chuỗi ngày dài loằng ngoằng, nên đổi về
+       "yyyy-MM-dd" ngay tại đây. */
+    data.forEach(function (r) {
+      if (r[cIdx.date - 1] !== '') r[cIdx.date - 1] = dateKeyOf_(r[cIdx.date - 1]);
+      r[cIdx.phone - 1] = String(r[cIdx.phone - 1] == null ? '' : r[cIdx.phone - 1]).replace(/^'/, '');
+    });
+
     setupSheet_(sh);
-    if (data.length) {
-      sh.getRange(2, 1, data.length, COLS.length).setValues(data);
-      sh.getRange(2, cIdx.phone, data.length, 1).setNumberFormat('@');
-    }
+    if (data.length) sh.getRange(2, 1, data.length, COLS.length).setValues(data);
   });
   return 'Đã định dạng lại ' + ss.getSheets().length + ' tab.';
 }
@@ -316,6 +326,36 @@ function nowVn_() {
   return new Date(Utilities.formatDate(new Date(), TZ, "yyyy/MM/dd HH:mm:ss"));
 }
 
+/* Đưa mọi thứ đọc lên từ ô "Ngày bay" về dạng "yyyy-MM-dd".
+   Từ nay forceText_ giữ ô này là chữ, nhưng các dòng ĐÃ GHI TRƯỚC khi
+   sửa lỗi đang nằm trong sheet dưới dạng Date — và chị chủ cũng có thể
+   gõ tay "16/08/2026" vào một ô. Đọc phòng thủ thì cả ba trường hợp đều
+   ra cùng một kết quả, không phải đi sửa dữ liệu cũ. */
+function dateKeyOf_(v) {
+  if (v instanceof Date) return Utilities.formatDate(v, TZ, 'yyyy-MM-dd');
+  var s = String(v == null ? '' : v).trim();
+  var m = /^(\d{4})-(\d{1,2})-(\d{1,2})/.exec(s);
+  if (m) return m[1] + '-' + pad2_(+m[2]) + '-' + pad2_(+m[3]);
+  m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})/.exec(s);          // 16/08/2026
+  if (m) return m[3] + '-' + pad2_(+m[2]) + '-' + pad2_(+m[1]);
+  /* Chuỗi kiểu "Sun Aug 16 2026 00:00:00 GMT+0700" — thứ mà String(Date)
+     sinh ra khi Sheets đã đổi kiểu ô. */
+  var d = new Date(s);
+  if (s && !isNaN(d.getTime())) return Utilities.formatDate(d, TZ, 'yyyy-MM-dd');
+  return s;
+}
+
+/* Lấy hai mốc giờ từ ô "Thời gian bay". Nhận cả "09:00 - 11:00" lẫn
+   trường hợp ô bị đổi thành giá trị giờ. */
+function rangeOf_(v) {
+  if (v instanceof Date) return null;
+  var m = String(v == null ? '' : v).match(/(\d{1,2}):(\d{2})/g);
+  if (!m || m.length < 2) return null;
+  var s = hhmmToMin_(m[0]), e = hhmmToMin_(m[1]);
+  if (!isFinite(s) || !isFinite(e) || e <= s) return null;
+  return { start: minToHhmm_(s), end: minToHhmm_(e) };
+}
+
 function todayKey_() {
   return Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd');
 }
@@ -339,14 +379,11 @@ function bookingsOn_(dateKey) {
   var rows = sh.getRange(2, 1, last - 1, COLS.length).getValues();
   var out = [];
   rows.forEach(function (r) {
-    if (String(r[cIdx.type - 1]) !== TYPE_BOOK) return;
-    if (String(r[cIdx.date - 1]).trim() !== dateKey) return;
+    if (String(r[cIdx.type - 1]).trim() !== TYPE_BOOK) return;
+    if (dateKeyOf_(r[cIdx.date - 1]) !== dateKey) return;
     if (HOLDING.indexOf(String(r[cIdx.status - 1]).trim()) === -1) return;
-    var parts = String(r[cIdx.timeText - 1]).split('-');
-    var s = hhmmToMin_(parts[0]), e = hhmmToMin_(parts[1]);
-    if (isFinite(s) && isFinite(e) && e > s) {
-      out.push({ start: minToHhmm_(s), end: minToHhmm_(e) });
-    }
+    var rg = rangeOf_(r[cIdx.timeText - 1]);
+    if (rg) out.push(rg);
   });
   return out;
 }
@@ -382,24 +419,41 @@ function clean_(v, max) {
   return s.length > (max || 200) ? s.slice(0, max || 200) : s;
 }
 
-/* Dấu nháy đơn đầu ô làm Sheets hiểu là chữ; nhưng "=" đầu ô lại thành
-   công thức. Khách gõ "=1+1" vào ô ghi chú thì bảng hiện 2 — vô hại,
-   nhưng "=IMPORTXML(...)" thì không. Chặn ngay ở đây. */
 function safeCell_(v) {
-  var s = clean_(v, 500);
-  return /^[=+\-@]/.test(s) ? "'" + s : s;
+  return clean_(v, 500);
 }
 
 function rowFrom_(o) {
   return COLS.map(function (c) { return o[c.key] == null ? '' : o[c.key]; });
 }
 
+/* Cột nào phải là CHỮ THUẦN. Chỉ 'hours' và 'guests' là số thật. */
+function textCols_() {
+  return COLS.map(function (c, i) { return { key: c.key, n: i + 1 }; })
+    .filter(function (c) { return c.key !== 'hours' && c.key !== 'guests'; });
+}
+
+/* Ép kiểu chữ cho MỘT HÀNG trước khi ghi.
+   ------------------------------------------------------------
+   Google Sheets tự nhận dạng chuỗi trông giống ngày/giờ/số và đổi kiểu
+   luôn. "2026-08-16" ghi vào rồi đọc ra thành đối tượng Date, so sánh
+   với chuỗi ngày là trượt — hệ quả: bộ lọc "lượt trong ngày này" không
+   khớp dòng nào, và hệ thống nhận HAI KHÁCH CHO CÙNG MỘT KHUNG GIỜ.
+   Đây là lỗi thật đã xảy ra trên file Sheet của quán.
+   Cùng cơ chế đó cũng ăn mất số 0 đầu số điện thoại và biến "=..." ở ô
+   ghi chú thành công thức chạy được.
+   Định dạng phải đặt TRƯỚC setValues — đặt sau thì giá trị đã bị đổi
+   kiểu mất rồi, chỉ còn đổi cách hiển thị. */
+function forceText_(sh, row) {
+  textCols_().forEach(function (c) {
+    sh.getRange(row, c.n).setNumberFormat('@');
+  });
+}
+
 function appendRow_(sh, values) {
   var r = sh.getLastRow() + 1;
+  forceText_(sh, r);
   sh.getRange(r, 1, 1, COLS.length).setValues([values]);
-  /* Ô SĐT phải giữ kiểu chữ ngay cả khi hàng nằm ngoài vùng đã định
-     dạng sẵn (bảng dài hơn số hàng mặc định của tab). */
-  sh.getRange(r, colIndex_().phone).setNumberFormat('@');
   return r;
 }
 
@@ -465,7 +519,7 @@ function saveBooking_(p) {
       timeText: minToHhmm_(s) + ' - ' + minToHhmm_(e),
       hours: hours,
       name: safeCell_(name),
-      phone: "'" + phone,
+      phone: phone,
       email: safeCell_(email),
       guests: guests,
       event: '',
@@ -509,7 +563,7 @@ function saveEvent_(p) {
     timeText: clean_(p.timeText, 40),
     hours: '',
     name: safeCell_(name),
-    phone: "'" + phone,
+    phone: phone,
     email: safeCell_(email),
     guests: guests,
     event: safeCell_(p.event),
@@ -546,7 +600,7 @@ function lookup_(q) {
       found.push({
         code: String(r[cIdx.code - 1]).trim(),
         type: String(r[cIdx.type - 1]),
-        date: String(r[cIdx.date - 1]).trim(),
+        date: dateKeyOf_(r[cIdx.date - 1]),
         timeText: String(r[cIdx.timeText - 1]).trim(),
         hours: r[cIdx.hours - 1],
         name: String(r[cIdx.name - 1]),
@@ -577,28 +631,53 @@ function TEST_tuKiemTra() {
   say('Tab tháng này: ' + tabNameFor_(todayKey_()));
 
   var d = Utilities.formatDate(new Date(new Date().getTime() + 3 * 86400000), TZ, 'yyyy-MM-dd');
-  var r1 = saveBooking_({ name: 'KIỂM TRA — xóa giúp', phone: '0900000000',
-    email: 'test@example.com', date: d, start: '09:00', hours: '2', guests: '2',
-    note: 'dòng thử của TEST_tuKiemTra' });
-  say('Ghi lượt đặt: ' + JSON.stringify(r1));
-  if (!r1.ok) throw new Error('Không ghi được lượt đặt: ' + r1.error);
 
-  var r2 = saveBooking_({ name: 'KIỂM TRA trùng giờ', phone: '0900000001',
-    date: d, start: '10:00', hours: '1', guests: '1' });
-  say('Ghi lượt CHỒNG GIỜ (phải bị từ chối): ' + JSON.stringify(r2));
-  if (r2.ok) throw new Error('LỖI: hệ thống nhận hai lượt chồng giờ nhau!');
+  /* Dọn TRƯỚC và dọn lại trong finally.
+     Bản đầu chỉ dọn ở cuối hàm, nên khi phép thử thất bại và ném lỗi thì
+     hai dòng KIỂM TRA nằm lại trong sheet của quán — vừa bẩn bảng, vừa
+     chiếm mất khung giờ thật. */
+  donDongThu_(d, say);
+  try {
+    var r1 = saveBooking_({ name: 'KIỂM TRA — xóa giúp', phone: '0900000000',
+      email: 'test@example.com', date: d, start: '09:00', hours: '2', guests: '2',
+      note: 'dòng thử của TEST_tuKiemTra' });
+    say('Ghi lượt đặt: ' + JSON.stringify(r1));
+    if (!r1.ok) throw new Error('Không ghi được lượt đặt: ' + r1.error);
 
-  var r3 = slotsFor_(d);
-  say('Giờ đã kín ngày ' + d + ': ' + JSON.stringify(r3.busy));
-
-  // dọn dòng thử
-  var sh = sheetFor_(d);
-  var cIdx = colIndex_();
-  for (var row = sh.getLastRow(); row >= 2; row--) {
-    if (String(sh.getRange(row, cIdx.name).getValue()).indexOf('KIỂM TRA') === 0) {
-      sh.deleteRow(row);
+    /* Kiểm ngay việc ĐỌC LẠI, vì đây chính là chỗ từng hỏng: ghi thì
+       được nhưng đọc lên không khớp ngày nên chống chồng giờ tê liệt. */
+    var busy = bookingsOn_(d);
+    say('Đọc lại lịch ngày ' + d + ': ' + JSON.stringify(busy));
+    if (!busy.length) {
+      throw new Error('LỖI: vừa ghi xong mà đọc lại không thấy lượt nào — ' +
+        'nhiều khả năng ô "Ngày bay" bị Sheets đổi sang kiểu ngày. ' +
+        'Hãy chắc chắn bạn đã dán bản Code.gs mới nhất và Triển khai phiên bản mới.');
     }
+
+    var r2 = saveBooking_({ name: 'KIỂM TRA trùng giờ', phone: '0900000001',
+      date: d, start: '10:00', hours: '1', guests: '1' });
+    say('Ghi lượt CHỒNG GIỜ (phải bị từ chối): ' + JSON.stringify(r2));
+    if (r2.ok) throw new Error('LỖI: hệ thống nhận hai lượt chồng giờ nhau!');
+
+    say('Giờ đã kín ngày ' + d + ': ' + JSON.stringify(slotsFor_(d).busy));
+    say('✅ Mọi thứ hoạt động.');
+  } finally {
+    donDongThu_(d, say);
   }
-  say('✅ Mọi thứ hoạt động. Đã xóa các dòng thử.');
   return log.join('\n');
+}
+
+/* Xoá mọi dòng có tên bắt đầu bằng "KIỂM TRA" trong tab của ngày đó. */
+function donDongThu_(dateKey, say) {
+  var ss = book_();
+  var sh = ss.getSheetByName(tabNameFor_(dateKey)) ||
+           ss.getSheetByName(tabNameFor_(dateKey).replace('/', '-'));
+  if (!sh || sh.getLastRow() < 2) return;
+  var cIdx = colIndex_();
+  var names = sh.getRange(2, cIdx.name, sh.getLastRow() - 1, 1).getValues();
+  var xoa = 0;
+  for (var i = names.length - 1; i >= 0; i--) {
+    if (String(names[i][0]).indexOf('KIỂM TRA') === 0) { sh.deleteRow(i + 2); xoa++; }
+  }
+  if (xoa && say) say('Đã xoá ' + xoa + ' dòng thử.');
 }
