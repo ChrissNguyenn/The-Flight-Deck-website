@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Lịch bay — The Flight Deck</title>
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#ffffff">
+  <link rel="icon" type="image/png" href="images/the-flight-deck-logo.png">
+  <link rel="stylesheet" href="lich.css">
+</head>
+<body>
+
+<!-- ============================================================
+     CỬA VÀO
+     ------------------------------------------------------------
+     Mã quản lý được so ở PHÍA MÁY CHỦ (ADMIN_KEY trong Code.gs) chứ
+     không nằm trong config.js, nên nó không xuất hiện ở bất kỳ đâu
+     trong mã nguồn trang. Trang chỉ giữ mã trong localStorage của máy
+     quản lý để khỏi phải gõ lại mỗi lần mở.
+     ============================================================ -->
+<div class="gate" id="gate" hidden>
+  <form class="gate__card" id="gate-form">
+    <img src="images/the-flight-deck-logo.png" alt="">
+    <h1>Lịch bay</h1>
+    <p>Trang dành cho quản lý The Flight Deck.</p>
+    <input type="password" id="gate-key" placeholder="Mã quản lý" autocomplete="current-password"
+           aria-label="Mã quản lý" required>
+    <button type="submit" id="gate-go">Vào lịch</button>
+    <p class="gate__err" id="gate-err"></p>
+  </form>
+</div>
+
+<div class="app" id="app" hidden>
+
+  <header class="topbar">
+    <a class="tb-brand" href="index.html" title="Về trang chủ">
+      <img src="images/the-flight-deck-logo.png" alt="">
+      <span>Lịch bay</span>
+    </a>
+
+    <button class="tb-btn" id="btn-today">Hôm nay</button>
+    <button class="tb-nav" id="btn-prev" aria-label="Kỳ trước">&#8249;</button>
+    <button class="tb-nav" id="btn-next" aria-label="Kỳ sau">&#8250;</button>
+
+    <h1 class="tb-title" id="period">—</h1>
+
+    <span class="tb-spacer"></span>
+
+    <span class="tb-chip" id="chip-count">—</span>
+
+    <div class="tb-views" role="group" aria-label="Chế độ xem">
+      <button data-view="day">Ngày</button>
+      <button data-view="week" class="is-on">Tuần</button>
+      <button data-view="month">Tháng</button>
+    </div>
+
+    <button class="tb-nav" id="btn-reload" aria-label="Tải lại" title="Tải lại">&#8635;</button>
+    <button class="tb-btn" id="btn-out" title="Thoát khỏi trang quản lý">Thoát</button>
+  </header>
+
+  <p class="banner" id="banner" role="status" aria-live="polite"></p>
+
+  <div class="cal" id="cal">
+    <div class="loading" id="loading"></div>
+  </div>
+</div>
+
+<script src="config.js"></script>
+<script src="lich.js"></script>
+</body>
+</html>

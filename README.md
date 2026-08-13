@@ -9,8 +9,8 @@ Trang gồm **hai hệ thống chạy song song, độc lập nhau**:
 
 | | Hệ thống thường trực (2026) | Hệ thống sự kiện Carrot Day |
 |---|---|---|
-| Trang | `index.html`, `doanh-nghiep.html` | `experience.html`, `admin.html`, `carrot-day.html` |
-| Giao diện | `flightdeck.css` (kem / trắng xanh) | `style.css` + `carrot-day.css` |
+| Trang | `index.html`, `doanh-nghiep.html`, `lich.html` | `experience.html`, `admin.html`, `carrot-day.html` |
+| Giao diện | `flightdeck.css` (kem / trắng xanh) + `lich.css` | `style.css` + `carrot-day.css` |
 | Backend | `Code.gs` | `google-apps-script.gs` |
 | Google Sheet | file `1HB_6UIpt…` (tab theo tháng) | file cũ (`Jun Pham`…) |
 | Cấu hình | `BOOKING_SCRIPT_URL` | `SCRIPT_URL` |
@@ -31,6 +31,8 @@ sửa bên này lại có nguy cơ làm hỏng bên kia.
 | `booking.js` | Sinh khung giờ 15 phút, tính giờ kết thúc, chặn chồng giờ | — |
 | `home.js` | Nối trang chủ với `booking.js` và Apps Script | — |
 | `Code.gs` | Backend đặt lịch + sự kiện, ghi vào Sheet theo tab tháng | — |
+| `lich.html` | **Lịch bay** — trang quản lý kiểu Google Calendar (có mã) | — |
+| `lich.css` / `lich.js` | Giao diện & logic trang lịch | — |
 | `experience.html` | **QR 1** — đăng ký lượt bay + theo dõi hàng chờ trực tiếp | **QR 1** |
 | `courses.html` | **QR 2** — cá nhân (B2C): ảnh workshop đã qua + khảo sát lịch workshop tiếp theo | **QR 2** |
 | `partners.html` | **QR 3** — doanh nghiệp (B2B): form liên hệ theo spec B4 | **QR 3** |
@@ -299,7 +301,7 @@ mới → Triển khai.** URL giữ nguyên, không cần sửa lại `config.js
 Sửa code mà quên bước này thì máy chủ vẫn chạy code cũ — đây là chỗ hay quên nhất.
 
 Kiểm tra bản đang chạy: mở URL Web App trên trình duyệt, JSON trả về có
-`"version": 2`. Số nhỏ hơn nghĩa là bản deploy còn cũ.
+`"version": 3`. Số nhỏ hơn nghĩa là bản deploy còn cũ.
 
 ### Bảng dữ liệu trong Sheet
 
@@ -334,6 +336,40 @@ còn chuẩn hoá lại cột "Ngày bay" của các dòng ghi bằng bản `Cod
 > giờ**. Cùng cơ chế đó ăn mất số 0 đầu số điện thoại và biến `=...` ở ô ghi chú
 > thành công thức chạy được. Vì vậy script đặt định dạng chữ **trước khi** ghi,
 > và khi đọc thì chấp nhận cả ba dạng (chuỗi chuẩn, `16/08/2026`, giá trị ngày).
+
+### Trang lịch của quản lý (`lich.html`)
+
+Xem toàn bộ lượt đặt trên một lịch dựng theo Google Calendar: chuyển giữa
+**Ngày / Tuần / Tháng**, mỗi lượt là một khối thời gian, bấm vào khối để xem chi
+tiết và đổi trạng thái.
+
+**Mở bằng cách nào:** vào `theflightdeck.tech/lich.html` (có link nhỏ ở chân
+trang chủ), nhập **mã quản lý**. Mã được lưu trên máy đó nên chỉ phải gõ một
+lần; bấm **Thoát** để xoá.
+
+**Đổi mã:** sửa dòng `var ADMIN_KEY = '...'` ở đầu `Code.gs`, rồi **Triển khai
+phiên bản mới**.
+
+> **Vì sao mã nằm trong `Code.gs` chứ không phải `config.js`:** `config.js` là
+> file tĩnh, trình duyệt của bất kỳ ai cũng tải được — mọi thứ trong đó xem như
+> công khai, kể cả URL Web App. Nếu endpoint đọc lịch không có khoá thì ai xem
+> mã nguồn trang cũng lấy được **toàn bộ tên, số điện thoại và email khách**.
+> Để mã ở phía máy chủ và bắt quản lý tự gõ thì chuỗi đó không xuất hiện ở bất
+> kỳ đâu trong mã nguồn trang.
+>
+> Đây **vẫn không phải đăng nhập thật**: ai biết mã là vào được, và mã đi kèm
+> mỗi lần gọi. Nó chặn người tình cờ tìm ra URL, không chặn được người cố tình.
+> Muốn chắc chắn thì phải chuyển sang xác thực bằng tài khoản Google.
+
+**Màu khối theo trạng thái:** xanh dương = Mới · xanh lá = Đã xác nhận ·
+xám = Đã bay · mờ gạch ngang = Đã hủy · tím = đăng ký sự kiện (chưa có giờ bay,
+nằm ở dải "Cả ngày").
+
+**Phím tắt** (giống Google Calendar): `D` Ngày · `W` Tuần · `M` Tháng ·
+`T` về hôm nay · `←` `→` lùi/tiến · `Esc` đóng thẻ chi tiết.
+
+Đổi trạng thái sang **Đã hủy** ngay trên lịch sẽ **mở lại khung giờ đó** cho
+khách khác đặt — giống hệt việc sửa cột Trạng thái trong Sheet.
 
 ### Đổi giờ mở cửa / thời lượng bay
 

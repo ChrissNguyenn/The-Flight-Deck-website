@@ -19,7 +19,7 @@
    báo lỗi thiếu tham số `e` chứ không phải script hỏng.
    ============================================================ */
 
-var SCRIPT_VERSION = 2;
+var SCRIPT_VERSION = 3;
 
 /* File Sheet đích. Để trống thì dùng Sheet đang gắn với script này —
    nhưng ghi rõ ID an toàn hơn: script vẫn ghi đúng chỗ kể cả khi bạn
@@ -37,6 +37,25 @@ var LEAD_MIN = 60;          // phải đặt trước ít nhất 60 phút
 var MAX_DAYS_AHEAD = 60;    // không nhận đặt xa hơn 60 ngày
 
 var TZ = 'Asia/Ho_Chi_Minh';
+
+/* ============================================================
+   MÃ QUẢN LÝ — cho trang lịch (lich.html)
+   ------------------------------------------------------------
+   ⚠️ ĐỔI CHUỖI NÀY trước khi dùng thật.
+
+   Vì sao mã nằm ở ĐÂY chứ không nằm trong config.js: config.js là file
+   tĩnh, trình duyệt của bất kỳ ai cũng tải được, nên mọi thứ trong đó
+   xem như công khai. URL Web App cũng công khai theo — nghĩa là nếu
+   endpoint đọc danh sách booking không có khoá, ai xem mã nguồn trang
+   cũng lấy được toàn bộ tên, số điện thoại và email khách.
+
+   Để mã ở phía server và bắt quản lý tự gõ vào trang lịch (lưu trong
+   localStorage của máy họ) thì chuỗi này KHÔNG xuất hiện ở bất kỳ đâu
+   trong mã nguồn trang. Đây vẫn không phải đăng nhập thật — ai biết mã
+   là vào được, và mã đi kèm mỗi lần gọi — nhưng nó chặn được người tình
+   cờ tìm thấy URL. Muốn chắc chắn thì phải dùng tài khoản Google thật.
+   ============================================================ */
+var ADMIN_KEY = 'tfd-doi-ma-nay-di';
 
 /* ---------- Cột trong bảng ----------
    Sửa ở đây là sửa cả tiêu đề lẫn thứ tự ghi. KHÔNG chèn cột vào GIỮA
@@ -90,6 +109,9 @@ function doGet(e) {
   try {
     if (p.action === 'slots') return json_(slotsFor_(p.date));
     if (p.action === 'lookup') return json_(lookup_(p.q));
+    if (p.action === 'bookings') return json_(guard_(p, function () {
+      return bookingsBetween_(p.from, p.to);
+    }));
     return json_({
       ok: true,
       version: SCRIPT_VERSION,
@@ -107,6 +129,12 @@ function doPost(e) {
   try {
     if (p.action === 'book') return json_(saveBooking_(p));
     if (p.action === 'event') return json_(saveEvent_(p));
+    if (p.action === 'setStatus') return json_(guard_(p, function () {
+      return setStatus_(p.code, p.status);
+    }));
+    if (p.action === 'adminAdd') return json_(guard_(p, function () {
+      return saveBooking_(p);
+    }));
     return json_({ ok: false, error: 'UNKNOWN_ACTION' });
   } catch (err) {
     return json_({ ok: false, error: 'SERVER', message: String(err && err.message || err) });
@@ -574,6 +602,122 @@ function saveEvent_(p) {
   }));
 
   return { ok: true, code: code, tab: sh.getName() };
+}
+
+/* ============================================================
+   TRANG LỊCH CỦA QUẢN LÝ
+   ============================================================ */
+
+/* Chặn cửa cho các lệnh chỉ quản lý được dùng. Xem chú thích ở ADMIN_KEY
+   để biết mức bảo vệ này tới đâu. */
+function guard_(p, fn) {
+  if (String(p.key || '') !== ADMIN_KEY) return { ok: false, error: 'BAD_KEY' };
+  return fn();
+}
+
+/* Tên các tab tháng phủ khoảng [from, to].
+   Xem tháng thì khung hiển thị thường tràn sang tháng trước và tháng sau
+   (ô ngày 27/7 nằm ở đầu lưới tháng 8), nên phải gom nhiều tab chứ không
+   chỉ tab của tháng đang xem. */
+function tabNamesBetween_(from, to) {
+  var a = new Date(from + 'T00:00:00Z'), b = new Date(to + 'T00:00:00Z');
+  var out = [], y = a.getUTCFullYear(), m = a.getUTCMonth();
+  var yEnd = b.getUTCFullYear(), mEnd = b.getUTCMonth();
+  var guard = 0;
+  while ((y < yEnd || (y === yEnd && m <= mEnd)) && guard++ < 40) {
+    out.push((m + 1) + '/' + String(y).slice(2));
+    m++; if (m > 11) { m = 0; y++; }
+  }
+  return out;
+}
+
+/* Đọc mọi lượt đặt trong khoảng ngày, kèm mọi thông tin trang lịch cần.
+   Trả cả lượt ĐÃ HỦY — quản lý cần nhìn thấy chúng; việc ẩn/hiện để
+   giao diện quyết định. */
+function bookingsBetween_(from, to) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(from || '')) ||
+      !/^\d{4}-\d{2}-\d{2}$/.test(String(to || ''))) {
+    return { ok: false, error: 'BAD_RANGE' };
+  }
+  if (to < from) { var t = from; from = to; to = t; }
+
+  var ss = book_();
+  var cIdx = colIndex_();
+  var items = [];
+
+  tabNamesBetween_(from, to).forEach(function (name) {
+    var sh = ss.getSheetByName(name) || ss.getSheetByName(name.replace('/', '-'));
+    if (!sh) return;
+    var last = sh.getLastRow();
+    if (last < 2) return;
+
+    sh.getRange(2, 1, last - 1, COLS.length).getValues().forEach(function (r, i) {
+      var date = dateKeyOf_(r[cIdx.date - 1]);
+      if (!date || date < from || date > to) return;
+      var rg = rangeOf_(r[cIdx.timeText - 1]);
+      items.push({
+        row: i + 2,
+        tab: sh.getName(),
+        code: String(r[cIdx.code - 1]).trim(),
+        type: String(r[cIdx.type - 1]).trim(),
+        date: date,
+        start: rg ? rg.start : '',
+        end: rg ? rg.end : '',
+        timeText: String(r[cIdx.timeText - 1] || '').trim(),
+        hours: r[cIdx.hours - 1],
+        name: String(r[cIdx.name - 1] || ''),
+        phone: String(r[cIdx.phone - 1] || '').replace(/^'/, ''),
+        email: String(r[cIdx.email - 1] || ''),
+        guests: r[cIdx.guests - 1],
+        event: String(r[cIdx.event - 1] || ''),
+        note: String(r[cIdx.note - 1] || ''),
+        status: String(r[cIdx.status - 1] || '').trim(),
+        source: String(r[cIdx.source - 1] || ''),
+        sentAt: String(r[cIdx.sentAt - 1] || '')
+      });
+    });
+  });
+
+  items.sort(function (a, b) {
+    return (a.date + a.start).localeCompare(b.date + b.start);
+  });
+
+  return {
+    ok: true, version: SCRIPT_VERSION, from: from, to: to,
+    today: todayKey_(), now: Utilities.formatDate(new Date(), TZ, 'HH:mm'),
+    openStart: OPEN_START, openEnd: OPEN_END,
+    statuses: STATUSES,
+    items: items
+  };
+}
+
+/* Đổi trạng thái một lượt. Tìm theo MÃ chứ không theo số dòng: quản lý
+   có thể chèn/xoá dòng ngay trong Sheet giữa lúc trang lịch đang mở, lúc
+   đó số dòng cũ trỏ sang khách khác — và lệnh "hủy" sẽ hủy nhầm người. */
+function setStatus_(code, status) {
+  code = clean_(code, 32);
+  status = clean_(status, 32);
+  if (!code) return { ok: false, error: 'NO_CODE' };
+  if (STATUSES.indexOf(status) === -1) return { ok: false, error: 'BAD_STATUS' };
+
+  var ss = book_();
+  var cIdx = colIndex_();
+  var found = null;
+
+  ss.getSheets().forEach(function (sh) {
+    if (found) return;
+    if (!/^\d{1,2}[\/\-]\d{2}$/.test(sh.getName())) return;
+    var last = sh.getLastRow();
+    if (last < 2) return;
+    var codes = sh.getRange(2, cIdx.code, last - 1, 1).getValues();
+    for (var i = 0; i < codes.length; i++) {
+      if (String(codes[i][0]).trim() === code) { found = { sh: sh, row: i + 2 }; return; }
+    }
+  });
+
+  if (!found) return { ok: false, error: 'NOT_FOUND' };
+  found.sh.getRange(found.row, cIdx.status).setValue(status);
+  return { ok: true, code: code, status: status, tab: found.sh.getName() };
 }
 
 /* ============================================================
