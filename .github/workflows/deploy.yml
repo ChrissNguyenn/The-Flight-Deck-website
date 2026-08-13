@@ -38,6 +38,9 @@ jobs:
         env:
           TFD_SCRIPT_URL: ${{ secrets.TFD_SCRIPT_URL }}
           TFD_ADMIN_PIN: ${{ secrets.TFD_ADMIN_PIN }}
+          # URL Web App của Code.gs (đặt lịch thường ngày). Thiếu thì vẫn
+          # deploy, chỉ là form đặt lịch chạy ở chế độ thử nghiệm.
+          TFD_BOOKING_SCRIPT_URL: ${{ secrets.TFD_BOOKING_SCRIPT_URL }}
         run: node tools/build-config.js
 
       # Chốt chặn: nếu vì lý do gì đó config.js vẫn thiếu giá trị thì dừng

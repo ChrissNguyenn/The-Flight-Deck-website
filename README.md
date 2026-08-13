@@ -1,14 +1,36 @@
-# The Flight Deck × Flight to Carrot Day 2026 (Website)
+# The Flight Deck — Website
 
 🌐 <https://theflightdeck.tech>
 
-Website cho gian hàng **The Flight Deck** tại **Flight to Carrot Day 2026**: trang chủ hiển thị 3 mã QR, hệ thống đặt slot bay 15 phút có kết nối Google Sheet, và trang quản lý cho nhân viên gian hàng.
+Website của **The Flight Deck** — quán cà phê buồng lái mô phỏng Airbus A320 tại
+86 Đặng Văn Ngữ, Phú Nhuận, TP.HCM.
+
+Trang gồm **hai hệ thống chạy song song, độc lập nhau**:
+
+| | Hệ thống thường trực (2026) | Hệ thống sự kiện Carrot Day |
+|---|---|---|
+| Trang | `index.html`, `doanh-nghiep.html` | `experience.html`, `admin.html`, `carrot-day.html` |
+| Giao diện | `flightdeck.css` (kem / trắng xanh) | `style.css` + `carrot-day.css` |
+| Backend | `Code.gs` | `google-apps-script.gs` |
+| Google Sheet | file `1HB_6UIpt…` (tab theo tháng) | file cũ (`Jun Pham`…) |
+| Cấu hình | `BOOKING_SCRIPT_URL` | `SCRIPT_URL` |
+| Việc | Đặt buồng lái 1–4 tiếng, 9:00–21:00 | Lượt bay 15 phút, ghép đôi khách lẻ |
+
+Hai bên **không dùng chung deployment và không dùng chung file Sheet**. Cố ý như
+vậy: hệ thống sự kiện đã chạy thật với dữ liệu khách thật, gộp vào là mỗi lần
+sửa bên này lại có nguy cơ làm hỏng bên kia.
 
 ## Cấu trúc trang
 
 | File | Dùng cho | Mã QR |
 |---|---|---|
-| `index.html` | Trang chủ — 3 mã QR cho gian hàng | — |
+| `index.html` | **Trang chủ** — khối Sự kiện + khối Đặt lịch bay | — |
+| `doanh-nghiep.html` | **Dành cho doanh nghiệp** — mô hình hợp tác, kỹ thuật & vận hành | — |
+| `carrot-day.html` | Trang chủ cũ của sự kiện Carrot Day (lưu lại) | — |
+| `flightdeck.css` | Giao diện thường trực (kem / trắng xanh / navy) | — |
+| `booking.js` | Sinh khung giờ 15 phút, tính giờ kết thúc, chặn chồng giờ | — |
+| `home.js` | Nối trang chủ với `booking.js` và Apps Script | — |
+| `Code.gs` | Backend đặt lịch + sự kiện, ghi vào Sheet theo tab tháng | — |
 | `experience.html` | **QR 1** — đăng ký lượt bay + theo dõi hàng chờ trực tiếp | **QR 1** |
 | `courses.html` | **QR 2** — cá nhân (B2C): ảnh workshop đã qua + khảo sát lịch workshop tiếp theo | **QR 2** |
 | `partners.html` | **QR 3** — doanh nghiệp (B2B): form liên hệ theo spec B4 | **QR 3** |
@@ -182,6 +204,148 @@ trang thanh toán phải hiện được mã kể cả khi gian hàng mất Inte
 > Lưu ý riêng tư: ai có link website đều có thể gọi API đọc danh sách (tên + SĐT).
 > Với sự kiện 3 ngày điều này thường chấp nhận được, nhưng đừng chia sẻ URL script
 > ra ngoài, và sau sự kiện hãy **Deploy → Manage deployments → Archive** để tắt.
+
+## 🛫 Đặt lịch thường ngày — nối `Code.gs` với Google Sheet
+
+Phần này chỉ dành cho **trang chủ mới** (`index.html`). Hệ thống Carrot Day
+(`experience.html` / `admin.html`) dùng `google-apps-script.gs` và một file Sheet
+khác — làm theo mục "Kết nối Google Sheet" ở trên, đừng lẫn hai cái.
+
+### Bước 1 — Mở trình soạn thảo Apps Script
+
+1. Mở file Google Sheet đích:
+   <https://docs.google.com/spreadsheets/d/1HB_6UIptnWt_5JQT_21H5QXewjAIowD441nQ01_Pgxs/edit>
+2. Menu **Tiện ích mở rộng → Apps Script**.
+3. Xoá hết nội dung mẫu trong `Code.gs`.
+
+### Bước 2 — Dán code
+
+1. Mở file `Code.gs` trong dự án này, chọn tất cả (Ctrl+A), copy.
+2. Dán vào `Code.gs` trên Apps Script, bấm **biểu tượng đĩa mềm** để lưu.
+
+> `SHEET_ID` đã ghi sẵn ID của file Sheet ở trên. Nếu bạn đổi sang file khác,
+> sửa dòng `var SHEET_ID = '...'` — ID là đoạn nằm giữa `/d/` và `/edit`
+> trên thanh địa chỉ.
+
+### Bước 3 — Chạy thử một lần để cấp quyền
+
+1. Ở thanh công cụ, chọn hàm **`TEST_tuKiemTra`** trong ô danh sách hàm.
+
+   ⚠️ **Đừng bấm Chạy khi ô đó đang là `doGet`.** `doGet` là hàm mặc định của
+   danh sách, chạy tay sẽ báo lỗi thiếu tham số — không phải script hỏng.
+
+2. Bấm **Chạy**. Google hiện bảng xin quyền:
+   **Xem lại quyền → chọn tài khoản → Nâng cao → Chuyển đến … (không an toàn)
+   → Cho phép**. (Cảnh báo này là bình thường với script tự viết.)
+3. Xem khung **Nhật ký thực thi** phía dưới. Đúng thì kết thúc bằng:
+   `✅ Mọi thứ hoạt động. Đã xóa các dòng thử.`
+
+Hàm này ghi 2 dòng thử, kiểm tra máy chủ có chặn đặt chồng giờ không, rồi **tự
+xoá các dòng thử**. Mở Sheet lúc này bạn sẽ thấy tab tháng mới đã được tạo và
+định dạng sẵn.
+
+### Bước 4 — Triển khai thành Web App
+
+1. Góc trên bên phải: **Triển khai → Tùy chọn triển khai mới**.
+2. Bấm bánh răng ⚙️ cạnh "Chọn loại" → chọn **Ứng dụng web**.
+3. Điền:
+   - **Mô tả**: `Đặt lịch bay v1`
+   - **Thực thi bằng**: **Tôi** (`your-email@gmail.com`)
+   - **Ai có quyền truy cập**: **Bất kỳ ai**
+
+   > Phải là **Bất kỳ ai**, không phải "Bất kỳ ai có Tài khoản Google". Khách
+   > vào web không đăng nhập Google, chọn sai thì mọi lượt đặt đều bị chặn.
+
+4. Bấm **Triển khai**, rồi **copy URL Web App** — dạng
+   `https://script.google.com/macros/s/AKfy…/exec`.
+
+### Bước 5 — Dán URL vào website
+
+**Chạy trên máy:** mở `config.js`, dán vào dòng `BOOKING_SCRIPT_URL`:
+
+```js
+BOOKING_SCRIPT_URL: "https://script.google.com/macros/s/AKfy…/exec",
+```
+
+**Chạy trên GitHub Pages:** `config.js` bị `.gitignore` nên phải thêm Secret —
+vào **GitHub → Settings → Secrets and variables → Actions → New repository
+secret**:
+
+| Tên | Giá trị |
+|---|---|
+| `TFD_BOOKING_SCRIPT_URL` | URL Web App vừa copy |
+
+Đẩy code lên `main` là GitHub Actions tự dựng lại `config.js` từ Secret rồi
+deploy.
+
+> Thiếu Secret này thì **vẫn deploy được**, chỉ là form đặt lịch chạy ở chế độ
+> thử nghiệm: nó nói thẳng "Chưa nối Google Sheet" và mời khách gọi điện, chứ
+> không im lặng nuốt mất lượt đặt.
+
+### Bước 6 — Kiểm tra thật
+
+Mở trang chủ, đặt thử một lượt cho ngày mai. Đúng thì:
+
+- Hộp xanh hiện mã đặt chỗ dạng `TFD2608130042`.
+- Google Sheet có tab tên **`8/26`** (tháng/năm của **ngày bay**), tiêu đề nền
+  xanh navy chữ kem, các hàng đổi màu trắng / trắng xanh xen kẽ.
+- Đặt lần nữa đúng khung giờ đó → bị từ chối, ô giờ chuyển sang gạch ngang.
+
+### Mỗi lần sửa `Code.gs` sau này
+
+**Triển khai → Quản lý các bản triển khai → ✏️ (bút chì) → Phiên bản: Phiên bản
+mới → Triển khai.** URL giữ nguyên, không cần sửa lại `config.js`.
+
+Sửa code mà quên bước này thì máy chủ vẫn chạy code cũ — đây là chỗ hay quên nhất.
+
+### Bảng dữ liệu trong Sheet
+
+Mỗi tháng một tab, đặt tên theo **ngày bay**: `8/26`, `9/26`, `10/26`…
+Khách đặt ngày 30/8 cho chuyến 2/9 thì dòng đó nằm ở tab `9/26` — mở tab tháng
+nào là thấy đủ lịch tháng đó.
+
+| Cột | Nội dung |
+|---|---|
+| Mã đặt chỗ | `TFD` + ngày + 4 số ngẫu nhiên |
+| Loại | `Đặt lịch bay` hoặc `Đăng ký sự kiện` |
+| Ngày bay | `2026-08-15` |
+| Thời gian bay | `15:00 - 17:00` |
+| Số giờ bay | 1–4 |
+| Tên khách book / SĐT / Email / Số khách | thông tin khách |
+| Sự kiện | tên sự kiện (nếu là đăng ký sự kiện) |
+| Ghi chú | lời nhắn của khách |
+| Trạng thái | ô chọn: Mới / Đã xác nhận / Đã bay / Đã hủy |
+| Nguồn / Thời gian gửi | `website` + giờ nhận |
+
+Đổi **Trạng thái** sang **Đã hủy** là khung giờ đó **tự trống trở lại** trên
+website, không phải xoá dòng. Dòng đã huỷ được tô mờ và gạch ngang.
+
+Muốn áp lại màu cho các tab cũ (lỡ xoá định dạng): chạy hàm
+**`DINH_DANG_LAI_TAT_CA`** trong trình soạn thảo. Hàm này không xoá dữ liệu.
+
+### Đổi giờ mở cửa / thời lượng bay
+
+Phải sửa **cả hai nơi**, nếu không khách chọn được giờ mà máy chủ từ chối:
+
+| Sửa gì | `config.js` (mục `BOOKING`) | `Code.gs` (đầu file) |
+|---|---|---|
+| Giờ mở cửa | `openStart` / `openEnd` | `OPEN_START` / `OPEN_END` |
+| Bước nhảy | `stepMinutes` | `STEP_MIN` |
+| Số giờ bay | `minHours` / `maxHours` | `MIN_HOURS` / `MAX_HOURS` |
+| Đặt trước tối thiểu | `leadMinutes` | `LEAD_MIN` |
+
+Sửa `Code.gs` xong nhớ **Triển khai phiên bản mới**.
+
+### Bật / tắt khối Sự kiện trên trang chủ
+
+Mở `config.js`:
+
+- `EVENT: null` → trang chủ hiện bảng **"Hiện chưa có sự kiện mới"**.
+- Điền khối `EVENT: { name, when, where, price, startDate, endDate, … }` → trang
+  chủ tự đổi sang phần giới thiệu sự kiện kèm form đăng ký.
+
+`endDate` là chốt an toàn: qua ngày đó trang **tự** quay về "chưa có sự kiện",
+kể cả khi quên sửa file. Xem ví dụ đầy đủ ngay trong `config.example.js`.
 
 ## ⚙️ Thiết lập sau khi clone (BẮT BUỘC)
 

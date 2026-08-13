@@ -26,6 +26,7 @@ var OUT = path.join(ROOT, 'config.js');
 
 var scriptUrl = process.env.TFD_SCRIPT_URL || '';
 var adminPin = process.env.TFD_ADMIN_PIN || '';
+var bookingUrl = process.env.TFD_BOOKING_SCRIPT_URL || '';
 
 function die(msg) {
   console.error('\n✖ build-config: ' + msg + '\n');
@@ -67,6 +68,23 @@ var out = src;
 out = replaceOnce(out, /SCRIPT_URL:\s*""/, 'SCRIPT_URL: ' + JSON.stringify(scriptUrl), 'SCRIPT_URL');
 out = replaceOnce(out, /ADMIN_PIN:\s*"000000"/, 'ADMIN_PIN: ' + JSON.stringify(adminPin), 'ADMIN_PIN');
 
+/* URL đặt lịch thường ngày (Code.gs) — CẢNH BÁO chứ không dừng deploy.
+   Khác với SCRIPT_URL ở trên: thiếu cái kia thì trang đăng ký sự kiện
+   im lặng nuốt mất đăng ký, còn thiếu cái này thì form đặt lịch nói
+   thẳng "chưa nối Google Sheet" và mời khách gọi điện. Dừng hẳn deploy
+   vì nó sẽ chặn luôn cả phần còn lại của website lên sóng. */
+if (bookingUrl) {
+  if (!/^https:\/\/script\.google\.com\/macros\/s\/[A-Za-z0-9_-]+\/exec/.test(bookingUrl)) {
+    die('TFD_BOOKING_SCRIPT_URL không giống URL Web App của Apps Script:\n  ' + bookingUrl);
+  }
+  out = replaceOnce(out, /BOOKING_SCRIPT_URL:\s*""/,
+    'BOOKING_SCRIPT_URL: ' + JSON.stringify(bookingUrl), 'BOOKING_SCRIPT_URL');
+} else {
+  console.warn('\n⚠️  THIẾU TFD_BOOKING_SCRIPT_URL — form ĐẶT LỊCH trên trang chủ sẽ\n' +
+               '    chạy ở chế độ thử nghiệm (không ghi vào Google Sheet).\n' +
+               '    Deploy Code.gs rồi thêm Secret này để bật lên.\n');
+}
+
 out = '/* ⚠️ FILE NÀY ĐƯỢC SINH TỰ ĐỘNG khi deploy — đừng sửa tay.\n' +
       '   Sửa `config.example.js` (cấu hình chung) hoặc GitHub Secrets\n' +
       '   (TFD_SCRIPT_URL / TFD_ADMIN_PIN). */\n' + out;
@@ -75,4 +93,5 @@ fs.writeFileSync(OUT, out, 'utf8');
 
 // Không in giá trị thật ra log Actions (log của repo public ai cũng đọc được)
 console.log('✔ đã sinh config.js  (SCRIPT_URL ' + scriptUrl.length + ' ký tự, PIN ' +
-            adminPin.length + ' ký tự)');
+            adminPin.length + ' ký tự, BOOKING_SCRIPT_URL ' +
+            (bookingUrl ? bookingUrl.length + ' ký tự' : 'CHƯA CÓ') + ')');

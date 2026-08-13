@@ -19,6 +19,58 @@ var TFD_CONFIG = {
   ADMIN_PIN: "000000",         // ← ĐỔI THÀNH PIN CỦA BẠN (mở admin.html)
 
   /* ============================================================
+     ĐẶT LỊCH BAY THƯỜNG NGÀY (trang chủ mới) + SỰ KIỆN
+     ------------------------------------------------------------
+     Phần này phục vụ index.html và dùng MỘT DEPLOYMENT RIÊNG, ghi vào
+     MỘT FILE GOOGLE SHEET RIÊNG so với SCRIPT_URL ở trên (bản cũ phục
+     vụ sự kiện Carrot Day + trang quản lý). Đừng dán nhầm hai URL cho
+     nhau: dữ liệu sẽ rơi vào file sai và không ai để ý cho tới lúc mở
+     sheet ra tìm.
+     ============================================================ */
+
+  /* URL Web App của Code.gs (xem README, mục "Đặt lịch thường ngày").
+     Để trống = chế độ thử nghiệm: form vẫn kiểm tra dữ liệu nhưng KHÔNG
+     gửi đi đâu cả, và nói thẳng điều đó cho khách. */
+  BOOKING_SCRIPT_URL: "",
+
+  /* Khung giờ mở cửa & luật đặt lịch.
+     ⚠️ PHẢI KHỚP với các hằng số đầu file Code.gs. Lệch nhau thì khách
+     chọn được một giờ mà server từ chối — hoặc tệ hơn, ngược lại. */
+  BOOKING: {
+    openStart: "09:00",   // giờ mở cửa
+    openEnd: "21:00",     // giờ đóng cửa — mọi lượt bay phải KẾT THÚC trước mốc này
+    stepMinutes: 15,      // mỗi ca cách nhau 15 phút
+    minHours: 1,          // bay tối thiểu 1 tiếng
+    maxHours: 4,          // bay tối đa 4 tiếng
+    leadMinutes: 60,      // phải đặt trước ít nhất 60 phút
+    daysAhead: 21         // cho khách chọn trong 21 ngày tới
+  },
+
+  /* ============================================================
+     SỰ KIỆN ĐANG CHẠY
+     ------------------------------------------------------------
+     null = trang chủ hiện bảng "Hiện chưa có sự kiện mới".
+     Có sự kiện thì điền khối bên dưới, trang chủ tự đổi sang phần giới
+     thiệu + form đăng ký. `endDate` là chốt an toàn: qua ngày đó trang
+     tự quay về trạng thái "chưa có sự kiện" kể cả khi quên sửa file này.
+
+     Ví dụ:
+       EVENT: {
+         name: "Flight to Carrot Day 2026",
+         badge: "Đang mở đăng ký",
+         desc: "Chuyến bay đặc biệt cùng Jun Phạm...",
+         when: "3 - 10/08/2026",
+         where: "86 Đặng Văn Ngữ, Phú Nhuận, TP.HCM",
+         price: "150.000đ / người",
+         startDate: "2026-08-03",
+         endDate: "2026-08-10",
+         ctaText: "Xem chi tiết sự kiện",
+         ctaHref: "experience.html"
+       },
+     ============================================================ */
+  EVENT: null,
+
+  /* ============================================================
      🔒 CÔNG TẮC TỔNG — CÓ NHẬN ĐĂNG KÝ HAY KHÔNG
      ------------------------------------------------------------
      false = website vẫn xem được nhưng KHÔNG ai đăng ký được, bất kể

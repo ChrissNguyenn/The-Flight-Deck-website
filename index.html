@@ -3,288 +3,431 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title data-i18n-title="home.pageTitle">The Flight Deck × Flight to Carrot Day 2026</title>
-  <meta name="description" data-i18n-content="home.desc" content="The Flight Deck × Flight to Carrot Day 2026: quét mã QR tại gian hàng để đăng ký trải nghiệm buồng lái mô phỏng — chọn giờ bay 15 phút, thanh toán và nhận xác nhận qua email.">
+  <title>The Flight Deck — Trải nghiệm buồng lái mô phỏng Airbus A320</title>
+  <meta name="description" content="The Flight Deck — buồng lái mô phỏng Airbus A320 tại 86 Đặng Văn Ngữ, Phú Nhuận, TP.HCM. Mở cửa 9:00–21:00, đặt lịch bay từ 1 đến 4 tiếng, không cần kinh nghiệm.">
+  <meta name="theme-color" content="#0D2440">
   <link rel="icon" type="image/png" href="images/the-flight-deck-logo.png">
-  <link rel="stylesheet" href="style.css">
-  <!-- Carrot Day / Jun Pham Airways theme — luôn đặt SAU style.css -->
-  <link rel="stylesheet" href="carrot-day.css">
-  <!-- Thư viện tạo QR để ngay trong dự án thay vì tải từ CDN: gian hàng có
-       thể mất Internet, mà 3 mã QR này chính là thứ khách quét để vào trang.
-       defer: QR chỉ vẽ sau sự kiện load nên không cần chặn hiển thị. -->
-  <script defer src="qrcode.min.js"></script>
+
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="The Flight Deck — Let your soul be your pilot">
+  <meta property="og:description" content="Buồng lái mô phỏng Airbus A320 giữa Sài Gòn. Đặt lịch bay 1–4 tiếng, mở cửa mỗi ngày 9:00–21:00.">
+  <meta property="og:image" content="images/TheFlightDeck%20cockpit.jpg">
+
+  <!-- Bộ giao diện thường trực. KHÔNG nạp style.css/carrot-day.css ở đây:
+       hai file đó thuộc trang sự kiện Carrot Day, nạp chung sẽ đè biến màu. -->
+  <link rel="stylesheet" href="flightdeck.css">
 </head>
 <body>
 
-  <header class="site-header">
-    <nav class="nav">
-      <a class="brand" href="index.html">
-        <img width="560" height="282" decoding="async" class="brand-logo" src="images/jun-pham-airways-mark.png" alt="Flight to Carrot Day — Jun Pham Airways">
-        <span class="brand-divider" aria-hidden="true"></span>
-        <span class="brand-text">
-          <strong>The Flight Deck</strong>
-          <small data-i18n="nav.tagline">Jun Pham Airways · 2026</small>
-        </span>
-      </a>
-      <!-- Chỉ còn 1 mục: sự kiện này chỉ nhận đăng ký bay.
-           Hai mục "Workshop" và "Hợp tác" (cùng 2 mã QR của chúng) đã bỏ
-           theo yêu cầu; hai trang đó vẫn còn trong dự án, chỉ là không
-           dẫn từ menu nữa. -->
-      <div class="nav-links">
-        <a href="experience.html" data-i18n="nav.experience">Đăng ký bay</a>
-      </div>
-    </nav>
-  </header>
+<a class="skip-link" href="#dat-lich">Bỏ qua, tới phần đặt lịch</a>
 
-  <section class="hero hero-compact">
+<header class="site-header" id="site-header">
+  <nav class="nav">
+    <a class="brand" href="index.html">
+      <img class="brand-logo" src="images/the-flight-deck-logo.png" alt="" width="40" height="40">
+      <span class="brand-text">
+        <span class="brand-name">The Flight Deck</span>
+        <span class="brand-sub">Flight Simulator Café</span>
+      </span>
+    </a>
 
-    <!-- Lockup: The Flight Deck × Jun Pham Airways -->
-    <div class="hero-lockup">
-      <img width="1063" height="1063" fetchpriority="high" decoding="async" class="hero-lockup__tfd" src="images/the-flight-deck-logo.png" alt="The Flight Deck">
-      <span class="hero-lockup__x" aria-hidden="true">×</span>
-      <img width="1800" height="905" fetchpriority="high" decoding="async" class="hero-lockup__jpa" src="images/jun-pham-airways-logo.png" alt="Flight to Carrot Day — Jun Pham Airways">
+    <button class="nav-toggle" id="nav-toggle" aria-expanded="false" aria-controls="nav-links" aria-label="Mở menu">
+      <span></span>
+    </button>
+
+    <div class="nav-links" id="nav-links">
+      <a href="#su-kien">Sự kiện</a>
+      <a href="#dat-lich">Đặt lịch bay</a>
+      <a href="#trai-nghiem">Trải nghiệm</a>
+      <a href="doanh-nghiep.html">Dành cho doanh nghiệp</a>
+      <a class="btn btn-primary nav-cta" href="#dat-lich">Đặt lịch</a>
     </div>
+  </nav>
+</header>
 
-    <span class="kicker" data-i18n="home.kicker">Gian hàng trải nghiệm hàng không</span>
+<main id="main">
 
-    <!-- Poster title -->
-    <h1 class="carrot-title">
-      <span class="carrot-title__pre" data-i18n="home.titlePre">FLIGHT TO</span>
-      <span class="carrot-title__main">CARROT DAY</span>
-      <span class="carrot-title__sub" data-i18n="home.titleSub">The Flight Deck × Jun Pham · Chuyến bay đặc biệt 2026</span>
-    </h1>
+  <!-- ============================================================
+       HERO
+       ============================================================ -->
+  <section class="hero">
+    <img class="hero__bg" src="images/TheFlightDeck cockpit.jpg" alt="" fetchpriority="high" decoding="async" width="1600" height="1200">
+    <div class="hero__scrim"></div>
 
-    <!-- Oversized boarding pass: thông tin sự kiện -->
-    <div class="hero-pass orange-burst-bg">
-      <article class="boarding-pass-card boarding-pass-card--hero">
+    <div class="hero__inner">
+      <p class="eyebrow eyebrow--light">Buồng lái mô phỏng Airbus A320 · TP. Hồ Chí Minh</p>
 
-        <div class="bp-main">
-          <div class="bp-airline">
-            <img width="560" height="282" loading="lazy" decoding="async" class="bp-airline__logo" src="images/jun-pham-airways-mark.png" alt="">
-            <span class="bp-airline__name">JUN PHAM AIRWAYS</span>
-            <span class="bp-airline__tag" data-i18n="home.bpTag">Boarding Pass</span>
-          </div>
+      <h1 class="hero__title">Ngồi vào ghế cơ trưởng, <em>cất cánh</em> ngay hôm nay.</h1>
 
-          <div class="bp-route">
-            <div class="bp-port bp-port--from">
-              <span class="bp-port__code">SGN</span>
-              <span class="bp-port__city" data-i18n="home.bpFrom">TP. Hồ Chí Minh</span>
-            </div>
-            <div class="bp-route__line" aria-hidden="true"><span>✈</span></div>
-            <div class="bp-port bp-port--to">
-              <span class="bp-port__code">HAN</span>
-              <span class="bp-port__city" data-i18n="home.bpTo">HÀ NỘI</span>
-            </div>
-          </div>
+      <p class="hero__lead">
+        Một buồng lái A320 dựng đúng tỉ lệ, màn hình bao trọn tầm nhìn và bầu trời
+        thật ngoài ô cửa. Bạn không cần biết gì về hàng không — chỉ cần ngồi xuống,
+        đeo tai nghe và đẩy cần ga.
+      </p>
 
-          <!-- Ngày bay và giờ đặt chỗ được ĐIỀN TỪ config.js lúc tải trang.
-               Chữ trong HTML chỉ là dự phòng khi JS chưa chạy — đừng sửa ở
-               đây, sửa EVENT_DAYS / BOOKING_HOURS trong config.js. -->
-          <!-- Lịch bay chiếm TRỌN chiều ngang, mỗi nhóm ngày một dòng.
-               Trước đây nhét "Ngày bay" và "Giờ đặt chỗ" vào 2 cột hẹp
-               cạnh nhau nên chữ tràn và đè lên nhau. Nội dung được điền
-               từ FLIGHT_SCHEDULE trong config.js (chữ dưới đây chỉ là dự
-               phòng khi JS chưa chạy) — sửa lịch thì sửa config.js. -->
-          <div class="bp-schedule" id="bp-schedule">
-            <div class="bp-schedule__label" data-i18n="home.bpTimeLabel">Giờ đặt chỗ</div>
-            <ul class="bp-schedule__list">
-              <li><span class="bp-schedule__days">Ngày 3-7/8 &amp; 10/8:</span>
-                  <span class="bp-schedule__hours">10h-13h | 17h-21h</span></li>
-              <li><span class="bp-schedule__days">Ngày 8-9/8:</span>
-                  <span class="bp-schedule__hours">08h-12h | 19h-21h</span></li>
-            </ul>
-          </div>
+      <p class="hero__motto">“Let your soul be your pilot.”</p>
 
-          <dl class="bp-details">
-            <div class="bp-field">
-              <dt data-i18n="home.bpClassLabel">Hạng</dt>
-              <dd>MEMBERSHIP</dd>
-            </div>
-            <div class="bp-field">
-              <dt data-i18n="home.bpFlightLabel">Số hiệu</dt>
-              <dd>JP247</dd>
-            </div>
-          </dl>
+      <div class="btn-row" style="margin-top:26px">
+        <a class="btn btn-gold btn-lg" href="#dat-lich">Đặt lịch bay</a>
+        <a class="btn btn-ghost btn-lg" href="doanh-nghiep.html" style="color:#DCE7F1;border-color:rgba(220,232,242,.35)">Dành cho doanh nghiệp</a>
+      </div>
 
-          <p class="green-tag green-tag--ribbon" data-i18n="home.bpVenue">📍 The Flight Deck · 86 Đặng Văn Ngữ</p>
+      <dl class="hero__strip">
+        <div class="hero__stat">
+          <dt>Giờ mở cửa</dt>
+          <dd>9:00 – 21:00<small>Tất cả các ngày trong tuần</small></dd>
+        </div>
+        <div class="hero__stat">
+          <dt>Thời lượng bay</dt>
+          <dd>1 – 4 tiếng<small>Chọn theo nhu cầu của bạn</small></dd>
+        </div>
+        <div class="hero__stat">
+          <dt>Buồng lái</dt>
+          <dd>Airbus A320<small>Cần ga, sidestick, MCDU thật</small></dd>
+        </div>
+        <div class="hero__stat">
+          <dt>Địa điểm</dt>
+          <dd>86 Đặng Văn Ngữ<small>Phú Nhuận, TP. Hồ Chí Minh</small></dd>
+        </div>
+      </dl>
+    </div>
+    <span class="horizon" aria-hidden="true"></span>
+  </section>
 
-          <div class="bp-barcode" role="presentation"></div>
+  <!-- ============================================================
+       SỰ KIỆN
+       ------------------------------------------------------------
+       Hai khối dưới đây do JS bật/tắt theo TFD_CONFIG.EVENT.
+       Mặc định trong HTML là "chưa có sự kiện" — tải chậm hay lỗi JS
+       thì khách vẫn thấy một thông báo tử tế, không phải khoảng trắng.
+       ============================================================ -->
+  <section class="section" id="su-kien">
+    <div class="wrap">
+
+      <div class="sec-head--center reveal" style="margin-bottom:38px">
+        <p class="eyebrow eyebrow--center">Sự kiện</p>
+        <h2 class="sec-title">Chuyến bay đặc biệt</h2>
+        <p class="sec-lead">
+          Ngoài lịch bay hằng ngày, The Flight Deck còn tổ chức các sự kiện
+          theo mùa cùng đối tác và nghệ sĩ. Đây là nơi thông báo chuyến gần nhất.
+        </p>
+      </div>
+
+      <!-- ---------- Không có sự kiện ---------- -->
+      <div class="event-none reveal" id="event-none">
+        <p class="event-none__code">NO DEPARTURES</p>
+        <h3 class="event-none__title">Hiện chưa có sự kiện mới</h3>
+        <p class="event-none__lead">
+          Chúng tôi đang chuẩn bị cho chuyến kế tiếp. Trong lúc chờ, bạn vẫn có thể
+          đặt lịch bay thường ngày — buồng lái mở cửa từ 9:00 đến 21:00 mỗi ngày.
+        </p>
+        <div class="btn-row btn-row--center">
+          <a class="btn btn-light" href="#dat-lich">Đặt lịch bay thường ngày</a>
+        </div>
+      </div>
+
+      <!-- ---------- Đang có sự kiện ---------- -->
+      <div class="event-live hidden" id="event-live">
+        <div class="reveal">
+          <span class="event-badge" id="ev-badge">Đang mở đăng ký</span>
+          <h3 class="event-title" id="ev-name">Tên sự kiện</h3>
+          <p class="event-desc" id="ev-desc"></p>
+
+          <ul class="event-facts" id="ev-facts">
+            <li><b>Thời gian</b><span id="ev-when">—</span></li>
+            <li><b>Địa điểm</b><span id="ev-where">—</span></li>
+            <li><b>Chi phí</b><span id="ev-price">—</span></li>
+          </ul>
+
+          <div class="btn-row" id="ev-cta-row" style="margin-top:26px"></div>
         </div>
 
-        <aside class="bp-stub">
-          <!-- Con dấu lấy từ Key Visual gốc: đặt ảnh tại
-               images/carrot-day-stamp.png (nền trong suốt, ~420×420).
+        <!-- Hộp đăng ký sự kiện -->
+        <div class="form-box reveal">
+          <div class="form-box__head">
+            <h3>Đăng ký tham gia</h3>
+            <p>Điền thông tin, chúng tôi sẽ liên hệ xác nhận trong ngày.</p>
+          </div>
+          <div class="form-box__body">
+            <form id="event-form" novalidate>
+              <div class="field">
+                <label for="ev-hoten">Họ và tên <span class="req">*</span></label>
+                <input type="text" id="ev-hoten" name="name" autocomplete="name" placeholder="Nguyễn Văn A" required>
+                <p class="err-msg" id="err-ev-name"></p>
+              </div>
 
-               Mặc định HIỆN con dấu vẽ bằng CSS; ảnh chỉ thay thế nó khi
-               tải xong (onload). Làm ngược lại (ảnh trước, lỗi mới đổi)
-               sẽ để một khoảng trống nhấp nháy trên vé trong lúc tải, và
-               nếu quên thêm file thì vé khuyết hẳn một mảng. -->
-          <!-- KHÔNG dùng loading="lazy" ở đây: ảnh đang để hidden (display:none)
-               nên không bao giờ lọt vào khung nhìn → trình duyệt hoãn tải mãi →
-               onload không chạy → con dấu không bao giờ hiện. Ảnh display:none
-               vẫn được tải bình thường nếu bỏ lazy. -->
-          <img class="stamp-img" src="images/carrot-day-stamp.png"
-               alt="Con dấu Carrot Day 2026" width="493" height="484"
-               decoding="async" hidden
-               onload="this.hidden=false;this.nextElementSibling.hidden=true;"
-               onerror="this.remove();">
-          <span class="travel-stamp-badge">
-            <span class="travel-stamp-badge__top">Jun Pham Airways</span>
-            <span class="travel-stamp-badge__rule" aria-hidden="true"></span>
-            <span class="travel-stamp-badge__main">Carrot<br>Day</span>
-            <span class="travel-stamp-badge__rule" aria-hidden="true"></span>
-            <span class="travel-stamp-badge__bottom">2026 · Boarded</span>
-          </span>
-          <span class="bp-field__label" data-i18n="home.bpSeatLabel">Ghế</span>
-          <span class="bp-seat">26A</span>
-          <span class="bp-barcode bp-barcode--stub" role="presentation"></span>
-        </aside>
+              <div class="field-2">
+                <div class="field">
+                  <label for="ev-sdt">Số điện thoại <span class="req">*</span></label>
+                  <input type="tel" id="ev-sdt" name="phone" inputmode="numeric" autocomplete="tel" placeholder="09xx xxx xxx" required>
+                  <p class="err-msg" id="err-ev-phone"></p>
+                </div>
+                <div class="field">
+                  <label for="ev-sokhach">Số người</label>
+                  <select id="ev-sokhach" name="guests">
+                    <option value="1">1 người</option>
+                    <option value="2" selected>2 người</option>
+                    <option value="3">3 người</option>
+                    <option value="4">4 người</option>
+                    <option value="5">5 người trở lên</option>
+                  </select>
+                </div>
+              </div>
 
-      </article>
-    </div>
+              <div class="field">
+                <label for="ev-email">Email</label>
+                <input type="email" id="ev-email" name="email" autocomplete="email" placeholder="ban@email.com">
+                <p class="err-msg" id="err-ev-email"></p>
+              </div>
 
-    <div class="btn-row mt-2">
-      <a class="btn btn-carrot" href="experience.html#dang-ky" data-i18n="home.ctaBook">Đăng ký lượt bay</a>
-    </div>
-  </section>
+              <div class="field">
+                <label for="ev-ghichu">Lời nhắn</label>
+                <textarea id="ev-ghichu" name="note" placeholder="Bạn muốn bay khung giờ nào? Có yêu cầu gì đặc biệt không?"></textarea>
+              </div>
 
-  <section class="section" id="three-paths">
-    <div class="card-grid">
-      <div class="card qr-only">
-        <div class="icon">🕹️</div>
-        <h3 data-i18n="home.card1Title">Trải nghiệm mô phỏng bay</h3>
-        <p data-i18n="home.card1Body">Đăng ký lượt bay ngay tại gian hàng — mọi lứa tuổi, không cần kinh nghiệm.</p>
-        <div class="card-qr" id="qr-home-experience"></div>
-        <p class="qr-scan-hint" data-i18n="home.card1Hint">📱 Quét để đăng ký lượt bay</p>
+              <button type="submit" class="btn btn-primary btn-block btn-lg" id="ev-submit">Gửi đăng ký</button>
+              <div class="form-result" id="ev-result" role="status" aria-live="polite"></div>
+            </form>
+          </div>
+        </div>
       </div>
 
     </div>
   </section>
 
-  <footer class="site-footer">
-    <p class="brand-line">The Flight Deck × Flight to Carrot Day 2026</p>
-    <p data-i18n="footer.tagline">Đưa giấc mơ bay đến gần bạn hơn. © 2026 The Flight Deck.</p>
-    <p class="admin-link-row"><a href="admin.html" class="admin-link" data-i18n="home.adminLink">🔐 Quản lý gian hàng</a></p>
-  </footer>
+  <hr class="rule-gold">
 
-  <script src="i18n.js"></script>
-  <script src="config.js"></script>
+  <!-- ============================================================
+       ĐẶT LỊCH BAY
+       ============================================================ -->
+  <section class="section section--frost" id="dat-lich">
+    <div class="wrap">
 
-  <script>
-    /* ---------- Vé lên máy bay: lấy ngày & giờ TỪ config.js ----------
-       Trước đây ngày bay ghi cứng "15.08.2026" ngay trong HTML, trong khi
-       EVENT_DAYS trong config.js lại là tháng 7 — poster và hệ thống nói
-       hai ngày khác nhau mà không ai phát hiện. Giờ chỉ còn MỘT nguồn sự
-       thật: sửa config.js là cả trang chủ lẫn trang quản lý đều đúng theo.
-       Thiếu cấu hình thì giữ nguyên chữ dự phòng trong HTML. */
-    (function () {
-      var cfg = (typeof TFD_CONFIG !== "undefined") ? TFD_CONFIG : null;
-      if (!cfg) return;
+      <div class="sec-head--center reveal" style="margin-bottom:38px">
+        <p class="eyebrow eyebrow--center">Đặt lịch</p>
+        <h2 class="sec-title">Chọn giờ bay của bạn</h2>
+        <p class="sec-lead">
+          Buồng lái mở cửa mỗi ngày từ 9:00 sáng đến 9:00 tối. Chọn ngày, số giờ bay
+          và giờ bắt đầu — hệ thống tự tính giờ kết thúc cho bạn.
+        </p>
+      </div>
 
-      var groups = (cfg.FLIGHT_SCHEDULE && cfg.FLIGHT_SCHEDULE.groups) || [];
-      var listEl = document.querySelector("#bp-schedule .bp-schedule__list");
-      if (!listEl || !groups.length) return;   // giữ chữ dự phòng trong HTML
+      <div class="book-panel reveal">
+        <form id="book-form" novalidate>
+          <div class="book-grid">
 
-      /* "2026-08-03" -> "3/8" (bỏ số 0 đầu cho gọn tấm vé) */
-      function dm(key) {
-        var p = String(key || "").split("-");
-        if (p.length !== 3) return "";
-        return String(+p[2]) + "/" + String(+p[1]);
-      }
+            <!-- ---------- Cột trái: chọn giờ ---------- -->
+            <div class="book-left">
 
-      /* Gom ngày liên tiếp thành khoảng: [3,4,5,6,7,10] -> "3-7/8 & 10/8" */
-      function daysLabel(dates) {
-        var sorted = dates.slice().sort();
-        var runs = [], cur = [sorted[0]];
-        for (var i = 1; i < sorted.length; i++) {
-          var prev = new Date(sorted[i - 1] + "T00:00:00Z").getTime();
-          var now = new Date(sorted[i] + "T00:00:00Z").getTime();
-          if (now - prev === 86400000) cur.push(sorted[i]);
-          else { runs.push(cur); cur = [sorted[i]]; }
-        }
-        runs.push(cur);
-        return runs.map(function (run) {
-          if (run.length === 1) return dm(run[0]);
-          // cùng tháng thì chỉ ghi tháng một lần: "3-7/8"
-          var a = run[0].split("-"), b = run[run.length - 1].split("-");
-          return (a[1] === b[1])
-            ? String(+a[2]) + "-" + String(+b[2]) + "/" + String(+b[1])
-            : dm(run[0]) + "-" + dm(run[run.length - 1]);
-        }).join(" & ");
-      }
+              <div class="step">
+                <span class="step__num">1</span>
+                <span class="step__label">Chọn ngày bay</span>
+              </div>
+              <div class="day-rail" id="day-rail" role="group" aria-label="Chọn ngày bay"></div>
+              <p class="err-msg" id="err-date"></p>
 
-      /* "10:00"-"13:00" -> "10h-13h" (đúng kiểu chữ trên vé) */
-      function hrs(w) {
-        function h(t) {
-          var p = String(t).split(":");
-          return p[1] === "00" ? p[0] + "h" : p[0] + "h" + p[1];
-        }
-        return h(w.start) + "-" + h(w.end);
-      }
+              <div class="step">
+                <span class="step__num">2</span>
+                <span class="step__label">Bay bao lâu?</span>
+              </div>
+              <div class="dur-row" id="dur-row">
+                <label class="dur-opt">
+                  <input type="radio" name="hours" value="1" checked>
+                  <span><b>1</b><small>TIẾNG</small></span>
+                </label>
+                <label class="dur-opt">
+                  <input type="radio" name="hours" value="2">
+                  <span><b>2</b><small>TIẾNG</small></span>
+                </label>
+                <label class="dur-opt">
+                  <input type="radio" name="hours" value="3">
+                  <span><b>3</b><small>TIẾNG</small></span>
+                </label>
+                <label class="dur-opt">
+                  <input type="radio" name="hours" value="4">
+                  <span><b>4</b><small>TIẾNG</small></span>
+                </label>
+              </div>
 
-      /* Bỏ nhóm ngày test khỏi tấm vé: khách thật không cần thấy ngày
-         nội bộ. Ngày đó vẫn hiện trong lưới chọn giờ và trang quản lý. */
-      groups = groups.filter(function (g) { return !g.test; });
-      if (!groups.length) return;
+              <div class="step">
+                <span class="step__num">3</span>
+                <span class="step__label">Giờ bắt đầu</span>
+              </div>
+              <div class="slot-wrap" id="slot-wrap" role="group" aria-label="Chọn giờ bắt đầu"></div>
+              <p class="err-msg" id="err-start"></p>
 
-      listEl.innerHTML = groups.map(function (g) {
-        var days = daysLabel(g.dates || []);
-        var windows = (g.windows || []).map(hrs).join(" | ");
-        return "<li><span class='bp-schedule__days'>Ngày " + days + ":</span> " +
-               "<span class='bp-schedule__hours'>" + windows + "</span></li>";
-      }).join("");
-    })();
+            </div>
 
-    /* Tự động tạo 3 mã QR trên trang chủ.
-       Khi trang chạy trên web (http/https), QR trỏ đến chính website đó.
-       Khi mở file trực tiếp trên máy, QR dùng địa chỉ dự phòng bên dưới —
-       đổi thành link thật của bạn sau khi đưa trang lên mạng. */
-    var QR_FALLBACK_BASE = "https://theflightdeck.tech";
+            <!-- ---------- Cột phải: tóm tắt + thông tin khách ---------- -->
+            <div class="book-right">
+              <p class="summary__title">Chuyến bay của bạn</p>
 
-    // Chỉ còn MỘT mã QR: đăng ký lượt bay.
-    var homeQRs = [
-      { id: "qr-home-experience", target: "experience.html#dang-ky" }
-    ];
+              <div class="summary-time is-empty" id="sum-time">
+                <span class="summary-time__range" id="sum-range">Chọn giờ bắt đầu ở bên trái</span>
+                <span class="summary-time__date" id="sum-date"></span>
+              </div>
 
-    function qrBaseUrl() {
-      if (location.protocol === "http:" || location.protocol === "https:") {
-        return location.origin + location.pathname.replace(/[^\/]*$/, "");
-      }
-      return QR_FALLBACK_BASE.replace(/\/+$/, "") + "/";
-    }
+              <ul class="summary-list">
+                <li><span class="k">Ngày bay</span><span class="v" id="sum-day">—</span></li>
+                <li><span class="k">Thời lượng</span><span class="v" id="sum-dur">1 tiếng</span></li>
+                <li><span class="k">Có mặt trước</span><span class="v">10 phút</span></li>
+              </ul>
 
-    function renderHomeQRs() {
-      var base = qrBaseUrl();
-      homeQRs.forEach(function (q) {
-        var box = document.getElementById(q.id);
-        if (!box) return;
-        var url = base + q.target;
-        box.innerHTML = "";
-        if (typeof QRCode === "undefined") {
-          box.innerHTML = '<span class="qr-fallback">' + url + "</span>";
-          return;
-        }
-        new QRCode(box, {
-          text: url,
-          width: 180,
-          height: 180,
-          correctLevel: QRCode.CorrectLevel.M
-        });
-        box.title = url;
-      });
-    }
+              <p class="note">
+                Bạn vui lòng có mặt trước giờ bay 10 phút để nghe hướng dẫn an toàn
+                và làm quen buồng lái.
+              </p>
 
-    window.addEventListener("load", renderHomeQRs);
+              <div class="field">
+                <label for="bk-hoten">Họ và tên <span class="req">*</span></label>
+                <input type="text" id="bk-hoten" name="name" autocomplete="name" placeholder="Nguyễn Văn A" required>
+                <p class="err-msg" id="err-name"></p>
+              </div>
 
-    /* Đăng ký service worker để cache ảnh (logo/poster khá nặng). Khách quét
-       QR vào lại trang nhiều lần trong ngày — lần sau lấy từ cache, không tốn
-       4G. SW không cache HTML/CSS/JS nên sửa nội dung vẫn có hiệu lực ngay. */
-    if ("serviceWorker" in navigator) {
-      window.addEventListener("load", function () {
-        navigator.serviceWorker.register("sw.js").catch(function () {});
-      });
-    }
-  </script>
+              <div class="field-2">
+                <div class="field">
+                  <label for="bk-sdt">Số điện thoại <span class="req">*</span></label>
+                  <input type="tel" id="bk-sdt" name="phone" inputmode="numeric" autocomplete="tel" placeholder="09xx xxx xxx" required>
+                  <p class="err-msg" id="err-phone"></p>
+                </div>
+                <div class="field">
+                  <label for="bk-sokhach">Số khách</label>
+                  <select id="bk-sokhach" name="guests">
+                    <option value="1">1 người</option>
+                    <option value="2" selected>2 người</option>
+                    <option value="3">3 người</option>
+                    <option value="4">4 người</option>
+                    <option value="5">5 người</option>
+                    <option value="6">6 người trở lên</option>
+                  </select>
+                </div>
+              </div>
 
+              <div class="field">
+                <label for="bk-email">Email</label>
+                <input type="email" id="bk-email" name="email" autocomplete="email" placeholder="ban@email.com">
+                <p class="err-msg" id="err-email"></p>
+              </div>
+
+              <div class="field">
+                <label for="bk-ghichu">Ghi chú</label>
+                <textarea id="bk-ghichu" name="note" placeholder="Lần đầu bay, đi cùng trẻ nhỏ, muốn bay chặng nào…"></textarea>
+              </div>
+
+              <button type="submit" class="btn btn-primary btn-block btn-lg" id="bk-submit">Gửi yêu cầu đặt lịch</button>
+              <div class="form-result" id="bk-result" role="status" aria-live="polite"></div>
+            </div>
+
+          </div>
+        </form>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============================================================
+       TRẢI NGHIỆM
+       ============================================================ -->
+  <section class="section" id="trai-nghiem">
+    <div class="wrap">
+      <div class="sec-head--center reveal" style="margin-bottom:40px">
+        <p class="eyebrow eyebrow--center">Trải nghiệm</p>
+        <h2 class="sec-title">Bạn sẽ được gì trong buồng lái</h2>
+      </div>
+
+      <div class="grid grid-3 reveal">
+        <article class="card card--hover">
+          <div class="card__icon">🎧</div>
+          <h3>Hướng dẫn từ đầu</h3>
+          <p>Một hướng dẫn viên ngồi cùng bạn suốt chuyến: từ khởi động động cơ,
+             lăn bánh, cất cánh cho tới hạ cánh. Không cần biết gì trước.</p>
+        </article>
+        <article class="card card--hover">
+          <div class="card__icon">🗺️</div>
+          <h3>Bay chặng bạn chọn</h3>
+          <p>Tân Sơn Nhất, Nội Bài, Đà Nẵng hay bất kỳ sân bay nào trên thế giới —
+             chọn điểm đi và điểm đến ngay trước giờ bay.</p>
+        </article>
+        <article class="card card--hover">
+          <div class="card__icon">📸</div>
+          <h3>Ảnh và video kỷ niệm</h3>
+          <p>Chúng tôi chụp và quay giúp bạn những khoảnh khắc trong buồng lái,
+             gửi lại ngay sau chuyến bay.</p>
+        </article>
+      </div>
+
+      <div class="grid grid-2 reveal" style="margin-top:clamp(28px,4vw,48px);align-items:center">
+        <figure style="margin:0;border-radius:var(--r-lg);overflow:hidden;box-shadow:var(--shadow)">
+          <img src="images/A32FNEO.png" alt="Buồng lái Airbus A320 tại The Flight Deck" loading="lazy" width="1200" height="800">
+        </figure>
+        <div>
+          <p class="eyebrow">Không gian</p>
+          <h3 style="font-size:clamp(24px,3.2vw,34px)">Một quán cà phê, một buồng lái thật</h3>
+          <p style="color:var(--muted)">
+            The Flight Deck nằm tại 86 Đặng Văn Ngữ, Phú Nhuận. Người đi cùng bạn có
+            thể ngồi ngay bên ngoài, nhìn thẳng vào buồng lái và theo dõi toàn bộ
+            chuyến bay trên màn hình lớn.
+          </p>
+          <div class="btn-row" style="margin-top:20px">
+            <a class="btn btn-ghost" href="https://www.facebook.com/theflightdeckofficial/" target="_blank" rel="noopener">Xem hoạt động trên Facebook</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <div>
+        <div class="footer-brand">
+          <img src="images/the-flight-deck-logo.png" alt="" width="38" height="38">
+          <span>The Flight Deck</span>
+        </div>
+        <p class="footer-motto">Let your soul be your pilot.</p>
+        <p>Buồng lái mô phỏng Airbus A320 tại 86 Đặng Văn Ngữ, Phường 14, Quận Phú Nhuận, TP. Hồ Chí Minh.</p>
+      </div>
+
+      <div class="footer-col">
+        <h4>Khám phá</h4>
+        <ul>
+          <li><a href="#su-kien">Sự kiện</a></li>
+          <li><a href="#dat-lich">Đặt lịch bay</a></li>
+          <li><a href="#trai-nghiem">Trải nghiệm</a></li>
+          <li><a href="doanh-nghiep.html">Dành cho doanh nghiệp</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <h4>Liên hệ</h4>
+        <ul>
+          <li><a href="tel:0919686320">0919 686 320</a></li>
+          <li><a href="mailto:theflightdeckcoffee@gmail.com">theflightdeckcoffee@gmail.com</a></li>
+          <li><a href="https://www.facebook.com/theflightdeckofficial/" target="_blank" rel="noopener">Facebook</a></li>
+          <li><a href="https://youtube.com/shorts/fY8da4IF3cc" target="_blank" rel="noopener">Video giới thiệu</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <h4>Giờ mở cửa</h4>
+        <ul>
+          <li>Thứ 2 – Chủ nhật</li>
+          <li>9:00 – 21:00</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <span>© 2026 The Flight Deck. Đưa giấc mơ bay đến gần bạn hơn.</span>
+      <span><a href="carrot-day.html">Flight to Carrot Day 2026</a></span>
+    </div>
+  </div>
+</footer>
+
+<script src="config.js"></script>
+<script src="booking.js"></script>
+<script src="home.js"></script>
 </body>
 </html>
