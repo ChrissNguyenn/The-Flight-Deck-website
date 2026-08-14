@@ -19,7 +19,7 @@
    báo lỗi thiếu tham số `e` chứ không phải script hỏng.
    ============================================================ */
 
-var SCRIPT_VERSION = 4;
+var SCRIPT_VERSION = 5;
 
 /* File Sheet đích. Để trống thì dùng Sheet đang gắn với script này —
    nhưng ghi rõ ID an toàn hơn: script vẫn ghi đúng chỗ kể cả khi bạn
@@ -60,34 +60,36 @@ var PRICE_2P = 700000;      // từ 2 người / 1 tiếng
 var PAYMENT_MIN = 45;
 
 /* ============================================================
-   MÃ QUẢN LÝ — cho trang lịch (lich.html)
+   MÃ PIN CHO NHÂN VIÊN — trang lich.html
    ------------------------------------------------------------
-   ⚠️ ĐỔI CHUỖI NÀY trước khi dùng thật.
+   PHẢI KHỚP với PIN trong lich.js (hằng số PIN ở đầu file đó).
 
-   Vì sao mã nằm ở ĐÂY chứ không nằm trong config.js: config.js là file
-   tĩnh, trình duyệt của bất kỳ ai cũng tải được, nên mọi thứ trong đó
-   xem như công khai. URL Web App cũng công khai theo — nghĩa là nếu
-   endpoint đọc danh sách booking không có khoá, ai xem mã nguồn trang
-   cũng lấy được toàn bộ tên, số điện thoại và email khách.
+   ⚠️ HIỂU ĐÚNG MỨC BẢO VỆ CỦA NÓ:
+   Chủ quán yêu cầu đặt cứng PIN 20242026 ngay trong trang, nên chuỗi
+   này nằm trong mã nguồn mà mọi khách tải về. Nghĩa là PIN chỉ ngăn
+   người vô tình bấm nhầm vào trang nhân viên — KHÔNG ngăn được ai chủ
+   ý xem mã nguồn rồi gọi thẳng API để lấy danh sách khách (tên, số điện
+   thoại, email).
 
-   Để mã ở phía server và bắt quản lý tự gõ vào trang lịch (lưu trong
-   localStorage của máy họ) thì chuỗi này KHÔNG xuất hiện ở bất kỳ đâu
-   trong mã nguồn trang. Đây vẫn không phải đăng nhập thật — ai biết mã
-   là vào được, và mã đi kèm mỗi lần gọi — nhưng nó chặn được người tình
-   cờ tìm thấy URL. Muốn chắc chắn thì phải dùng tài khoản Google thật.
-
-   ⛔ ĐỪNG ĐIỀN MÃ THẬT VÀO ĐÂY RỒI ĐẨY LÊN GITHUB.
-   Kho này là kho công khai; đẩy lên một lần là chuỗi đó nằm vĩnh viễn
-   trong lịch sử git, xoá đi cũng vẫn tra lại được. Cách làm đúng: dán
-   file này vào trình soạn thảo Apps Script rồi sửa dòng dưới NGAY TRÊN
-   ĐÓ. Apps Script không nằm trong kho, nên mã thật không đi đâu cả.
-
-   ⛔ VÀ ĐỪNG DÙNG LẠI ADMIN_PIN trong config.js. config.js được gửi
-   thẳng tới trình duyệt của mọi khách, nên PIN đó ai xem mã nguồn trang
-   cũng đọc được. Dùng lại nó ở đây là vứt bỏ toàn bộ ý nghĩa của việc
-   giấu mã ở phía máy chủ. Hãy đặt một chuỗi KHÁC HẲN, dài, khó đoán.
+   Muốn khoá thật thì đổi dòng dưới thành một chuỗi dài khó đoán và
+   KHÔNG điền nó vào lich.js — nhân viên sẽ phải tự gõ một lần, trang
+   nhớ trong máy họ. Lúc đó chuỗi này không xuất hiện ở đâu trong trang.
    ============================================================ */
-var ADMIN_KEY = 'DAT-MA-RIENG-CUA-BAN-O-DAY';
+var ADMIN_KEY = '20242026';
+
+/* ============================================================
+   BÁO CÁO LỊCH NGÀY MAI QUA EMAIL
+   ============================================================ */
+var REPORT_TO = 'theflightdeckcoffee@gmail.com';
+
+/* Ngày mai không có lượt nào thì VẪN GỬI.
+   Im lặng khi trống nghĩa là không phân biệt được "mai rảnh" với
+   "trigger chết từ tuần trước" — và cái thứ hai chỉ lộ ra khi khách đã
+   tới nơi mà không ai biết. */
+var REPORT_KHI_TRONG = true;
+
+/* Xem trước lịch tối đa 1 năm. Chặn ở server, không chỉ ở giao diện. */
+var MAX_VIEW_DAYS = 365;
 
 /* ---------- Cột trong bảng ----------
    Sửa ở đây là sửa cả tiêu đề lẫn thứ tự ghi. KHÔNG chèn cột vào GIỮA
@@ -153,13 +155,20 @@ function doGet(e) {
     if (p.action === 'bookings') return json_(guard_(p, function () {
       return bookingsBetween_(p.from, p.to);
     }));
+    if (p.action === 'search') return json_(guard_(p, function () {
+      return searchBookings_(p.q);
+    }));
+    if (p.action === 'tomorrow') return json_(guard_(p, function () {
+      return tomorrowReport_();
+    }));
     return json_({
       ok: true,
       version: SCRIPT_VERSION,
       openStart: OPEN_START, openEnd: OPEN_END,
       stepMinutes: STEP_MIN, minHours: MIN_HOURS, maxHours: MAX_HOURS,
       leadMinutes: LEAD_MIN,
-      price1: PRICE_1P, price2: PRICE_2P, payMinutes: PAYMENT_MIN
+      price1: PRICE_1P, price2: PRICE_2P, payMinutes: PAYMENT_MIN,
+      maxViewDays: MAX_VIEW_DAYS
     });
   } catch (err) {
     return json_({ ok: false, error: 'SERVER', message: String(err && err.message || err) });
@@ -781,6 +790,14 @@ function bookingsBetween_(from, to) {
   }
   if (to < from) { var t = from; from = to; to = t; }
 
+  /* Chặn xem xa hơn 1 năm NGAY Ở SERVER, không chỉ ở giao diện.
+     Giao diện có nút mờ đi thì vẫn có người sửa URL gọi thẳng API — và
+     một khoảng ngày dài vô hạn buộc script quét mọi tab trong file. */
+  var chotXa = Utilities.formatDate(
+    new Date(new Date().getTime() + MAX_VIEW_DAYS * 86400000), TZ, 'yyyy-MM-dd');
+  if (from > chotXa) return { ok: false, error: 'TOO_FAR_VIEW', maxDate: chotXa };
+  if (to > chotXa) to = chotXa;
+
   var ss = book_();
   var cIdx = colIndex_();
   var nowMs = Date.now();
@@ -865,6 +882,107 @@ function setStatus_(code, status) {
 }
 
 /* ============================================================
+   TÌM KIẾM CHO NHÂN VIÊN
+   ------------------------------------------------------------
+   Khác lookup_ dành cho khách: bên kia khớp TUYỆT ĐỐI (gõ "09" mà ra
+   danh sách thì ai cũng duyệt được toàn bộ khách). Bên này là nhân viên
+   đã qua cửa PIN, họ cần gõ vài chữ trong tên là ra — nên khớp MỘT PHẦN
+   theo tên, và theo chuỗi số trong số điện thoại.
+   ============================================================ */
+function searchBookings_(q) {
+  var s = clean_(q, 60).toLowerCase().trim();
+  if (s.length < 2) return { ok: false, error: 'TOO_SHORT' };
+
+  var soChiSo = s.replace(/\D/g, '');
+  /* Chỉ đem chuỗi số đi khớp SĐT khi người ta ĐANG GÕ SỐ. Bóc số ra
+     khỏi mọi chuỗi rồi khớp thì gõ tên "Vũ 3" cũng lôi về mọi SĐT có
+     số 3 — đúng cái bẫy đã gặp ở trang tra cứu trước đây. */
+  var laSo = /^[\d\s.+()-]+$/.test(s) && soChiSo.length >= 3;
+
+  var ss = book_();
+  var cIdx = colIndex_();
+  var nowMs = Date.now();
+  var found = [];
+
+  ss.getSheets().forEach(function (sh) {
+    if (!/^\d{1,2}[\/\-]\d{2}$/.test(sh.getName())) return;
+    readRows_(sh).forEach(function (r) {
+      var ten = String(r[cIdx.name - 1] || '').toLowerCase();
+      var ph = String(r[cIdx.phone - 1] || '').replace(/\D/g, '');
+      var ma = String(r[cIdx.code - 1] || '').toLowerCase();
+
+      var hit = laSo
+        ? (ph.indexOf(soChiSo) !== -1)
+        : (ten.indexOf(s) !== -1 || ma.indexOf(s) !== -1);
+      if (!hit) return;
+
+      var rg = rangeOf_(r[cIdx.timeText - 1]);
+      found.push({
+        code: String(r[cIdx.code - 1]).trim(),
+        tab: sh.getName(),
+        type: String(r[cIdx.type - 1]).trim(),
+        date: dateKeyOf_(r[cIdx.date - 1]),
+        start: rg ? rg.start : '',
+        end: rg ? rg.end : '',
+        timeText: String(r[cIdx.timeText - 1] || '').trim(),
+        hours: r[cIdx.hours - 1],
+        name: String(r[cIdx.name - 1] || ''),
+        phone: String(r[cIdx.phone - 1] || '').replace(/^'/, ''),
+        email: String(r[cIdx.email - 1] || ''),
+        guests: r[cIdx.guests - 1],
+        note: String(r[cIdx.note - 1] || ''),
+        event: String(r[cIdx.event - 1] || ''),
+        amount: Number(r[cIdx.amount - 1]) || 0,
+        source: String(r[cIdx.source - 1] || ''),
+        sentAt: String(r[cIdx.sentAt - 1] || ''),
+        status: shownStatus_(r, cIdx, nowMs),
+        holds: holdsSlot_(r, cIdx, nowMs)
+      });
+    });
+  });
+
+  /* Lượt SẮP TỚI xếp lên trước — nhân viên tìm khách hầu như luôn là để
+     xử lý chuyến sắp bay, không phải chuyến năm ngoái. */
+  var hnay = todayKey_();
+  found.sort(function (a, b) {
+    var aTuong = a.date >= hnay, bTuong = b.date >= hnay;
+    if (aTuong !== bTuong) return aTuong ? -1 : 1;
+    if (aTuong) return (a.date + a.start).localeCompare(b.date + b.start);
+    return (b.date + b.start).localeCompare(a.date + a.start);
+  });
+
+  return { ok: true, q: s, today: hnay, items: found.slice(0, 60), total: found.length };
+}
+
+/* ============================================================
+   LỊCH NGÀY MAI
+   ============================================================ */
+
+function tomorrowKey_() {
+  return Utilities.formatDate(new Date(new Date().getTime() + 86400000), TZ, 'yyyy-MM-dd');
+}
+
+/* Danh sách lượt bay ngày mai, đã bỏ những lượt không còn giữ chỗ. */
+function tomorrowReport_() {
+  var d = tomorrowKey_();
+  var all = bookingsBetween_(d, d);
+  if (!all.ok) return all;
+  var items = all.items.filter(function (it) {
+    return it.type === TYPE_BOOK && it.holds;
+  });
+  var tongTien = 0, tongGio = 0;
+  items.forEach(function (it) {
+    tongTien += Number(it.amount) || 0;
+    tongGio += Number(it.hours) || 0;
+  });
+  return {
+    ok: true, date: d, today: todayKey_(),
+    count: items.length, totalAmount: tongTien, totalHours: tongGio,
+    items: items
+  };
+}
+
+/* ============================================================
    TRA CỨU (khách nhập mã hoặc SĐT)
    ============================================================ */
 
@@ -905,6 +1023,195 @@ function lookup_(q) {
     return String(a.date + a.timeText).localeCompare(String(b.date + b.timeText));
   });
   return { ok: true, items: found };
+}
+
+/* ============================================================
+   EMAIL BÁO CÁO LỊCH NGÀY MAI — chạy tự động 21:00 mỗi tối
+   ------------------------------------------------------------
+   Đặt lịch chạy: mở trình soạn thảo, chọn hàm TAO_LICH_GUI_21H rồi bấm
+   Chạy MỘT LẦN. Hàm đó tự tạo trigger giúp bạn, không phải bấm tay
+   trong menu Trigger. Muốn kiểm tra nội dung thư thì chạy
+   TEST_guiBaoCaoNgay — nó gửi ngay lập tức.
+   ============================================================ */
+
+function fmtVnd_(n) {
+  n = Math.round(Number(n) || 0);
+  return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + 'đ';
+}
+
+function ddmm_(dateKey) {
+  var p = String(dateKey || '').split('-');
+  return p.length === 3 ? (p[2] + '/' + p[1] + '/' + p[0]) : dateKey;
+}
+
+var DOW_VN_ = ['Chủ nhật', 'Thứ hai', 'Thứ ba', 'Thứ tư', 'Thứ năm', 'Thứ sáu', 'Thứ bảy'];
+
+function thuCua_(dateKey) {
+  var d = new Date(dateKey + 'T00:00:00Z');
+  return DOW_VN_[d.getUTCDay()];
+}
+
+/* HÀM ĐƯỢC TRIGGER GỌI. Đừng đổi tên — đổi thì trigger cũ trỏ vào hư
+   không và im lặng không chạy nữa. */
+function guiBaoCaoNgayMai() {
+  var r = tomorrowReport_();
+  if (!r.ok) throw new Error('Không đọc được lịch ngày mai: ' + r.error);
+
+  if (!r.count && !REPORT_KHI_TRONG) return 'Ngày mai trống, không gửi (REPORT_KHI_TRONG = false).';
+
+  var ngay = ddmm_(r.date);
+  var subject = '[TFD] Lịch bay ngày mai ' + ngay + ' — ' +
+    (r.count ? r.count + ' lượt' : 'không có lượt nào');
+
+  var head = '<div style="font-family:Arial,Helvetica,sans-serif;color:#1B2531;' +
+    'max-width:640px;margin:0 auto">' +
+    '<div style="background:#0D2440;color:#F8F5EE;padding:22px 24px;border-radius:12px 12px 0 0">' +
+      '<div style="font-size:11px;letter-spacing:2px;color:#9CC4E4">THE FLIGHT DECK</div>' +
+      '<div style="font-size:22px;margin-top:4px">Lịch bay ngày mai</div>' +
+      '<div style="font-size:14px;color:#DFC98F;margin-top:2px">' +
+        thuCua_(r.date) + ', ' + ngay + '</div>' +
+    '</div>' +
+    '<div style="border:1px solid #D5CEBE;border-top:0;border-radius:0 0 12px 12px;' +
+    'padding:22px 24px;background:#F8F5EE">';
+
+  var body;
+  if (!r.count) {
+    body = '<p style="margin:0;font-size:15px">Ngày mai <strong>không có lượt bay nào</strong> ' +
+      'được đặt trước.</p>' +
+      '<p style="margin:14px 0 0;font-size:13px;color:#5E6D7E">' +
+      'Thư này vẫn được gửi mỗi tối để bạn biết hệ thống còn chạy. ' +
+      'Không nhận được thư nghĩa là có gì đó hỏng, không phải là mai rảnh.</p>';
+  } else {
+    var rows = r.items.map(function (it, i) {
+      var nen = (i % 2) ? '#EDF3F8' : '#FFFFFF';
+      return '<tr style="background:' + nen + '">' +
+        '<td style="padding:10px 12px;border-bottom:1px solid #E7E0D0;font-weight:bold;' +
+          'font-family:monospace;font-size:15px;white-space:nowrap">' +
+          escHtml2_(it.start + ' – ' + it.end) + '</td>' +
+        '<td style="padding:10px 12px;border-bottom:1px solid #E7E0D0">' +
+          '<strong>' + escHtml2_(it.name) + '</strong><br>' +
+          '<span style="color:#5E6D7E;font-size:13px">' + escHtml2_(it.phone || 'chưa có SĐT') + '</span>' +
+        '</td>' +
+        '<td style="padding:10px 12px;border-bottom:1px solid #E7E0D0;text-align:center;white-space:nowrap">' +
+          escHtml2_(it.hours || '?') + ' tiếng<br>' +
+          '<span style="color:#5E6D7E;font-size:13px">' + escHtml2_(it.guests || 1) + ' khách</span>' +
+        '</td>' +
+        '<td style="padding:10px 12px;border-bottom:1px solid #E7E0D0;text-align:right;white-space:nowrap">' +
+          fmtVnd_(it.amount) + '<br>' +
+          '<span style="font-size:12px;color:' +
+            (it.status === ST_OK ? '#2E7D5B' : '#A8752A') + '">' +
+            escHtml2_(it.status) + '</span>' +
+        '</td></tr>';
+    }).join('');
+
+    body =
+      '<p style="margin:0 0 16px;font-size:15px">Ngày mai có <strong>' + r.count +
+        ' lượt bay</strong>, tổng <strong>' + r.totalHours + ' tiếng</strong>, ' +
+        'doanh thu dự kiến <strong>' + fmtVnd_(r.totalAmount) + '</strong>.</p>' +
+      '<table style="width:100%;border-collapse:collapse;font-size:14px;' +
+        'border:1px solid #D5CEBE;border-radius:8px;overflow:hidden">' +
+        '<tr style="background:#0D2440;color:#F8F5EE;font-size:11px;letter-spacing:1px">' +
+          '<th style="padding:9px 12px;text-align:left">GIỜ BAY</th>' +
+          '<th style="padding:9px 12px;text-align:left">KHÁCH</th>' +
+          '<th style="padding:9px 12px;text-align:center">THỜI LƯỢNG</th>' +
+          '<th style="padding:9px 12px;text-align:right">SỐ TIỀN</th>' +
+        '</tr>' + rows +
+      '</table>';
+
+    var choTT = r.items.filter(function (it) { return it.status === ST_PENDING; });
+    if (choTT.length) {
+      body += '<p style="margin:16px 0 0;padding:11px 14px;background:#FDF6E9;' +
+        'border:1px solid #EBD9B4;border-radius:6px;font-size:14px;color:#A8752A">' +
+        '⚠️ Còn <strong>' + choTT.length + ' lượt chưa xác nhận thanh toán</strong>: ' +
+        escHtml2_(choTT.map(function (x) { return x.name; }).join(', ')) +
+        '. Kiểm tra Zalo rồi xác nhận trên trang lịch giúp nhé.</p>';
+    }
+  }
+
+  var foot = '<p style="margin:20px 0 0;font-size:12px;color:#5E6D7E;' +
+    'border-top:1px solid #E7E0D0;padding-top:14px">' +
+    'Thư tự động gửi lúc 21:00 mỗi tối · The Flight Deck · 86 Đặng Văn Ngữ, Phú Nhuận' +
+    '</p></div></div>';
+
+  /* MailApp chứ không GmailApp: MailApp chỉ cần quyền gửi thư
+     (script.send_mail), GmailApp đòi quyền đọc TOÀN BỘ hộp thư. Xin
+     quyền rộng hơn mức cần là thói quen tồi, và ở dự án này nó từng làm
+     email im lặng không gửi được vì thiếu quyền. */
+  MailApp.sendEmail({
+    to: REPORT_TO,
+    subject: subject,
+    htmlBody: head + body + foot,
+    name: 'The Flight Deck'
+  });
+
+  var kq = 'Đã gửi báo cáo ' + ngay + ' tới ' + REPORT_TO + ' (' + r.count + ' lượt).';
+  Logger.log(kq); console.log(kq);
+  return kq;
+}
+
+function escHtml2_(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+/* ------------------------------------------------------------
+   TẠO LỊCH CHẠY TỰ ĐỘNG — chạy hàm này MỘT LẦN trong trình soạn thảo
+   ------------------------------------------------------------
+   Tự xoá trigger cũ của cùng hàm trước khi tạo mới, nên bấm Chạy nhiều
+   lần cũng không sinh ra 5 cái trigger gửi 5 email mỗi tối.
+
+   ⚠️ Google chạy trigger theo giờ trong một KHUNG chứ không đúng phút:
+   đặt 21:00 thì thư thường tới trong khoảng 21:00–21:15, thỉnh thoảng
+   trễ hơn. Đây là giới hạn của Apps Script, không sửa được bằng code.
+   ------------------------------------------------------------ */
+function TAO_LICH_GUI_21H() {
+  var da = 0;
+  ScriptApp.getProjectTriggers().forEach(function (t) {
+    if (t.getHandlerFunction() === 'guiBaoCaoNgayMai') {
+      ScriptApp.deleteTrigger(t); da++;
+    }
+  });
+
+  ScriptApp.newTrigger('guiBaoCaoNgayMai')
+    .timeBased()
+    .atHour(21)
+    .nearMinute(0)
+    .everyDays(1)
+    .inTimezone(TZ)
+    .create();
+
+  var kq = 'Đã đặt lịch gửi báo cáo lúc 21:00 mỗi tối (giờ Việt Nam)' +
+    (da ? ' — đã xoá ' + da + ' lịch cũ trùng.' : '.') +
+    ' Thư gửi tới: ' + REPORT_TO;
+  Logger.log(kq); console.log(kq);
+  return kq;
+}
+
+/* Xoá lịch tự động (nếu muốn tắt) */
+function XOA_LICH_GUI() {
+  var n = 0;
+  ScriptApp.getProjectTriggers().forEach(function (t) {
+    if (t.getHandlerFunction() === 'guiBaoCaoNgayMai') { ScriptApp.deleteTrigger(t); n++; }
+  });
+  var kq = 'Đã xoá ' + n + ' lịch gửi báo cáo.';
+  Logger.log(kq); console.log(kq);
+  return kq;
+}
+
+/* Gửi thử NGAY để xem nội dung thư, không phải chờ tới 21:00 */
+function TEST_guiBaoCaoNgay() {
+  return guiBaoCaoNgayMai();
+}
+
+/* Xem đang có lịch tự động nào */
+function XEM_LICH_DANG_CO() {
+  var ds = ScriptApp.getProjectTriggers().map(function (t) {
+    return t.getHandlerFunction() + ' (' + t.getEventType() + ')';
+  });
+  var kq = ds.length ? ds.join('\n') : 'Chưa có lịch tự động nào.';
+  Logger.log(kq); console.log(kq);
+  return kq;
 }
 
 /* ============================================================

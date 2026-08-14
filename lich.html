@@ -3,31 +3,32 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>Lịch bay — The Flight Deck</title>
+  <title>Dành cho nhân viên quán — The Flight Deck</title>
   <meta name="robots" content="noindex, nofollow">
-  <meta name="theme-color" content="#ffffff">
+  <meta name="theme-color" content="#0D2440">
   <link rel="icon" type="image/png" href="images/the-flight-deck-logo.png">
   <link rel="stylesheet" href="lich.css">
 </head>
 <body>
 
 <!-- ============================================================
-     CỬA VÀO
+     MÀN HÌNH KHOÁ
      ------------------------------------------------------------
-     Mã quản lý được so ở PHÍA MÁY CHỦ (ADMIN_KEY trong Code.gs) chứ
-     không nằm trong config.js, nên nó không xuất hiện ở bất kỳ đâu
-     trong mã nguồn trang. Trang chỉ giữ mã trong localStorage của máy
-     quản lý để khỏi phải gõ lại mỗi lần mở.
+     PIN được so ở CẢ HAI phía: ở đây để mở giao diện, và ở Apps Script
+     (ADMIN_KEY) để mở dữ liệu. Bỏ vế thứ hai thì chỉ cần gọi thẳng API
+     là lấy được danh sách khách mà không qua màn này.
      ============================================================ -->
 <div class="gate" id="gate" hidden>
   <form class="gate__card" id="gate-form">
     <img src="images/the-flight-deck-logo.png" alt="">
-    <h1>Lịch bay</h1>
-    <p>Trang dành cho quản lý The Flight Deck.</p>
-    <input type="password" id="gate-key" placeholder="Mã quản lý" autocomplete="current-password"
-           aria-label="Mã quản lý" required>
-    <button type="submit" id="gate-go">Vào lịch</button>
+    <p class="gate__eyebrow">The Flight Deck</p>
+    <h1>Dành cho nhân viên quán</h1>
+    <p>Nhập mã PIN để mở bảng điều hành.</p>
+    <input type="password" id="gate-key" inputmode="numeric" placeholder="• • • • • • • •"
+           autocomplete="off" aria-label="Mã PIN" required>
+    <button type="submit" id="gate-go">Mở bảng điều hành</button>
     <p class="gate__err" id="gate-err"></p>
+    <a class="gate__back" href="index.html">← Về trang chủ</a>
   </form>
 </div>
 
@@ -36,7 +37,10 @@
   <header class="topbar">
     <a class="tb-brand" href="index.html" title="Về trang chủ">
       <img src="images/the-flight-deck-logo.png" alt="">
-      <span>Lịch bay</span>
+      <span>
+        <b>The Flight Deck</b>
+        <small>Bảng điều hành</small>
+      </span>
     </a>
 
     <button class="tb-btn" id="btn-today">Hôm nay</button>
@@ -47,7 +51,13 @@
 
     <span class="tb-spacer"></span>
 
-    <span class="tb-chip" id="chip-count">—</span>
+    <!-- Tìm theo tên khách hoặc số điện thoại -->
+    <div class="search" id="search">
+      <input type="search" id="q" placeholder="Tìm tên hoặc SĐT…"
+             autocomplete="off" aria-label="Tìm khách theo tên hoặc số điện thoại">
+      <button type="button" class="search__x" id="q-clear" aria-label="Xoá tìm kiếm">✕</button>
+      <div class="sresults" id="sresults" role="listbox" aria-label="Kết quả tìm kiếm"></div>
+    </div>
 
     <div class="tb-views" role="group" aria-label="Chế độ xem">
       <button data-view="day">Ngày</button>
@@ -56,13 +66,44 @@
     </div>
 
     <button class="tb-nav" id="btn-reload" aria-label="Tải lại" title="Tải lại">&#8635;</button>
-    <button class="tb-btn" id="btn-out" title="Thoát khỏi trang quản lý">Thoát</button>
+    <button class="tb-btn" id="btn-out" title="Khoá lại bảng điều hành">Khoá</button>
   </header>
 
   <p class="banner" id="banner" role="status" aria-live="polite"></p>
 
-  <div class="cal" id="cal">
-    <div class="loading" id="loading"></div>
+  <div class="body">
+
+    <!-- ============================================================
+         CỘT NHẮC VIỆC
+         ============================================================ -->
+    <aside class="side" id="side">
+      <div class="card">
+        <div class="card__head">
+          <span class="k">Nhắc việc</span>
+          <h2>Lịch bay ngày mai</h2>
+          <div class="d" id="tmr-date">—</div>
+        </div>
+        <div id="tmr-body">
+          <p class="tmr-none">Đang tải…</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card__head">
+          <span class="k">Kỳ đang xem</span>
+          <h2 id="sum-title">—</h2>
+        </div>
+        <div class="tmr-sum" id="sum-box">
+          <div><b id="sum-count">0</b><span>Lượt</span></div>
+          <div><b id="sum-hours">0</b><span>Giờ bay</span></div>
+          <div><b id="sum-wait">0</b><span>Chờ TT</span></div>
+        </div>
+      </div>
+    </aside>
+
+    <div class="cal" id="cal">
+      <div class="loading" id="loading"></div>
+    </div>
   </div>
 </div>
 

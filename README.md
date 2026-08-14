@@ -301,7 +301,7 @@ mới → Triển khai.** URL giữ nguyên, không cần sửa lại `config.js
 Sửa code mà quên bước này thì máy chủ vẫn chạy code cũ — đây là chỗ hay quên nhất.
 
 Kiểm tra bản đang chạy: mở URL Web App trên trình duyệt, JSON trả về có
-`"version": 4`. Số nhỏ hơn nghĩa là bản deploy còn cũ.
+`"version": 5`. Số nhỏ hơn nghĩa là bản deploy còn cũ.
 
 ### Bảng dữ liệu trong Sheet
 
@@ -383,44 +383,87 @@ Khớp **tuyệt đối**, không khớp một phần: gõ `09` mà ra danh sác
 cũng duyệt được toàn bộ khách. Kết quả không hiện email và không hiện số điện
 thoại của ai.
 
-### Trang lịch của quản lý (`lich.html`)
+### Dành cho nhân viên quán (`lich.html`)
 
-Xem toàn bộ lượt đặt trên một lịch dựng theo Google Calendar: chuyển giữa
-**Ngày / Tuần / Tháng**, mỗi lượt là một khối thời gian, bấm vào khối để xem chi
-tiết và đổi trạng thái.
+Bảng điều hành cho nhân viên: lịch bay trực quan, nhắc việc, tìm khách. Vào từ
+menu **"Dành cho nhân viên quán"** trên trang chủ.
 
-**Mở bằng cách nào:** vào `theflightdeck.tech/lich.html` (có link nhỏ ở chân
-trang chủ), nhập **mã quản lý**. Mã được lưu trên máy đó nên chỉ phải gõ một
-lần; bấm **Thoát** để xoá.
+**Mở khoá:** nhập mã PIN `20242026` (đặt cứng theo yêu cầu chủ quán). PIN được
+nhớ trên máy đó nên chỉ phải gõ một lần; bấm **Khoá** để xoá.
 
-**Đổi mã:** sửa dòng `var ADMIN_KEY = '...'` ở đầu `Code.gs`, rồi **Triển khai
-phiên bản mới**.
-
-> **Vì sao mã nằm trong `Code.gs` chứ không phải `config.js`:** `config.js` là
-> file tĩnh, trình duyệt của bất kỳ ai cũng tải được — mọi thứ trong đó xem như
-> công khai, kể cả URL Web App. Nếu endpoint đọc lịch không có khoá thì ai xem
-> mã nguồn trang cũng lấy được **toàn bộ tên, số điện thoại và email khách**.
-> Để mã ở phía máy chủ và bắt quản lý tự gõ thì chuỗi đó không xuất hiện ở bất
-> kỳ đâu trong mã nguồn trang.
+> **PIN này bảo vệ tới đâu:** nó nằm ngay trong `lich.js` — file mà mọi khách
+> vào web đều tải về. Nghĩa là nó chỉ ngăn người **vô tình** mở nhầm trang.
+> Ai chủ ý xem mã nguồn vẫn gọi thẳng API lấy được danh sách khách (tên, số
+> điện thoại, email).
 >
-> Đây **vẫn không phải đăng nhập thật**: ai biết mã là vào được, và mã đi kèm
-> mỗi lần gọi. Nó chặn người tình cờ tìm ra URL, không chặn được người cố tình.
-> Muốn chắc chắn thì phải chuyển sang xác thực bằng tài khoản Google.
+> **Muốn khoá thật:** để trống hằng số `PIN` ở đầu `lich.js`, rồi đổi
+> `ADMIN_KEY` trong `Code.gs` thành một chuỗi dài khó đoán. Nhân viên sẽ tự gõ
+> chuỗi đó một lần, trang nhớ trong máy họ, và nó **không xuất hiện ở đâu**
+> trong mã nguồn trang. Đổi hai chỗ đó là xong, không phải sửa gì khác.
+
+**Ba chế độ xem** Ngày / Tuần / Tháng. Tuần bắt đầu Thứ Hai. Hôm nay khoanh
+tròn navy, vạch đỏ chỉ giờ hiện tại (lấy giờ Việt Nam của **máy chủ**, không
+phải máy đang mở — máy đặt sai múi giờ vẫn đúng).
+
+**Cột nhắc việc bên trái** — **Lịch bay ngày mai**: ai bay, từ mấy giờ đến mấy
+giờ, bao nhiêu tiếng, mấy khách, số điện thoại. Bấm vào một dòng là nhảy thẳng
+tới ngày đó trên lịch. Bên dưới là tóm tắt kỳ đang xem (số lượt, số giờ, số lượt
+chờ thanh toán).
+
+**Thanh tìm kiếm** — gõ **tên khách** hoặc **số điện thoại**, kết quả hiện ngay;
+bấm một kết quả là nhảy tới ngày đó và tô sáng lượt bay. Khác ô tra cứu của
+khách: bên này khớp **một phần** (nhân viên đã qua PIN), bên kia khớp **tuyệt
+đối** (khớp một phần thì ai cũng duyệt được danh sách khách).
+
+**Giới hạn 1 năm** — chỉ lướt xem trước tối đa 365 ngày. Tới mốc thì nút `›` mờ
+đi. Chặn ở **cả hai phía**: giao diện khoá nút, máy chủ trả `TOO_FAR_VIEW` nếu
+ai đó sửa URL gọi thẳng API.
 
 **Màu khối theo trạng thái:** **cam = Chờ thanh toán** (lượt cần nhân viên làm
-gì đó) · xanh lá = Đã xác nhận · xám = Đã bay · mờ gạch ngang = Đã hủy / Quá hạn
-· tím = đăng ký sự kiện (chưa có giờ bay, nằm ở dải "Cả ngày").
+gì đó) · xanh lá = Đã xác nhận · navy = Đã bay · mờ gạch ngang = Đã hủy / Quá
+hạn · tím = đăng ký sự kiện.
 
-Khối trên lịch hiện **tên khách + giờ bay**; khối đủ cao hiện thêm **số điện
-thoại**, và cao hơn nữa thì thêm **số tiền + số khách**. Bấm vào khối ra thẻ chi
-tiết có đủ: số điện thoại bấm gọi được, email, số khách, **số tiền**, ghi chú,
-**giờ khách bấm đặt** (khác giờ bay) và mã đặt chỗ.
+Khối hiện **tên khách + giờ bay**; khối đủ cao hiện thêm **số điện thoại**, cao
+hơn nữa thêm **số tiền + số khách**. Bấm vào khối ra thẻ chi tiết có đủ: SĐT bấm
+gọi được, email, số khách, số tiền, ghi chú, **giờ khách bấm đặt** (khác giờ
+bay — đây là thứ để đối chiếu với ảnh Zalo) và mã đặt chỗ, kèm ba nút
+**Đã nhận tiền / Đã bay / Hủy lượt**.
 
-**Phím tắt** (giống Google Calendar): `D` Ngày · `W` Tuần · `M` Tháng ·
-`T` về hôm nay · `←` `→` lùi/tiến · `Esc` đóng thẻ chi tiết.
+**Phím tắt:** `D` Ngày · `W` Tuần · `M` Tháng · `T` về hôm nay · `←` `→` lùi/tiến
+· `/` nhảy vào ô tìm kiếm · `Esc` đóng.
 
-Đổi trạng thái sang **Đã hủy** ngay trên lịch sẽ **mở lại khung giờ đó** cho
-khách khác đặt — giống hệt việc sửa cột Trạng thái trong Sheet.
+### Email báo cáo lịch ngày mai (21:00 hằng ngày)
+
+Mỗi tối 21:00, hệ thống tự gửi email tới **theflightdeckcoffee@gmail.com** tóm
+tắt lịch bay ngày hôm sau: tên khách, giờ bay, thời lượng, số khách, số tiền,
+trạng thái, kèm cảnh báo những lượt **chưa xác nhận thanh toán**.
+
+**Bật lên — chạy MỘT LẦN, không phải bấm menu:**
+
+1. Mở Apps Script của file Sheet.
+2. Ở ô danh sách hàm trên thanh công cụ, chọn **`TAO_LICH_GUI_21H`**.
+3. Bấm **Chạy**. Lần đầu Google xin thêm quyền gửi email — **Xem lại quyền →
+   Nâng cao → Chuyển đến… → Cho phép**.
+4. Nhật ký thực thi báo: `Đã đặt lịch gửi báo cáo lúc 21:00 mỗi tối (giờ Việt Nam)`.
+
+Hàm này tự xoá lịch cũ trùng trước khi tạo mới, nên bấm Chạy nhiều lần cũng
+không sinh ra 5 cái trigger gửi 5 email mỗi tối.
+
+| Hàm | Việc |
+|---|---|
+| `TAO_LICH_GUI_21H` | Bật gửi tự động 21:00 hằng ngày |
+| `TEST_guiBaoCaoNgay` | Gửi thử **ngay** để xem nội dung thư |
+| `XEM_LICH_DANG_CO` | Xem đang có lịch tự động nào |
+| `XOA_LICH_GUI` | Tắt gửi tự động |
+
+> ⚠️ **Google chạy trigger theo KHUNG GIỜ, không đúng phút.** Đặt 21:00 thì thư
+> thường tới trong khoảng **21:00–21:15**, thỉnh thoảng trễ hơn. Đây là giới hạn
+> của Apps Script, không sửa được bằng code.
+
+**Ngày mai không có lượt nào thì VẪN GỬI** một thư báo "không có lượt bay nào".
+Im lặng khi trống nghĩa là không phân biệt được *mai rảnh* với *trigger chết từ
+tuần trước* — và cái thứ hai chỉ lộ ra khi khách đã tới nơi mà không ai biết.
+Muốn đổi: `REPORT_KHI_TRONG = false` trong `Code.gs`. Đổi người nhận: `REPORT_TO`.
 
 ### Đổi giờ mở cửa / thời lượng bay
 
