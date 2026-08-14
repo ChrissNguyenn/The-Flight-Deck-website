@@ -23,7 +23,7 @@
      một lần, trang nhớ trong máy họ, và chuỗi đó không xuất hiện ở đâu
      trong mã nguồn trang.
      ============================================================ */
-  var PIN = '20242026';
+  var PIN = '';
 
   var CFG = (typeof TFD_CONFIG !== 'undefined' && TFD_CONFIG) ? TFD_CONFIG : {};
   var API = String(CFG.BOOKING_SCRIPT_URL || '').trim();
