@@ -12,3 +12,6 @@ Desktop.ini
 
 # Node (chỉ dùng khi chạy test cục bộ)
 node_modules/
+
+# TFD Sim System: cấu hình sinh lúc deploy (tools/build-tfd-config.js) — không đẩy lên
+tfd-config.js

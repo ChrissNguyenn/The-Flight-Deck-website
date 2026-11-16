@@ -49,6 +49,15 @@ jobs:
           grep -q 'script.google.com/macros' config.js || { echo "config.js thiếu SCRIPT_URL"; exit 1; }
           echo "config.js OK"
 
+      # TFD Sim System (repo tfd-sim-system): cấu hình công khai cho /datlich, /taikhoan, /quanli —
+      # chỉ Supabase URL + anon key. Thiếu Secret thì các trang mới hiện "chưa sẵn sàng", phần còn lại vẫn deploy.
+      - name: Sinh tfd-config.js (TFD Sim System)
+        env:
+          TFD_SUPABASE_URL: ${{ secrets.TFD_SUPABASE_URL }}
+          TFD_SUPABASE_ANON_KEY: ${{ secrets.TFD_SUPABASE_ANON_KEY }}
+          TFD_ENVIRONMENT: ${{ vars.TFD_ENVIRONMENT }}
+        run: node tools/build-tfd-config.js
+
       - uses: actions/configure-pages@v5
 
       - uses: actions/upload-pages-artifact@v3
