@@ -1,7 +1,7 @@
 {
   "generator": "tfd-sim-system/web/scripts/assemble-dist.mjs",
-  "build": "f022e0c7a0b7",
-  "generated_at": "2026-11-16T07:22:58.962Z",
+  "build": "b1004ca79f1c",
+  "generated_at": "2026-11-16T09:08:53.754Z",
   "pages": [
     "/datlich/",
     "/datlich-hanoi/",
@@ -29,7 +29,7 @@
     },
     {
       "path": "datlich-hanoi/index.html",
-      "sha256": "921324289661aa5a34aef59a72cf189cebf9986312e901b761e31943212e78fe"
+      "sha256": "ff96f9809e634ac36699de563fa61244d445d266abcc294e48a2e7e96122926f"
     },
     {
       "path": "datlich.html",
@@ -37,7 +37,7 @@
     },
     {
       "path": "datlich/index.html",
-      "sha256": "f772bd8b3d2628d2b4e4961916ac47d90960b5775c1dacc6ba396a618281ba99"
+      "sha256": "73c759d743e8fe310d5fc4da245aa8d219944731933bf3ca5835aab9932661b4"
     },
     {
       "path": "doanhnghiep/index.html",
@@ -61,7 +61,7 @@
     },
     {
       "path": "quanli-hanoi/index.html",
-      "sha256": "d1b2b58ba572f07cc6d6bdade0502c478ce26c5c5dc88bced07ddff484cdad15"
+      "sha256": "6940b140d072ef07a62989229b8f05539c96abb79ca66d95898a8e46b0543d49"
     },
     {
       "path": "quanli-hanoi/manifest.webmanifest",
@@ -69,7 +69,7 @@
     },
     {
       "path": "quanli-hanoi/sw.js",
-      "sha256": "0562c16a4c92f04b4fbfe61d0281b65c25b54a3ccdfb494eac93d1fc143db191"
+      "sha256": "fb3a44fbc7aa18a2dbb17091aa5020b60b7501c7aa8e1c626f5255039b898926"
     },
     {
       "path": "quanli.html",
@@ -77,7 +77,7 @@
     },
     {
       "path": "quanli/index.html",
-      "sha256": "9d37e435def5f7a4359e2eedcc0d61ebb0379ff6644920e87dd72dea6fa735ae"
+      "sha256": "87bb28eab7644601bd31c2570921c996a36380d743eb06caf5ea9662f70ae8ab"
     },
     {
       "path": "quanli/manifest.webmanifest",
@@ -85,7 +85,7 @@
     },
     {
       "path": "quanli/sw.js",
-      "sha256": "2ce39fc21a313ef5f189743b49df6bef550dba58e28090d1ade5660c94a5bcf6"
+      "sha256": "b60f68b61b8bc865ed8a97549a00f1f2af389765eec9e8a2977b967fdca7fb5f"
     },
     {
       "path": "quanlilichbay/index.html",
@@ -97,7 +97,7 @@
     },
     {
       "path": "taikhoan/index.html",
-      "sha256": "f7b309042d2f98056b969a5946c31a37e8aafa4c77e7ef81b4716f2c1e8039be"
+      "sha256": "ead5f958dd7f75fa9791823bac545e75fc545edba259a4c3ccd456fa58ebcc87"
     },
     {
       "path": "taikhoan/manifest.webmanifest",
@@ -105,15 +105,15 @@
     },
     {
       "path": "taikhoan/sw.js",
-      "sha256": "a95dd3fed8f19022055d6843faecf87526deee70df01754402c0d8dbe4f79e8c"
+      "sha256": "f53a9adcb5cb86f99b64bc7439f82fbaf2f5c41b3acfabdc7e8dfe2c2704781d"
     },
     {
-      "path": "tfd-apps/account/assets/index-CmMt2LbN.js",
+      "path": "tfd-apps/account/assets/index-BVk4RJ_D.js",
       "sha256": "c3939de4065a2fcdd5118e3b9bd3ae475006295632e05efbcb3bdd1ebf189473"
     },
     {
-      "path": "tfd-apps/account/assets/index-DDyI9R8r.css",
-      "sha256": "4589fded027d05c9295d1a35ec160da6cc1e1f8e292ea9366a1d14b79e6f00af"
+      "path": "tfd-apps/account/assets/index-DFSAQ1D-.css",
+      "sha256": "d9b01b99dec2dcd82b4cad04e8ddbfc2a2abe087688f97f6c2d95721bdc5045a"
     },
     {
       "path": "tfd-apps/account/assets/react-PNjHM8_Y.js",
@@ -124,64 +124,64 @@
       "sha256": "fcea03d0b3a4bb8e1c3ddc29e97f100046ceee506a8b95443631aae5cc254a08"
     },
     {
-      "path": "tfd-apps/admin/assets/AlertsPage-CDoEW4im.js",
-      "sha256": "e3e0f8f4e5b976c5788723b0b98846b7c6dfb865da7bcc7f6a38519e12151860"
+      "path": "tfd-apps/admin/assets/AlertsPage-SaNJFHxN.js",
+      "sha256": "26749c45e62042a903e8629a297dbf069373717f32b3e9d545edd929c841c8dd"
     },
     {
-      "path": "tfd-apps/admin/assets/BankPage-B3sI_PHj.js",
-      "sha256": "8a88fe3f270c25253fc8b5753f8f882ae18d9b0bb21f65f80b0cfd0186f25faf"
+      "path": "tfd-apps/admin/assets/BankPage-BVFRO8rb.js",
+      "sha256": "4dba577522e94931d1a1e811ecaba962a9c019f6c751f8c877583b553a8fd34b"
     },
     {
-      "path": "tfd-apps/admin/assets/CalendarPage-CyKw_SQH.js",
-      "sha256": "a2ed337a0338ef409c7ab4b9f7d44bc4dae64bd14ec5e0b7fbab2cacbe461e93"
+      "path": "tfd-apps/admin/assets/CalendarPage-CJ7WPRJZ.js",
+      "sha256": "1c343adcc8f23b90e9c6766fb85e0ac28297846894fbd028da2587d5dfcce424"
     },
     {
-      "path": "tfd-apps/admin/assets/CustomersPage-08yUx7_H.js",
-      "sha256": "787f69a13d0cb4402f59add7fba2bc8e79aeaf7caacace646d2e8696f2036c82"
+      "path": "tfd-apps/admin/assets/CustomersPage-BrVJZnA1.js",
+      "sha256": "96fba8f9b5a8ba9c34283022b2da3ea36f63a534708dac92334f0a9869e3de59"
     },
     {
-      "path": "tfd-apps/admin/assets/DataTable-D1ie3Flp.js",
-      "sha256": "4d04bd434aa128c2c2c692d438d3030a2e068527861bcd5c881191b8ce7217e2"
+      "path": "tfd-apps/admin/assets/DataTable-CLRflnq1.js",
+      "sha256": "87c9621dbc63478072cae6b6aedf888a86a97140b2f12d38152b4abc7676b58e"
     },
     {
-      "path": "tfd-apps/admin/assets/DevicesPage-Dd3Tq4Kv.js",
-      "sha256": "c505a888c3f06bd3ca3537f169abfe5eff33a57dbb2f5b2ca249fa00e36fbf92"
+      "path": "tfd-apps/admin/assets/DevicesPage-DJLR06GU.js",
+      "sha256": "34804d8366d5cb7a938265e5a4e8fed36ee6579865c61f613fe7fbd6975b2423"
     },
     {
-      "path": "tfd-apps/admin/assets/ExportPage-Dms1uqBw.js",
-      "sha256": "2a96dabc8ea538e3f885a32193b6e28a893416adc2717b51a6a74a6f5ad88493"
+      "path": "tfd-apps/admin/assets/ExportPage-R-jVImFo.js",
+      "sha256": "1902a8db1381c90fd26c81ad9b6e0924271e96370e7211fa7f1b7d2fbe63424e"
     },
     {
-      "path": "tfd-apps/admin/assets/IposPage-Cwb_2dJr.js",
-      "sha256": "b13c6b6055b3d6285632a958339271c122650ae5c89daf7edcfe9608397e946f"
+      "path": "tfd-apps/admin/assets/IposPage-C5HTdKPL.js",
+      "sha256": "c1259d1c5c06a02c4d1c1299903a1a9c194df2834b5b52b15836edc5eb756c24"
     },
     {
-      "path": "tfd-apps/admin/assets/LivePage-BfBgFoTA.js",
-      "sha256": "3df3f5e75b6fbb734ad804e1743b60f9c37296ac275a4fb749bb907848a383a3"
+      "path": "tfd-apps/admin/assets/LivePage-BIbcg_IX.js",
+      "sha256": "e86d8cdacdd7ab424f5bec57617259bc9a80b7730e26e9dfb1c8530fd0d9dbc2"
     },
     {
-      "path": "tfd-apps/admin/assets/PilotPage-CMeG9okf.js",
-      "sha256": "5d3e6984e6033907954a1e04a974079e9b85b4d59d589bf94936eb8cbdc68cfe"
+      "path": "tfd-apps/admin/assets/PilotPage-CQIMEta1.js",
+      "sha256": "35f3c5e7003b11ed9fe89d1fc9612b277de4a376034647b44f05aa9d4c3c1489"
     },
     {
-      "path": "tfd-apps/admin/assets/PricingPage-C-i2-BmG.js",
-      "sha256": "120dccd29d2d71c6583a81598c90bf61685dde15a4195a61a803e4dd2a679f8b"
+      "path": "tfd-apps/admin/assets/PricingPage-4udkUb4Z.js",
+      "sha256": "c49c0296d51b1817bb928696fff240bcdae3d7edbd39c2748cde0a5eab532946"
     },
     {
-      "path": "tfd-apps/admin/assets/ReconciliationPage-RMB7C_Sa.js",
-      "sha256": "8e1b3ca21770d773b5b95aa99967445bc4a09ed145b061ca8e59721c96d9957b"
+      "path": "tfd-apps/admin/assets/ReconciliationPage-yLfRA44h.js",
+      "sha256": "858349166f30a6f342dd8df849f3cda9c481f24f3624180842b12f663a03452f"
     },
     {
-      "path": "tfd-apps/admin/assets/RevenuePage-D0HFqiYa.js",
-      "sha256": "ca65a2fc71054fdcfbb4cf5edae009a5bae3def16f3c8085d9bbd02b431bf58b"
+      "path": "tfd-apps/admin/assets/RevenuePage-CFHQ3422.js",
+      "sha256": "09e099c21fd339f72553c161c81871fdf8dde1722644cb5ec1ace911266d2728"
     },
     {
-      "path": "tfd-apps/admin/assets/SessionsPage-BtqDqRIz.js",
-      "sha256": "51460211deba0e4c15eec79cf4c609ab995d5ebcb47d3a34312cdcae7de98efa"
+      "path": "tfd-apps/admin/assets/SessionsPage-CRAQYF9d.js",
+      "sha256": "e5ebb537f62dda79bd2260ed5b832f30ebb97c164da68c22876281d9848c22b2"
     },
     {
-      "path": "tfd-apps/admin/assets/SettingsPage-DiUqFlzK.js",
-      "sha256": "28cf2ec7b1a9057a6a5e3fea73d8b1bbcee5ea66d1c91da5bef125a0849a3a10"
+      "path": "tfd-apps/admin/assets/SettingsPage-DvMFWmsb.js",
+      "sha256": "4293633e47f9e59b5abd1371e1b03dab61a93f274d98437fc3aee65c3a774862"
     },
     {
       "path": "tfd-apps/admin/assets/excel-BXKsL7fN.js",
@@ -192,48 +192,48 @@
       "sha256": "8335bac340baa29e977194d393379fd2caa7b63e8f20a0b510f183b09b1aefcd"
     },
     {
-      "path": "tfd-apps/admin/assets/format-DN_aWwIl.js",
-      "sha256": "db6f99c8952cc32a4ba61a02e179a89ebec4405c1d50af330a8deae5c3fd2c08"
+      "path": "tfd-apps/admin/assets/format-BOzB1lEp.js",
+      "sha256": "a6d278f68e46dbe3e5153616d228b89e38df4620b3f761e8db05cd0e76cbf1dc"
     },
     {
       "path": "tfd-apps/admin/assets/identifiers-Bzjljjvh.js",
       "sha256": "0411202f93248d5c4464b486dc0d36bbbb364b34746d6c7d1f861fd7d37ce8dc"
     },
     {
-      "path": "tfd-apps/admin/assets/index-91UJxy8c.css",
-      "sha256": "28bd1ff3b3814217939271212d9947c2355c74c5c87ae641c6519ca35ea2074b"
+      "path": "tfd-apps/admin/assets/index-D1WXFC1T.js",
+      "sha256": "55804cec67e8a3adfcf50d10d90b859d1cc680301eeae1deb1e0f01bd2ab26f0"
     },
     {
-      "path": "tfd-apps/admin/assets/index-pFPPx2NZ.js",
-      "sha256": "991ecb654d51fc5aa1889774448a2c5d65534e82ff4487fc53fbf36e2b1b5c75"
+      "path": "tfd-apps/admin/assets/index-DerDrksN.css",
+      "sha256": "90915da4d2ebaafdfb0032b3cfb6e0775d17c1260fc0dc032376f7b94be3455d"
     },
     {
-      "path": "tfd-apps/admin/assets/period-da1nrXyh.js",
-      "sha256": "601fe8252f1c365fd63dcd695aaf13dff2daf106246d782847ffa8cf5eeed486"
+      "path": "tfd-apps/admin/assets/period-B6veafzm.js",
+      "sha256": "f9b2df6f6eb169b42106dad40db65bccaaee945835516952c4987b409aebd141"
     },
     {
       "path": "tfd-apps/admin/assets/react-B32NHCDO.js",
       "sha256": "1d94246c989c0a373cebcb59367b51b5d1a2de021876bf72fc5f1c723b6f99f2"
     },
     {
-      "path": "tfd-apps/admin/assets/realtime-DQTI4gx5.js",
-      "sha256": "fa4b5ad0bb0ce56296e45585da1258d3bea2fc753ba7886149b5fc180f88cfda"
+      "path": "tfd-apps/admin/assets/realtime-3DUmBCyQ.js",
+      "sha256": "5e00c727bd4386d5d4a700e72a4845432d6f8214878921c55b1be07b38bd752d"
     },
     {
       "path": "tfd-apps/admin/assets/supabase-DXilJloH.js",
       "sha256": "5581a89afcdeae984680bd6766d0320d980703c0dec04ed5cfd8698d9f988a36"
     },
     {
-      "path": "tfd-apps/admin/assets/time-DqJpEN61.js",
-      "sha256": "efe457f0812e9e0e28cb83ce427d5b42c5387b4652c408e7e3c29cff14c406c0"
+      "path": "tfd-apps/admin/assets/time-Uhw8Evhd.js",
+      "sha256": "5f067cd622320245757342b59fff7cd6b2d91921211df5f73a3c1d51e602d14a"
     },
     {
-      "path": "tfd-apps/booking/assets/index-0O_zVMbU.css",
-      "sha256": "8d32929a0d81c4933395a340be2d56f67cac7ceb03217072c92a27399b885413"
-    },
-    {
-      "path": "tfd-apps/booking/assets/index-CzwR34DU.js",
+      "path": "tfd-apps/booking/assets/index-HHrnFKYF.js",
       "sha256": "455fc4866d76278e228b178b9199288b4301d930d157ed963d77bd70b87c3037"
+    },
+    {
+      "path": "tfd-apps/booking/assets/index-rC8Udo5u.css",
+      "sha256": "58e31d3b18a15c7ee25506cec8ec92e33718a66ec205b9a4e9faa3312f5c5a23"
     },
     {
       "path": "tfd-apps/booking/assets/react-PNjHM8_Y.js",
