@@ -16,8 +16,39 @@
   <!-- Bộ giao diện thường trực. KHÔNG nạp style.css/carrot-day.css ở đây:
        hai file đó thuộc trang sự kiện Carrot Day, nạp chung sẽ đè biến màu. -->
   <link rel="stylesheet" href="flightdeck.css">
+  <link rel="stylesheet" href="preloader.css">
+  <!-- Màn hình chờ đếm số: quyết định NGAY trong <head> để không nháy
+       trang trước khi màn navy phủ lên. Chỉ chạy lần đầu mỗi phiên;
+       thêm ?intro vào địa chỉ để xem lại. -->
+  <script>
+    (function () {
+      try {
+        var force = /[?&]intro\b/.test(location.search);
+        var calm = matchMedia("(prefers-reduced-motion: reduce)").matches;
+        if (force || (!calm && !sessionStorage.getItem("tfd-intro-seen")))
+          document.documentElement.classList.add("tfd-intro");
+      } catch (e) {}
+    })();
+  </script>
 </head>
 <body>
+
+<!-- Màn hình chờ (theo Figma "Loading screen 1"): số đếm 0 → 100%,
+     rồi tiêu đề A320 trồi lên, rồi cả màn kéo lên lộ hero bên dưới -->
+<div class="tfd-loader" id="tfd-loader" aria-hidden="true">
+  <div class="tfd-loader__photo"></div>
+  <div class="tfd-loader__stage">
+    <div class="tfd-loader__mask">
+      <span class="tfd-loader__count"><span id="tfd-loader-num">0</span>%</span>
+    </div>
+    <p class="tfd-loader__title">
+      <span class="ln"><span>Airbus A320</span></span>
+      <span class="ln"><span>Simulated</span></span>
+      <span class="ln"><span>Cockpit</span></span>
+    </p>
+  </div>
+</div>
+<script src="preloader.js"></script>
 
 <a class="skip-link" href="#dat-lich">Bỏ qua, tới phần đặt lịch</a>
 
