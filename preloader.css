@@ -1,0 +1,124 @@
+/* ============================================================
+   THE FLIGHT DECK — màn hình chờ đếm số (0 → 100%)
+   ------------------------------------------------------------
+   Theo Figma "TheFlightDeck-website" (frame "Loading screen 1"):
+     nền #20354E, số Helvetica Regular 300px trắng ở góc dưới trái
+     (lề 26px trên khung 1280), ngay dưới là tiêu đề Helvetica Bold
+     96px "AIRBUS A320 SIMULATED COCKPIT".
+
+   Trình tự:
+     1. Số đếm 0 → 100%.
+     2. Số trượt lên khỏi khung, tiêu đề A320 trồi lên từ dưới
+        (đúng thứ tự trên Figma: tiêu đề nằm ngay dưới con số),
+        ảnh buồng lái hiện dần phía sau.
+     3. Cả màn kéo lên như rèm, lộ ra hero của trang chủ.
+
+   Chỉ chạy khi <html> có class "tfd-intro" (gắn bởi script nhỏ trong
+   <head>). Không JS, đã xem trong phiên này, hoặc bật "giảm chuyển
+   động" thì màn này không hiện — trang vào thẳng như cũ.
+   ============================================================ */
+
+.tfd-loader { display: none; }
+
+.tfd-intro .tfd-loader {
+  --tfd-bg: #20354E;
+  --tfd-pad: clamp(16px, 2.03vw, 40px);            /* 26px trên khung 1280 */
+  display: block;
+  position: fixed; inset: 0; z-index: 9999;
+  background: var(--tfd-bg);
+  color: #FFFFFF;
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  overflow: hidden;
+  clip-path: inset(0 0 0 0);
+  transition: clip-path 1.15s cubic-bezier(.76, 0, .24, 1);
+  will-change: clip-path;
+}
+.tfd-intro { overflow: hidden; }                   /* khoá cuộn khi đang chạy */
+.tfd-intro.tfd-intro--out { overflow: auto; }
+.tfd-intro--out .tfd-loader { clip-path: inset(0 0 100% 0); pointer-events: none; }
+
+/* Ảnh buồng lái mờ phía sau tiêu đề (bước 2) */
+.tfd-loader__photo {
+  position: absolute; inset: 0;
+  background: url("images/TheFlightDeck cockpit.jpg") center / cover no-repeat;
+  opacity: 0;
+  transform: scale(1.14);
+  transition: opacity 1.1s ease, transform 2.4s cubic-bezier(.22, 1, .36, 1);
+}
+.tfd-loader__photo::after {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(180deg, rgba(32, 53, 78, .55) 0%, rgba(32, 53, 78, .9) 100%);
+}
+.tfd-intro--title .tfd-loader__photo { opacity: 1; transform: scale(1); }
+
+/* Khối chữ neo góc dưới trái */
+.tfd-loader__stage {
+  position: absolute;
+  left: var(--tfd-pad); right: var(--tfd-pad);
+  bottom: clamp(4px, 1vw, 16px);
+}
+
+/* ---- Bước 1: con số ---- */
+.tfd-loader__mask { overflow: hidden; }
+.tfd-loader__count {
+  display: block;
+  font-weight: 400;
+  font-size: clamp(120px, 23.44vw, 420px);         /* 300px trên khung 1280 */
+  line-height: 1;
+  letter-spacing: -.02em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  transform: translateY(100%);
+  animation: tfd-rise .9s cubic-bezier(.22, 1, .36, 1) .1s forwards;
+}
+@keyframes tfd-rise { to { transform: translateY(0); } }
+@keyframes tfd-leave { from { transform: translateY(0); } to { transform: translateY(-105%); } }
+.tfd-intro--title .tfd-loader__count {
+  animation: tfd-leave .8s cubic-bezier(.76, 0, .24, 1) forwards;
+}
+
+/* ---- Bước 2: tiêu đề A320 thay chỗ con số ---- */
+.tfd-loader__title {
+  position: absolute; left: 0; bottom: clamp(12px, 2vw, 32px);
+  margin: 0;
+  font-weight: 700;
+  font-size: clamp(40px, 7.5vw, 136px);            /* 96px trên khung 1280 */
+  line-height: 1.08;
+  letter-spacing: -.01em;
+  text-transform: uppercase;
+  color: #FFFFFF;
+}
+.tfd-loader__title .ln { display: block; overflow: hidden; }
+.tfd-loader__title .ln > span {
+  display: block;
+  transform: translateY(105%);
+  transition: transform 1s cubic-bezier(.22, 1, .36, 1);
+}
+.tfd-intro--title .tfd-loader__title .ln > span { transform: translateY(0); }
+.tfd-intro--title .tfd-loader__title .ln:nth-child(1) > span { transition-delay: .3s; }
+.tfd-intro--title .tfd-loader__title .ln:nth-child(2) > span { transition-delay: .4s; }
+.tfd-intro--title .tfd-loader__title .ln:nth-child(3) > span { transition-delay: .5s; }
+
+/* ---------- Bước 3: hero trang chủ lộ ra sau rèm ---------- */
+.tfd-intro .hero__bg {
+  transform: scale(1.12);
+  transition: transform 1.8s cubic-bezier(.22, 1, .36, 1);
+}
+.tfd-intro .hero__inner > * {
+  opacity: 0;
+  transform: translateY(36px);
+  transition: opacity .9s ease, transform 1s cubic-bezier(.22, 1, .36, 1);
+}
+.tfd-intro .site-header {
+  opacity: 0;
+  transition: opacity .8s ease .5s;
+}
+.tfd-intro--out .hero__bg { transform: scale(1); }
+.tfd-intro--out .site-header { opacity: 1; }
+.tfd-intro--out .hero__inner > * { opacity: 1; transform: none; }
+.tfd-intro--out .hero__inner > :nth-child(1) { transition-delay: .35s; }
+.tfd-intro--out .hero__inner > :nth-child(2) { transition-delay: .45s; }
+.tfd-intro--out .hero__inner > :nth-child(3) { transition-delay: .58s; }
+.tfd-intro--out .hero__inner > :nth-child(4) { transition-delay: .68s; }
+.tfd-intro--out .hero__inner > :nth-child(5) { transition-delay: .78s; }
+.tfd-intro--out .hero__inner > :nth-child(6) { transition-delay: .9s; }
