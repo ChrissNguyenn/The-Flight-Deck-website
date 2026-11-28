@@ -204,191 +204,24 @@
   <section class="section section--frost" id="dat-lich">
     <div class="wrap">
 
-      <div class="sec-head--center reveal" style="margin-bottom:38px">
-        <p class="eyebrow eyebrow--center">Đặt lịch</p>
-        <h2 class="sec-title">Chọn giờ bay của bạn</h2>
-        <p class="sec-lead">
-          Buồng lái mở cửa mỗi ngày từ 9:00 sáng đến 9:00 tối. Chọn ngày, số giờ bay
-          và giờ bắt đầu — hệ thống tự tính giờ kết thúc cho bạn.
+      <!-- TẠM THỜI: đặt lịch online chưa sẵn sàng nên phần này chỉ báo COMING SOON.
+           Form đặt lịch, bước thanh toán VietQR và ô tra cứu cũ vẫn nằm trong git
+           history (commit trước "Show COMING SOON on the homepage booking section")
+           — khôi phục lại phần đó khi hệ thống đã sẵn sàng. -->
+      <div class="event-none reveal">
+        <p class="event-none__code">COMING SOON</p>
+        <h3 class="event-none__title">Đặt lịch bay online sắp ra mắt</h3>
+        <p class="event-none__lead">
+          Hệ thống đặt lịch online đang được hoàn thiện. Trong thời gian này, bạn vui lòng
+          đặt lịch bay qua hotline hoặc Facebook — buồng lái vẫn mở cửa mỗi ngày từ 9:00 đến 21:00.
         </p>
-      </div>
-
-      <div class="book-panel reveal">
-        <form id="book-form" novalidate>
-          <div class="book-grid">
-
-            <!-- ---------- Cột trái: chọn giờ ---------- -->
-            <div class="book-left">
-
-              <div class="step">
-                <span class="step__num">1</span>
-                <span class="step__label">Chọn ngày bay</span>
-              </div>
-              <div class="day-rail" id="day-rail" role="group" aria-label="Chọn ngày bay"></div>
-              <p class="err-msg" id="err-date"></p>
-
-              <div class="step">
-                <span class="step__num">2</span>
-                <span class="step__label">Bay bao lâu?</span>
-              </div>
-              <div class="dur-row" id="dur-row">
-                <label class="dur-opt">
-                  <input type="radio" name="hours" value="1" checked>
-                  <span><b>1</b><small>TIẾNG</small></span>
-                </label>
-                <label class="dur-opt">
-                  <input type="radio" name="hours" value="2">
-                  <span><b>2</b><small>TIẾNG</small></span>
-                </label>
-                <label class="dur-opt">
-                  <input type="radio" name="hours" value="3">
-                  <span><b>3</b><small>TIẾNG</small></span>
-                </label>
-                <label class="dur-opt">
-                  <input type="radio" name="hours" value="4">
-                  <span><b>4</b><small>TIẾNG</small></span>
-                </label>
-              </div>
-
-              <div class="step">
-                <span class="step__num">3</span>
-                <span class="step__label">Giờ bắt đầu</span>
-              </div>
-              <div class="slot-wrap" id="slot-wrap" role="group" aria-label="Chọn giờ bắt đầu"></div>
-              <p class="err-msg" id="err-start"></p>
-
-            </div>
-
-            <!-- ---------- Cột phải: tóm tắt + thông tin khách ---------- -->
-            <div class="book-right">
-              <p class="summary__title">Chuyến bay của bạn</p>
-
-              <div class="summary-time is-empty" id="sum-time">
-                <span class="summary-time__range" id="sum-range">Chọn giờ bắt đầu ở bên trái</span>
-                <span class="summary-time__date" id="sum-date"></span>
-              </div>
-
-              <ul class="summary-list">
-                <li><span class="k">Ngày bay</span><span class="v" id="sum-day">—</span></li>
-                <li><span class="k">Thời lượng</span><span class="v" id="sum-dur">1 tiếng</span></li>
-                <li><span class="k">Đơn giá</span><span class="v" id="sum-rate">500.000đ / giờ</span></li>
-                <li><span class="k">Có mặt trước</span><span class="v">10 phút</span></li>
-              </ul>
-
-              <div class="total">
-                <span class="total__k">Tổng cộng</span>
-                <span class="total__v" id="sum-total">500.000đ</span>
-              </div>
-
-              <p class="note">
-                Buồng lái có 2 ghế: <b>1 người 500.000đ/giờ</b>, <b>từ 2 người 700.000đ/giờ</b>.
-                Bạn vui lòng có mặt trước giờ bay 10 phút để nghe hướng dẫn an toàn.
-              </p>
-
-              <div class="field">
-                <label for="bk-hoten">Họ và tên <span class="req">*</span></label>
-                <input type="text" id="bk-hoten" name="name" autocomplete="name" placeholder="Nguyễn Văn A" required>
-                <p class="err-msg" id="err-name"></p>
-              </div>
-
-              <div class="field-2">
-                <div class="field">
-                  <label for="bk-sdt">Số điện thoại <span class="req">*</span></label>
-                  <input type="tel" id="bk-sdt" name="phone" inputmode="numeric" autocomplete="tel" placeholder="09xx xxx xxx" required>
-                  <p class="err-msg" id="err-phone"></p>
-                </div>
-                <div class="field">
-                  <label for="bk-sokhach">Số khách</label>
-                  <select id="bk-sokhach" name="guests">
-                    <option value="1">1 người</option>
-                    <option value="2" selected>2 người</option>
-                    <option value="3">3 người</option>
-                    <option value="4">4 người</option>
-                    <option value="5">5 người</option>
-                    <option value="6">6 người trở lên</option>
-                  </select>
-                </div>
-              </div>
-
-              <div class="field">
-                <label for="bk-email">Email</label>
-                <input type="email" id="bk-email" name="email" autocomplete="email" placeholder="ban@email.com">
-                <p class="err-msg" id="err-email"></p>
-              </div>
-
-              <div class="field">
-                <label for="bk-ghichu">Ghi chú</label>
-                <textarea id="bk-ghichu" name="note" placeholder="Lần đầu bay, đi cùng trẻ nhỏ, muốn bay chặng nào…"></textarea>
-              </div>
-
-              <button type="submit" class="btn btn-primary btn-block btn-lg" id="bk-submit">Giữ chỗ &amp; thanh toán</button>
-              <div class="form-result" id="bk-result" role="status" aria-live="polite"></div>
-            </div>
-
-          </div>
-        </form>
-
-        <!-- ============================================================
-             BƯỚC THANH TOÁN
-             ------------------------------------------------------------
-             Hiện ra sau khi giữ chỗ thành công, thay cho form. Mã VietQR
-             được sinh ngay trên máy khách (vietqr.js) với SỐ TIỀN và NỘI
-             DUNG chuyển khoản điền sẵn — khách không gõ nhầm số tiền, và
-             nhân viên đối chiếu ảnh Zalo với đúng mã trong vài giây.
-             ============================================================ -->
-        <div class="pay hidden" id="pay-panel">
-          <div class="pay__head">
-            <p class="eyebrow" style="margin-bottom:8px">Bước cuối</p>
-            <h3 id="pay-title">Chuyển khoản để xác nhận chỗ</h3>
-            <p id="pay-sub">Chúng tôi đang giữ chỗ cho bạn.</p>
-          </div>
-
-          <div class="pay__grid">
-            <div class="pay__qr">
-              <div id="pay-qr" class="pay__qrbox"></div>
-              <p class="pay__qrhint">Mở app ngân hàng &rarr; Quét mã &rarr; số tiền và nội dung đã điền sẵn</p>
-            </div>
-
-            <div class="pay__info">
-              <dl class="pay__rows">
-                <div><dt>Số tiền</dt><dd class="pay__amount" id="pay-amount">—</dd></div>
-                <div><dt>Ngân hàng</dt><dd id="pay-bank">—</dd></div>
-                <div><dt>Số tài khoản</dt><dd><b id="pay-acc">—</b>
-                  <button type="button" class="copy" data-copy="pay-acc">Chép</button></dd></div>
-                <div><dt>Chủ tài khoản</dt><dd id="pay-owner">—</dd></div>
-                <div><dt>Nội dung CK</dt><dd><b id="pay-note">—</b>
-                  <button type="button" class="copy" data-copy="pay-note">Chép</button></dd></div>
-                <div><dt>Chuyến bay</dt><dd id="pay-when">—</dd></div>
-                <div><dt>Mã đặt chỗ</dt><dd><code id="pay-code">—</code></dd></div>
-              </dl>
-
-              <p class="pay__warn" id="pay-deadline"></p>
-
-              <a class="btn btn-gold btn-block" id="pay-zalo" href="#" target="_blank" rel="noopener">
-                Gửi ảnh chuyển khoản qua Zalo
-              </a>
-              <p class="pay__last">
-                Sau khi nhận được ảnh, chúng tôi xác nhận và gọi lại cho bạn.
-                Cần hỗ trợ: <a href="tel:0919686320">0919 686 320</a>.
-              </p>
-              <button type="button" class="btn btn-ghost btn-block" id="pay-again" style="margin-top:10px">Đặt thêm lượt khác</button>
-            </div>
-          </div>
+        <div class="btn-row btn-row--center">
+          <a class="btn btn-gold" href="tel:0919686320">Gọi 0919 686 320</a>
+          <a class="btn btn-light" href="https://www.facebook.com/theflightdeckofficial/" target="_blank" rel="noopener">Nhắn tin Facebook</a>
         </div>
-      </div>
-
-      <!-- ---------- Tra cứu đặt chỗ ---------- -->
-      <div class="lookup reveal" id="tra-cuu">
-        <div class="lookup__head">
-          <h3>Đã đặt rồi? Tra cứu chuyến bay của bạn</h3>
-          <p>Nhập <b>mã đặt chỗ</b> hoặc <b>số điện thoại</b> đã dùng khi đặt.</p>
-        </div>
-        <form class="lookup__form" id="lk-form" novalidate>
-          <input type="text" id="lk-q" placeholder="TFD2608130042 hoặc 09xx xxx xxx"
-                 aria-label="Mã đặt chỗ hoặc số điện thoại" autocomplete="off">
-          <button type="submit" class="btn btn-primary" id="lk-go">Tra cứu</button>
-        </form>
-        <div id="lk-result" class="lookup__result" role="status" aria-live="polite"></div>
+        <p class="event-none__note">
+          Đã đặt lịch online trước đây? Vui lòng gọi <a href="tel:0919686320">0919 686 320</a> để xác nhận lại lịch bay.
+        </p>
       </div>
 
     </div>

@@ -528,6 +528,11 @@ p { margin: 0 0 1em; }
   font-weight: 300; position: relative;
 }
 .event-none .btn-row { position: relative; }
+.event-none__note {
+  position: relative; max-width: 46ch; margin: 28px auto 0;
+  font-size: 14px; color: #A9BED2;
+}
+.event-none__note a { color: var(--gold-soft); font-weight: 600; }
 
 /* ============================================================
    FORM (dùng chung cho form sự kiện & form đặt lịch)

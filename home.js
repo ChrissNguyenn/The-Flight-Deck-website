@@ -235,6 +235,7 @@
 
   function renderSummary() {
     var box = $('sum-time'), range = $('sum-range'), sub = $('sum-date');
+    if (!box) return;   // phần đặt lịch đang tạm ẩn (COMING SOON)
     $('sum-dur').textContent = state.hours + ' tiếng';
     $('sum-day').textContent = state.date ? TFD_BOOK.prettyDate(state.date) : '—';
 
